@@ -97,7 +97,7 @@ jobs:
           cat checksums.txt
 
       - name: Publish the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: artifacts/*
           draft: true # a human decides when it goes live, and can read the notes first
