@@ -409,6 +409,59 @@ runtime will refuse to load a Homebrew dylib — that needs
 It works in development and fails only in the signed build, so it is worth remembering before the
 jpackage work the `.icns` is already waiting for.
 
+## Packaging
+
+`./mvnw -Pdist package` → a `.deb`, `.dmg` or `.msi` in `target/dist` with a jlinked runtime, ~74 MB
+installed, no JDK needed. `-Djpackage.type=app-image` gives an unpackaged bundle, which is far faster
+to iterate on.
+
+**No moditect.** Every dependency ships a real module descriptor, which is the single thing that
+usually makes packaging a JavaFX app painful — contrast Editora, where half the dist profile is
+hand-written `module-info` sources for automatic modules.
+
+Four things the profile has to get right, each verified rather than assumed:
+
+- **openjfx publishes every module twice.** The classifier-less `javafx-graphics-26.0.1.jar` is
+  genuinely **empty** (measured: 2 entries, 70 bytes); the real one, with `module-info` and the
+  natives, carries a platform classifier. Both are in the dependency tree, and two jars claiming
+  `javafx.graphics` on one module path is an error at best — at worst the empty one wins and the
+  image has no graphics stack. The antrun step deletes the classifier-less ones before jpackage runs.
+- **`--enable-native-access=com.modula,javafx.graphics`.** Both call restricted methods for good
+  reason — FFM for librtlsdr, `System.load` for the JavaFX natives — and the JDK intends to *block*
+  that by default. Without it the app printed six warnings per start and would eventually stop
+  working.
+- **`StartupWMClass=com.modula.ModulaApp`** in the Linux `.desktop`, read off a live window with
+  `xprop`, not guessed: JavaFX derives the class from the **module main class**, not the application
+  name. Without it a desktop cannot match the running window to its launcher.
+- **`Categories` is literal in the template**, not jpackage's `DEPLOY_BUNDLE_CATEGORY` token, because
+  the flag that fills that in (`--linux-menu-group`) is Linux-only and would fail the macOS and
+  Windows builds. jpackage's own default is the literal string `Unknown`.
+
+**A "No JDK Modules found" warning is not a failure.** JDK 25 links a runtime from its own run-time
+image (JEP 493), so a Temurin JDK with no `jmods` directory still produces a complete image —
+verified: 21 modules, and the app launches.
+
+**Known issue — the macOS bundle version is not the real version.** jpackage refuses an app version
+whose first number is zero *on macOS only*, so `0.1.0` is shipped to it as `1.1.0`, and that number
+reaches `CFBundleVersion`: Finder's Get Info will say 1.1.0 while the app itself correctly says
+0.1.0 (About reads the pom-derived `AppInfo.VERSION`, which is untouched). Two ways out — release at
+`1.0.0` or above, where the problem cannot arise, or rewrite `Info.plist` after the app-image build
+and before the DMG wrap, as Editora does. Nothing does the latter yet.
+
+## CI
+
+`build.yml` — tests then packages on Linux, macOS and Windows, for every push and pull request. The
+packaging half is the point: it is what tests cannot check, and what only breaks on the two operating
+systems the author cannot try. `release.yml` — on a `v*` tag, four targets, opens a **draft** release
+with checksums; a manual dispatch is the dry run and publishes nothing.
+
+**`bash` is pinned as the shell for every step**, because `./mvnw` is a shell script and the Windows
+runner defaults to PowerShell. `fail-fast` is off so one platform cannot hide the other two, and
+`if-no-files-found: error` because a silently empty artifact is worse than a failed job.
+
+The release job **refuses to build when the tag disagrees with the pom** — a release built from a tag
+nobody can reproduce from the repository is worse than no release.
+
 ## Native bindings
 
 **Hand-written FFM, not `jextract`.** Eleven functions of a stable C API, against a generator that
