@@ -3,10 +3,13 @@
 Notable changes to Modula. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-08-09
 
-Everything so far. Modula has not been released yet, so this is the whole history rather than a
-delta; the first tag will close this section.
+The first release. Everything below is the whole history rather than a delta.
+
+Numbered 1.0.0 rather than 0.1.0 deliberately: jpackage refuses an application version whose first
+number is zero on macOS, so a 0.x build ships there with its version rewritten and the bundle
+disagrees with the application about what it is. Starting at 1.0.0 makes that impossible.
 
 ### Radio
 
@@ -61,10 +64,14 @@ delta; the first tag will close this section.
 
 ### Known issues
 
-- The macOS bundle reports version `1.x.y` for a `0.x.y` build. jpackage refuses a leading zero on
-  macOS alone; the application itself reports the true version. Releasing at `1.0.0` or above makes
-  it moot.
-- Installers are unsigned. macOS will warn on first open.
+- Installers are **unsigned**. macOS will warn on first open (right-click → Open, once); Windows
+  SmartScreen may too. Signing and notarisation are the obvious next step.
+- Medium-wave AM needs a dongle that wires the Q branch, such as an RTL-SDR Blog V3. On a stock
+  dongle the aviation band is the AM band you can actually reach.
+- Alternative frequencies are listed but not switched to; see the README for why one tuner makes
+  that an audible gap rather than a feature.
 - Closing to the tray requires a tray. A desktop with no StatusNotifierWatcher — GNOME without the
-  AppIndicator extension — has nowhere to put the icon, so closing the window quits; Modula now says
-  so rather than leaving it to be discovered.
+  AppIndicator extension — has nowhere to put the icon, so closing the window quits; Modula says so
+  in the status line and in Settings rather than leaving it to be discovered.
+
+[1.0.0]: https://github.com/adriandeleon/Modula/releases/tag/v1.0.0
