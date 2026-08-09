@@ -45,6 +45,7 @@ public final class RadioEngine implements AutoCloseable {
     private final IqSource source;
     private final AudioSink sink;
     private final DemodChain chain;
+    private final BandPlan band;
     private final Scanner scanner;
 
     private final AtomicLong requestedHz = new AtomicLong(-1);
@@ -62,7 +63,8 @@ public final class RadioEngine implements AutoCloseable {
     public RadioEngine(IqSource source, AudioSink sink, Region region, BandPlan band, SeekPolicy seekPolicy) {
         this.source = source;
         this.sink = sink;
-        this.chain = new DemodChain(region);
+        this.band = band;
+        this.chain = new DemodChain(region, band);
         this.scanner = new Scanner(band, seekPolicy);
     }
 
@@ -110,6 +112,10 @@ public final class RadioEngine implements AutoCloseable {
             return;
         }
         source.open();
+        // Medium wave sits below the tuner's floor, so the front end has to bypass it entirely.
+        if (!source.tunableRange().contains(band.minHz())) {
+            source.setDirectSampling(true);
+        }
         source.setSampleRate(DemodChain.INPUT_RATE);
         source.setGainAuto();
         source.setFrequency(hz(initialHz));

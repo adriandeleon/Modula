@@ -1,6 +1,9 @@
 package com.modula.radio;
 
+import com.modula.band.BandPlan;
+import com.modula.band.Modulation;
 import com.modula.band.Region;
+import com.modula.demod.AmDemodulator;
 import com.modula.demod.FmDiscriminator;
 import com.modula.demod.PilotTracker;
 import com.modula.demod.StereoDecoder;
@@ -84,6 +87,15 @@ public final class DemodChain {
 
     private static final double NOISE_TRANSITION_HZ = 20_000.0;
 
+    /**
+     * AM channel half-width. Broadcast AM occupies about 10 kHz total and aviation AM less, so the
+     * second stage doubles as the channel filter — there is no wide IF to keep, and no subcarriers
+     * above the audio to make room for.
+     */
+    private static final double AM_CUTOFF_HZ = 5_000.0;
+
+    private static final double AM_TRANSITION_HZ = 19_000.0;
+
     private final float[] rawI;
     private final float[] rawQ;
     private final float[] ifI;
@@ -101,6 +113,13 @@ public final class DemodChain {
     private final FirFilter sumLowPass;
     private final FirFilter noiseHighPass;
     private final Delay sumAlignment;
+    private final Modulation modulation;
+    private final FirFilter amChannelI;
+    private final FirFilter amChannelQ;
+    private final float[] amI;
+    private final float[] amQ;
+    private final AmDemodulator amDemodulator;
+
     private final FmDiscriminator discriminator;
     private final PilotTracker pilotTracker;
     private final StereoDecoder stereoDecoder;
@@ -119,10 +138,15 @@ public final class DemodChain {
     private volatile boolean stereoEnabled = true;
 
     public DemodChain(Region region) {
-        this(region, BLOCK_PAIRS);
+        this(region, BandPlan.fm(region), BLOCK_PAIRS);
     }
 
-    public DemodChain(Region region, int maxPairs) {
+    public DemodChain(Region region, BandPlan band) {
+        this(region, band, BLOCK_PAIRS);
+    }
+
+    public DemodChain(Region region, BandPlan band, int maxPairs) {
+        this.modulation = band.modulation();
         if (maxPairs < 1) {
             throw new IllegalArgumentException("maxPairs must be >= 1, got " + maxPairs);
         }
@@ -155,6 +179,18 @@ public final class DemodChain {
         this.sumAlignment = new Delay(pilotTracker.groupDelaySamples());
 
         Fft.hann(spectrumWindow);
+
+        // AM reuses the first decimation and then narrows hard: 240 kHz down to 48 kHz with a
+        // 5 kHz cutoff, which is the channel filter and the audio filter at once.
+        this.amChannelI = new FirFilter(
+                FirDesign.lowPass(FirDesign.tapsForTransition(AM_TRANSITION_HZ / IF_RATE), AM_CUTOFF_HZ / IF_RATE),
+                AUDIO_DECIMATION);
+        this.amChannelQ = new FirFilter(
+                FirDesign.lowPass(FirDesign.tapsForTransition(AM_TRANSITION_HZ / IF_RATE), AM_CUTOFF_HZ / IF_RATE),
+                AUDIO_DECIMATION);
+        this.amI = new float[audioCapacity];
+        this.amQ = new float[audioCapacity];
+        this.amDemodulator = new AmDemodulator(AUDIO_RATE);
 
         this.rawI = new float[maxPairs];
         this.rawQ = new float[maxPairs];
@@ -194,6 +230,10 @@ public final class DemodChain {
 
         signalDbfs = PowerMeter.rmsDbfs(ifI, ifQ, ifCount);
 
+        if (modulation == Modulation.AM) {
+            return processAm(ifCount, out);
+        }
+
         discriminator.demodulate(ifI, ifQ, ifCount, mpx);
 
         noiseHighPass.filter(mpx, ifCount, noise);
@@ -229,6 +269,34 @@ public final class DemodChain {
             out[b + 1] = toPcm(right[n]);
         }
         return frames * CHANNELS;
+    }
+
+    /**
+     * The AM path: narrow to the channel, take the envelope, and put the same audio on both channels.
+     *
+     * <p>Deliberately short. AM has no pilot, no difference channel, no RDS and no de-emphasis, so
+     * everything the FM path does after the discriminator simply does not apply — and pretending
+     * otherwise would light indicators for things this band cannot carry.
+     */
+    private int processAm(int ifCount, short[] out) {
+        int frames = amChannelI.filter(ifI, ifCount, amI);
+        amChannelQ.filter(ifQ, ifCount, amQ);
+        amDemodulator.demodulate(amI, amQ, frames, left);
+
+        pilotLocked = false;
+        noiseDbfs = 0.0;
+
+        for (int n = 0, b = 0; n < frames; n++, b += CHANNELS) {
+            short pcm = toPcm(left[n]);
+            out[b] = pcm;
+            out[b + 1] = pcm;
+        }
+        return frames * CHANNELS;
+    }
+
+    /** Which modulation this chain was built for; it is fixed for the chain's lifetime. */
+    public Modulation modulation() {
+        return modulation;
     }
 
     /** Signal strength of the selected channel, in dBFS. Updated once per processed block. */
@@ -295,6 +363,9 @@ public final class DemodChain {
      * bits are not being recovered, and sync-but-no-text means group decoding.
      */
     public String rdsDiagnostic() {
+        if (modulation == Modulation.AM) {
+            return "AM";
+        }
         if (!pilotLocked) {
             return "no pilot";
         }
@@ -329,6 +400,9 @@ public final class DemodChain {
         noiseHighPass.reset();
         sumAlignment.reset();
         discriminator.reset();
+        amChannelI.reset();
+        amChannelQ.reset();
+        amDemodulator.reset();
         pilotTracker.reset();
         stereoDecoder.reset();
         rdsReceiver.reset();

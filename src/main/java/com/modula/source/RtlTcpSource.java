@@ -35,6 +35,9 @@ public final class RtlTcpSource implements IqSource {
     /** Tuner range of the common R820T2/R828D. Medium wave is far below this — see {@link #tunableRange}. */
     private static final Range R820T_RANGE = new Range(24_000_000L, 1_766_000_000L);
 
+    /** Bypassing the tuner samples the ADC directly, up to half its 28.8 MHz clock. */
+    private static final Range DIRECT_RANGE = new Range(100_000L, 14_400_000L);
+
     private final String host;
     private final int port;
 
@@ -42,6 +45,7 @@ public final class RtlTcpSource implements IqSource {
     private InputStream in;
     private DataOutputStream out;
     private int tunerType;
+    private volatile boolean directSampling;
 
     public RtlTcpSource(String host, int port) {
         this.host = host;
@@ -95,9 +99,12 @@ public final class RtlTcpSource implements IqSource {
         command(CMD_SET_GAIN_MODE, 0);
     }
 
-    /** Enables the RTL-SDR Blog V3 direct-sampling Q-branch, the only way to reach HF/medium wave. */
-    public void setDirectSampling(boolean enabled) throws IOException {
+    /** Enables the direct-sampling Q branch, the only way to reach HF and medium wave. */
+    @Override
+    public boolean setDirectSampling(boolean enabled) throws IOException {
         command(CMD_SET_DIRECT_SAMPLING, enabled ? 2 : 0);
+        directSampling = enabled;
+        return enabled;
     }
 
     @Override
@@ -110,7 +117,7 @@ public final class RtlTcpSource implements IqSource {
 
     @Override
     public Range tunableRange() {
-        return R820T_RANGE;
+        return directSampling ? DIRECT_RANGE : R820T_RANGE;
     }
 
     /** The tuner type reported in the server header; 0 when unknown. */

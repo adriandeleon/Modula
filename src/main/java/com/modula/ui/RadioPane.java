@@ -64,6 +64,7 @@ public final class RadioPane extends BorderPane {
     private final Button seekUp = transportButton(Glyphs.seekUp(), "Seek up to the next station");
     private final TextField tuneEntry = new TextField();
     private final ComboBox<com.modula.band.Region> regionCombo = new ComboBox<>();
+    private final ComboBox<String> bandCombo = new ComboBox<>();
     private final Slider volumeSlider = new Slider(0, 1, 0.7);
     private final CheckBox stereoCheck = new CheckBox("Stereo");
     private final Label statusLine = new Label();
@@ -199,7 +200,11 @@ public final class RadioPane extends BorderPane {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox box = new HBox(9, volumeLabel, volumeSlider, spacer, regionCombo, stereoCheck);
+        bandCombo.getItems().setAll("FM", "AM", "AIR");
+        bandCombo.setValue(band.name());
+        bandCombo.valueProperty().addListener((o, old, value) -> setBand(value));
+
+        HBox box = new HBox(9, volumeLabel, volumeSlider, spacer, bandCombo, regionCombo, stereoCheck);
         box.getStyleClass().add("footer");
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
@@ -372,11 +377,14 @@ public final class RadioPane extends BorderPane {
 
     private void start() {
         IqSource source = createSource();
-        if (!source.tunableRange().contains(frequencyHz)) {
-            IqSource.Range range = source.tunableRange();
+        // Only refuse what nothing can reach. A frequency *below* the tuner may still be reachable by
+        // direct sampling, which the engine arranges after the device is open — so refusing here on
+        // the closed source's range would rule out medium wave on hardware that can do it.
+        IqSource.Range range = source.tunableRange();
+        if (frequencyHz > range.maxHz()) {
             setStatusText(
-                    "%.1f MHz is outside the tuner's range (%.1f–%.0f MHz)"
-                            .formatted(frequencyHz / MHZ, range.minHz() / MHZ, range.maxHz() / MHZ),
+                    "%.1f MHz is above the tuner's range (up to %.0f MHz)"
+                            .formatted(frequencyHz / MHZ, range.maxHz() / MHZ),
                     true);
             return;
         }
@@ -465,19 +473,56 @@ public final class RadioPane extends BorderPane {
         presetBar.setPresets(presets, frequencyHz);
     }
 
-    private void setRegion(com.modula.band.Region value) {
-        region = value;
-        band = BandPlan.fm(value);
+    /**
+     * Switches band, which switches modulation with it.
+     *
+     * <p>The chain is built for one modulation and keeps it for its lifetime — the filters and the
+     * demodulator are different objects, not a runtime branch — so this restarts the engine exactly
+     * as a region change does.
+     */
+    private void setBand(String name) {
+        BandPlan chosen =
+                switch (name) {
+                    case "AM" -> BandPlan.mediumWave(region);
+                    case "AIR" -> BandPlan.airband();
+                    default -> BandPlan.fm(region);
+                };
+        applyBand(chosen);
+        // Stereo is meaningless outside FM, so the control says so rather than sitting there inert.
+        stereoCheck.setDisable(!chosen.modulation().carriesStereo());
+        if (chosen.modulation() == com.modula.band.Modulation.AM && chosen.minHz() < 24_000_000L) {
+            setStatusText(
+                    "Medium wave needs a direct-sampling dongle (an RTL-SDR Blog V3); AIR is AM in tuner range.",
+                    false);
+        }
+    }
+
+    private void applyBand(BandPlan chosen) {
+        band = chosen;
         glass.setBand(band, region);
         tuneTo(band.snap(frequencyHz));
+        restartIfRunning();
+    }
+
+    private void restartIfRunning() {
         if (engine != null && engine.isRunning()) {
-            // De-emphasis and the band plan are fixed when the chain is built; restart to pick them up.
             RadioEngine e = engine;
             engine = null;
             sink = null;
             e.stop();
             start();
         }
+    }
+
+    private void setRegion(com.modula.band.Region value) {
+        region = value;
+        band = band.modulation() == com.modula.band.Modulation.FM
+                ? BandPlan.fm(value)
+                : (band.name().equals("AM") ? BandPlan.mediumWave(value) : band);
+        glass.setBand(band, region);
+        tuneTo(band.snap(frequencyHz));
+        // De-emphasis and the band plan are fixed when the chain is built; restart to pick them up.
+        restartIfRunning();
     }
 
     // --- status --------------------------------------------------------------------------------

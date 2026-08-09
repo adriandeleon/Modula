@@ -28,6 +28,9 @@ public final class RtlSdrNativeSource implements IqSource {
     /** Direct sampling via the Q branch: the RTL-SDR Blog V3's route to HF and medium wave. */
     private static final int DIRECT_SAMPLING_Q = 2;
 
+    /** Bypassing the tuner samples the ADC directly, up to half its 28.8 MHz clock. */
+    private static final Range DIRECT_RANGE = new Range(100_000L, 14_400_000L);
+
     private final int deviceIndex;
     private final int bufferBytes;
 
@@ -35,6 +38,7 @@ public final class RtlSdrNativeSource implements IqSource {
     private MemorySegment buffer;
     private MemorySegment readSlot;
     private volatile boolean open;
+    private volatile boolean directSampling;
 
     public RtlSdrNativeSource(int deviceIndex, int bufferBytes) {
         this.deviceIndex = deviceIndex;
@@ -98,10 +102,19 @@ public final class RtlSdrNativeSource implements IqSource {
         RtlSdr.setTunerGainMode(device, false);
     }
 
-    /** Enables the RTL-SDR Blog V3 direct-sampling Q branch, the only way to reach medium wave. */
-    public void setDirectSampling(boolean enabled) throws IOException {
+    /**
+     * Enables the direct-sampling Q branch, the only way an RTL-SDR reaches HF and medium wave.
+     *
+     * <p>Needs hardware that wires it — an RTL-SDR Blog V3 does, a generic dongle usually does not,
+     * and there is no way to ask. The call succeeds either way; what tells you is whether anything
+     * is received.
+     */
+    @Override
+    public boolean setDirectSampling(boolean enabled) throws IOException {
         checkOpen();
         RtlSdr.setDirectSampling(device, enabled ? DIRECT_SAMPLING_Q : 0);
+        directSampling = enabled;
+        return enabled;
     }
 
     @Override
@@ -120,7 +133,7 @@ public final class RtlSdrNativeSource implements IqSource {
 
     @Override
     public Range tunableRange() {
-        return R820T_RANGE;
+        return directSampling ? DIRECT_RANGE : R820T_RANGE;
     }
 
     @Override

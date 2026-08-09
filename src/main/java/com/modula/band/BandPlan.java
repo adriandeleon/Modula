@@ -7,7 +7,7 @@ package com.modula.band;
  * <p>Tuning is expressed as moves along this grid rather than as free-running Hz, which is what
  * makes the UI feel like a radio instead of a signal analyser.
  */
-public record BandPlan(String name, long anchorHz, int spacingHz, int channelCount) {
+public record BandPlan(String name, long anchorHz, int spacingHz, int channelCount, Modulation modulation) {
 
     public BandPlan {
         if (spacingHz <= 0) {
@@ -24,7 +24,7 @@ public record BandPlan(String name, long anchorHz, int spacingHz, int channelCou
         int spacing = region.fmSpacingHz();
         long top = 108_000_000L;
         int count = (int) ((top - anchor) / spacing) + 1;
-        return new BandPlan("FM", anchor, spacing, count);
+        return new BandPlan("FM", anchor, spacing, count, Modulation.FM);
     }
 
     /**
@@ -36,13 +36,18 @@ public record BandPlan(String name, long anchorHz, int spacingHz, int channelCou
     public static BandPlan mediumWave(Region region) {
         // 10 kHz spacing in the Americas (530–1700), 9 kHz elsewhere (531–1602).
         return region == Region.AMERICAS
-                ? new BandPlan("AM", 530_000L, 10_000, 118)
-                : new BandPlan("AM", 531_000L, 9_000, 120);
+                ? new BandPlan("AM", 530_000L, 10_000, 118, Modulation.AM)
+                : new BandPlan("AM", 531_000L, 9_000, 120, Modulation.AM);
     }
 
-    /** Aviation AM, 118–137 MHz. Within tuner range, and uses the same AM demodulator. */
+    /**
+     * Aviation AM, 118–137 MHz.
+     *
+     * <p>The one AM band a stock dongle can actually reach, since it sits well above the tuner's
+     * 24 MHz floor — which makes it the way to use the AM path without a direct-sampling dongle.
+     */
     public static BandPlan airband() {
-        return new BandPlan("Air", 118_000_000L, 25_000, 761);
+        return new BandPlan("AIR", 118_000_000L, 25_000, 761, Modulation.AM);
     }
 
     public long minHz() {

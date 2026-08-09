@@ -30,6 +30,18 @@ public interface IqSource extends AutoCloseable {
     int read(byte[] into) throws IOException;
 
     /**
+     * Switches the front end into direct-sampling mode, the only route to HF and medium wave.
+     *
+     * <p>Default is a no-op returning false: a source that cannot do it says so rather than
+     * pretending, and the caller reports why the band is unreachable instead of tuning into silence.
+     *
+     * @return whether the mode is now active
+     */
+    default boolean setDirectSampling(boolean enabled) throws IOException {
+        return false;
+    }
+
+    /**
      * The frequency range this source can actually tune.
      *
      * <p>Load-bearing, not decoration: a stock RTL-SDR tuner floors out around 24 MHz, so medium-wave
