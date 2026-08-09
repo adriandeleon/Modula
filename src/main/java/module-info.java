@@ -10,6 +10,7 @@ module com.modula {
     requires javafx.controls;
     requires java.desktop; // javax.sound.sampled
     requires java.logging; // config failures are logged, never thrown
+    requires atlantafx.base; // themes the standard controls
 
     exports com.modula;
 }

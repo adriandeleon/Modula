@@ -6,6 +6,7 @@ import com.modula.demod.PilotTracker;
 import com.modula.demod.StereoDecoder;
 import com.modula.dsp.Deemphasis;
 import com.modula.dsp.Delay;
+import com.modula.dsp.Fft;
 import com.modula.dsp.FirDesign;
 import com.modula.dsp.FirFilter;
 import com.modula.dsp.PowerMeter;
@@ -54,6 +55,15 @@ public final class DemodChain {
     /** Interleaved stereo, so two samples per frame. */
     public static final int CHANNELS = 2;
 
+    /**
+     * Bins in the spectrum snapshot. The span is the sample rate — ±600 kHz — which is a fact of the
+     * front end rather than a setting, so there is nothing to configure here either.
+     */
+    public static final int SPECTRUM_BINS = 1024;
+
+    /** Quietest level the spectrum reports, so an empty band has a floor to draw against. */
+    public static final double SPECTRUM_FLOOR_DBFS = -90.0;
+
     /** Complex samples per processed block; ~13.6 ms of audio at {@link #INPUT_RATE}. */
     public static final int BLOCK_PAIRS = 16_384;
 
@@ -98,6 +108,11 @@ public final class DemodChain {
     private final Deemphasis deemphasisLeft;
     private final Deemphasis deemphasisRight;
 
+    private final float[] spectrumRe = new float[SPECTRUM_BINS];
+    private final float[] spectrumIm = new float[SPECTRUM_BINS];
+    private final float[] spectrumWindow = new float[SPECTRUM_BINS];
+
+    private int lastPairs;
     private volatile double signalDbfs = PowerMeter.FLOOR_DBFS;
     private volatile double noiseDbfs = 0.0;
     private volatile boolean pilotLocked;
@@ -139,6 +154,8 @@ public final class DemodChain {
         // delayed identically or the L/R matrix combines two different instants.
         this.sumAlignment = new Delay(pilotTracker.groupDelaySamples());
 
+        Fft.hann(spectrumWindow);
+
         this.rawI = new float[maxPairs];
         this.rawQ = new float[maxPairs];
         this.ifI = new float[ifCapacity];
@@ -170,6 +187,7 @@ public final class DemodChain {
      */
     public int process(byte[] raw, int byteCount, short[] out) {
         int pairs = SampleFormat.u8ToFloat(raw, byteCount, rawI, rawQ);
+        lastPairs = pairs;
 
         int ifCount = channelI.filter(rawI, pairs, ifI);
         channelQ.filter(rawQ, pairs, ifQ);
@@ -216,6 +234,29 @@ public final class DemodChain {
     /** Signal strength of the selected channel, in dBFS. Updated once per processed block. */
     public double signalDbfs() {
         return signalDbfs;
+    }
+
+    /**
+     * A snapshot of the RF spectrum across the full sample rate, most negative frequency first.
+     *
+     * <p>Taken from the raw IQ of the block just processed, so it shows the neighbours as well as the
+     * tuned station. <b>Call it at status cadence, not per block</b> — it is the one deliberately
+     * allocating method on this class, and the whole point of computing it here rather than in the
+     * loop is that nine transforms a second cost nothing while seventy-three would be waste.
+     *
+     * @return {@link #SPECTRUM_BINS} values in dBFS, or null if no block has been processed
+     */
+    public float[] captureSpectrum() {
+        if (lastPairs < SPECTRUM_BINS) {
+            return null;
+        }
+        for (int n = 0; n < SPECTRUM_BINS; n++) {
+            spectrumRe[n] = rawI[n] * spectrumWindow[n];
+            spectrumIm[n] = rawQ[n] * spectrumWindow[n];
+        }
+        float[] out = new float[SPECTRUM_BINS];
+        Fft.magnitudesDb(spectrumRe, spectrumIm, out, SPECTRUM_FLOOR_DBFS);
+        return out;
     }
 
     /**

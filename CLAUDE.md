@@ -37,6 +37,31 @@ Layering, strictly enforced by what each package imports:
 - `config` — session and preset persistence; only `ConfigStore` touches the disk.
 - `ui` — the only package that touches JavaFX.
 
+### The interface
+
+Implements the **Night Dial** kit in `docs/ui-kit.html`, which is the design source of record — read
+it before changing the look. Three bands: `GlassPane` reports, the transport acts, the footer holds
+what is set once a session, with the status line pinned to the bottom edge.
+
+**Amber is a budget, not a palette.** It is spent on the frequency, on the controls that change it,
+on the spectrum's centre marker, and on a traffic announcement. Nothing else. A fifth amber thing
+stops the frequency being the brightest mark and turns the display into a panel of equals, which is
+the failure the product is defined against. Lock is teal, faults coral, everything else ink at one
+of three weights.
+
+**Every look lives in `modula.css`**, in two token blocks — night by default, daylight behind the
+`daylight` class on the root. There are no `setStyle` calls; a state is a style class, which is what
+makes `ReceiverState` expressible as a class swap rather than seven branches of string concatenation.
+
+**The transport glyphs are drawn, not typed.** ◀◀ ▶ ★ are absent from most UI and mono faces, IBM
+Plex Mono included, so typed they render from whatever fallback each platform picks. `Glyphs` draws
+them as `SVGPath` shapes, identical everywhere, taking the button's colour from the sheet.
+
+**IBM Plex Mono is bundled and is the only face allowed to show a number.** Its digits are tabular,
+so 101.5 → 107.9 does not shift the layout and −41 → −9 does not make the meter row jump while you
+listen. `Readouts` substitutes a true minus (U+2212) for the hyphen `%.0f` emits, which in a
+monospace readout reads as punctuation rather than a sign.
+
 ### Signal flow
 
 ```
@@ -193,7 +218,8 @@ frequency — the classic centre spike.
    across runs. Arrow keys step a channel; shift+arrow seeks.
 4. **Direct hardware** — done. `RtlSdrNativeSource` drives `librtlsdr` through Panama, so `rtl_tcp`
    is optional rather than required; `RadioPane.createSource` prefers the dongle and falls back.
-   Still to do: a small spectrum strip — a Canvas showing ±600 kHz, *not* a waterfall.
+6. **The Night Dial interface and the spectrum strip** — done, built together because each is half
+   of the same feedback: during a seek the dial dims and the strip is where the sweep is visible.
 5. **RDS** — done. Station name, radio text and programme type, decoded from the 57 kHz subcarrier.
 
 Deferred: RDS clock-time and alternative-frequency groups, the full RDS character repertoire (the
@@ -226,6 +252,25 @@ inside `rtlsdr_read_sync` is exactly the crash this avoids.
 Reads are synchronous. The asynchronous API wants a callback on its own thread, while the engine's
 loop is already a thread that wants to block on a read; at 13.6 ms a block, `rtlsdr_read_sync`
 returns long before any timeout.
+
+## The spectrum strip
+
+**A Canvas has no layout opinion and must be taught one.** Binding its size to its parent's is the
+obvious move and is a trap — the canvas is a child of what it measures, so the binding feeds back and
+the strip grows without bound until it pushes everything below it out of the panel. `SpectrumStrip`
+answers the layout queries and accepts `resize()` instead.
+
+**The dB range is fixed, not adaptive.** −75 to −15 dBFS, measured off air: a station peaks near −22
+and the floor sits around −66. A self-rescaling axis would make the sweep during a seek unreadable,
+because everything would move at once.
+
+**The transform runs at status cadence, not per block** — `DemodChain.captureSpectrum` is called from
+`RadioEngine.publish`, so nine transforms a second rather than seventy-three, and it is the one
+deliberately allocating method on the chain.
+
+Ticks land on `BandPlan` grid points rather than at round frequencies, so a neighbour reads as "the
+next station up" instead of as an offset in kilohertz. No waterfall, no dB axis, no peak hold, no
+span control: the span is the sample rate, which is a fact of the front end rather than a setting.
 
 ## RDS notes
 

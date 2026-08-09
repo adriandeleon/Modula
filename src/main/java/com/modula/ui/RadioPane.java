@@ -12,19 +12,19 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 
 import com.modula.audio.JavaSoundSink;
 import com.modula.band.BandPlan;
-import com.modula.band.Region;
 import com.modula.config.ConfigStore;
 import com.modula.config.Preset;
 import com.modula.config.Presets;
@@ -32,42 +32,41 @@ import com.modula.config.Settings;
 import com.modula.radio.DemodChain;
 import com.modula.radio.RadioEngine;
 import com.modula.radio.Scanner;
-import com.modula.rds.ProgramType;
-import com.modula.rds.StationInfo;
 import com.modula.source.IqSource;
 import com.modula.source.RtlSdrNativeSource;
 import com.modula.source.RtlTcpSource;
 
 /**
- * The whole user interface: a frequency, tune and seek buttons, a preset bank, volume, a signal bar.
+ * The shell: three bands — {@link GlassPane} reports, the transport acts, the footer holds what is
+ * set once a session — with the status line pinned to the bottom edge.
  *
- * <p>Deliberately not an SDR panel. No demodulator picker, no filter-bandwidth slider, no gain or AGC
- * controls, no FFT settings — those are what make general SDR software unapproachable, and none of
- * them have a right answer a listener should have to supply. Gain is left to the dongle's AGC and the
- * bandwidth is fixed by {@link DemodChain}.
+ * <p>The previous layout was nine centred rows, so the eye had no column to follow and the frequency
+ * competed with eight siblings. Everything the receiver reports now lives on one inset panel and
+ * everything that acts sits below it.
  *
- * <p>Built in code rather than FXML because it is still small enough to read in one screen; move it
- * to FXML once the spectrum strip lands.
+ * <p>Still deliberately not an SDR panel: no demodulator picker, no bandwidth slider, no gain or AGC
+ * controls, no FFT settings, no squelch. Gain belongs to the dongle's AGC and the bandwidth is fixed
+ * by {@link DemodChain}.
  */
-public final class RadioPane extends VBox {
+public final class RadioPane extends BorderPane {
 
     private static final double MHZ = 1_000_000.0;
 
-    private final Label frequencyLabel = new Label();
-    private final Label statusLabel = new Label();
-    private final Label stereoLabel = new Label("STEREO");
-    private final Label stationLabel = new Label();
-    private final Label radioTextLabel = new Label();
-    private final ProgressBar signalBar = new ProgressBar(0);
+    /** Style class selecting the daylight token block; the sheet carries both grounds. */
+    private static final String DAYLIGHT = "daylight";
+
+    private final GlassPane glass;
+    private final PresetBar presetBar;
     private final Button powerButton = new Button("Listen");
-    private final Button saveButton = new Button("★ Save");
-    private final Button removeButton = new Button("Remove");
-    private final ComboBox<Region> regionCombo = new ComboBox<>();
-    private final TextField frequencyField = new TextField();
-    private final TextField nameField = new TextField();
+    private final Button seekDown = transportButton(Glyphs.seekDown(), "Seek down to the next station");
+    private final Button tuneDown = transportButton(Glyphs.tuneDown(), "Down one channel");
+    private final Button tuneUp = transportButton(Glyphs.tuneUp(), "Up one channel");
+    private final Button seekUp = transportButton(Glyphs.seekUp(), "Seek up to the next station");
+    private final TextField tuneEntry = new TextField();
+    private final ComboBox<com.modula.band.Region> regionCombo = new ComboBox<>();
     private final Slider volumeSlider = new Slider(0, 1, 0.7);
     private final CheckBox stereoCheck = new CheckBox("Stereo");
-    private final ListView<Preset> presetList = new ListView<>();
+    private final Label statusLine = new Label();
 
     // Status arrives on the receive thread; coalesce to at most one FX repaint pending at a time.
     private final AtomicReference<RadioEngine.Status> latestStatus = new AtomicReference<>();
@@ -76,9 +75,10 @@ public final class RadioPane extends VBox {
     private final ConfigStore config;
     private List<Preset> presets;
 
-    private Region region;
+    private com.modula.band.Region region;
     private BandPlan band;
     private long frequencyHz;
+    private boolean faulted;
 
     private RadioEngine engine;
     private JavaSoundSink sink;
@@ -92,37 +92,31 @@ public final class RadioPane extends VBox {
         this.frequencyHz = band.snap(settings.frequencyHz());
         this.presets = new ArrayList<>(config.loadPresets());
 
-        setSpacing(12);
-        setPadding(new Insets(18));
-        setAlignment(Pos.TOP_CENTER);
-        setPrefWidth(440);
+        this.glass = new GlassPane(band, region);
+        this.presetBar = new PresetBar(this::tuneTo, this::savePreset, this::removePreset, this::renamePreset);
 
-        frequencyLabel.setStyle("-fx-font-size: 44px; -fx-font-weight: bold;");
-        statusLabel.setStyle("-fx-opacity: 0.7;");
-        signalBar.setPrefWidth(280);
-        setPilotLocked(false);
+        VBox body = new VBox(glass, buildTransport(), presetBar);
+        body.setPadding(new Insets(18, 18, 10, 18));
+        // The glass takes the slack: it is the surface worth more room, and the transport and preset
+        // row stay put underneath rather than drifting down a growing window.
+        VBox.setVgrow(glass, Priority.ALWAYS);
+        VBox.setVgrow(presetBar, Priority.NEVER);
 
-        getChildren()
-                .addAll(
-                        buildTuning(),
-                        buildStationInfo(),
-                        buildDirectEntry(),
-                        buildMeter(),
-                        powerButton,
-                        buildPresets(),
-                        buildVolume(),
-                        buildSettings(),
-                        statusLabel);
+        setCenter(body);
+        setBottom(new VBox(buildFooter(), statusLine));
 
-        powerButton.setOnAction(e -> togglePower());
+        statusLine.getStyleClass().add("status-line");
+        statusLine.setMaxWidth(Double.MAX_VALUE);
+
         volumeSlider.setValue(settings.volume());
         stereoCheck.setSelected(settings.stereo());
         regionCombo.setValue(region);
 
-        refreshFrequency();
-        refreshPresets();
-        installKeyboardTuning();
-        setStatusText(describeAvailableSource());
+        glass.setFrequency(frequencyHz);
+        presetBar.setPresets(presets, frequencyHz);
+        installKeyboard();
+        applyTheme();
+        setStatusText(describeAvailableSource(), false);
     }
 
     /** Stops the receiver, releases the device and persists the session. */
@@ -138,157 +132,215 @@ public final class RadioPane extends VBox {
 
     // --- layout --------------------------------------------------------------------------------
 
-    private HBox buildTuning() {
-        Button seekDown = new Button("◀◀");
-        Button down = new Button("◀");
-        Button up = new Button("▶");
-        Button seekUp = new Button("▶▶");
-
-        seekDown.setTooltip(new javafx.scene.control.Tooltip("Seek down to the next station"));
-        seekUp.setTooltip(new javafx.scene.control.Tooltip("Seek up to the next station"));
-
-        down.setOnAction(e -> tuneTo(band.previous(frequencyHz)));
-        up.setOnAction(e -> tuneTo(band.next(frequencyHz)));
+    private HBox buildTransport() {
         seekDown.setOnAction(e -> seek(Scanner.Direction.DOWN));
+        tuneDown.setOnAction(e -> tuneTo(band.previous(frequencyHz)));
+        tuneUp.setOnAction(e -> tuneTo(band.next(frequencyHz)));
         seekUp.setOnAction(e -> seek(Scanner.Direction.UP));
 
-        HBox box = new HBox(10, seekDown, down, frequencyLabel, up, seekUp);
-        box.setAlignment(Pos.CENTER);
-        return box;
-    }
+        powerButton.getStyleClass().add("power-button");
+        powerButton.setOnAction(e -> togglePower());
 
-    /**
-     * The RDS display. Both labels stay in the layout when empty rather than being hidden, so the
-     * controls below them do not jump every time a station's radio text arrives or changes length.
-     */
-    private VBox buildStationInfo() {
-        stationLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold;");
-        stationLabel.setMinHeight(20);
-
-        radioTextLabel.setStyle("-fx-font-size: 12px; -fx-opacity: 0.75;");
-        radioTextLabel.setWrapText(true);
-        radioTextLabel.setMinHeight(32);
-        radioTextLabel.setMaxWidth(380);
-        radioTextLabel.setAlignment(Pos.CENTER);
-        radioTextLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
-
-        VBox box = new VBox(2, stationLabel, radioTextLabel);
-        box.setAlignment(Pos.CENTER);
-        box.setMinHeight(56);
-        return box;
-    }
-
-    private HBox buildDirectEntry() {
-        frequencyField.setPromptText("e.g. 101.5");
-        frequencyField.setPrefColumnCount(7);
-        frequencyField.setOnAction(e -> tuneFromField());
-        Button go = new Button("Tune");
-        go.setOnAction(e -> tuneFromField());
-
-        HBox box = new HBox(8, new Label("MHz"), frequencyField, go);
-        box.setAlignment(Pos.CENTER);
-        return box;
-    }
-
-    private HBox buildMeter() {
-        HBox box = new HBox(10, signalBar, stereoLabel);
-        box.setAlignment(Pos.CENTER);
-        return box;
-    }
-
-    private VBox buildPresets() {
-        presetList.setPrefHeight(150);
-        presetList.setPlaceholder(new Label("No saved stations yet — tune one in and press Save."));
-        presetList.setCellFactory(view -> new ListCell<>() {
-            @Override
-            protected void updateItem(Preset preset, boolean empty) {
-                super.updateItem(preset, empty);
-                setText(empty || preset == null ? null : preset.label());
+        // Type-to-tune replaces an MHz label, a text field and a Tune button — three controls for a
+        // gesture that is really just "type a number", and a field that sat focused eating arrow keys.
+        tuneEntry.getStyleClass().add("tune-entry");
+        tuneEntry.setPrefColumnCount(5);
+        tuneEntry.setVisible(false);
+        tuneEntry.setManaged(false);
+        tuneEntry.setOnAction(e -> commitTuneEntry());
+        tuneEntry.focusedProperty().addListener((o, was, has) -> {
+            if (!has) {
+                hideTuneEntry();
             }
         });
-        presetList.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2) {
-                tuneToSelectedPreset();
-            }
-        });
-        presetList.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ENTER) {
-                tuneToSelectedPreset();
-            } else if (e.getCode() == KeyCode.DELETE) {
-                removeSelectedPreset();
+        tuneEntry.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.ESCAPE) {
+                hideTuneEntry();
+                e.consume();
             }
         });
 
-        nameField.setPromptText("Station name (optional)");
-        HBox.setHgrow(nameField, Priority.ALWAYS);
-        saveButton.setOnAction(e -> saveCurrentAsPreset());
-        removeButton.setOnAction(e -> removeSelectedPreset());
+        Region leftGap = new Region();
+        Region rightGap = new Region();
+        HBox.setHgrow(leftGap, Priority.ALWAYS);
+        HBox.setHgrow(rightGap, Priority.ALWAYS);
 
-        HBox controls = new HBox(8, nameField, saveButton, removeButton);
-        controls.setAlignment(Pos.CENTER);
-
-        VBox box = new VBox(6, presetList, controls);
+        HBox box = new HBox(7, seekDown, tuneDown, leftGap, powerButton, tuneEntry, rightGap, tuneUp, seekUp);
+        box.getStyleClass().add("transport");
         box.setAlignment(Pos.CENTER);
         return box;
     }
 
-    private HBox buildVolume() {
-        volumeSlider.setPrefWidth(200);
-        volumeSlider.valueProperty().addListener((obs, old, value) -> {
+    /** Set once per session, so it does not sit at eye level. */
+    private HBox buildFooter() {
+        regionCombo.getItems().setAll(com.modula.band.Region.values());
+        regionCombo.valueProperty().addListener((o, old, value) -> setRegion(value));
+
+        volumeSlider.getStyleClass().add("volume-slider");
+        volumeSlider.setPrefWidth(120);
+        volumeSlider.valueProperty().addListener((o, old, value) -> {
             JavaSoundSink s = sink;
             if (s != null) {
                 s.setVolume(value.doubleValue());
             }
         });
-        HBox box = new HBox(8, new Label("Volume"), volumeSlider);
-        box.setAlignment(Pos.CENTER);
-        return box;
-    }
 
-    private HBox buildSettings() {
-        regionCombo.getItems().setAll(Region.values());
-        regionCombo.valueProperty().addListener((obs, old, value) -> setRegion(value));
-
-        // Forcing mono is a real radio's button, not a debug switch: stereo raises the noise floor by
-        // roughly 20 dB, so a weak station is often more listenable without it.
-        stereoCheck.selectedProperty().addListener((obs, old, on) -> {
+        // Forcing mono is a real radio's button: stereo raises the noise floor by roughly 20 dB, so a
+        // weak station is often more listenable without it.
+        stereoCheck.selectedProperty().addListener((o, old, on) -> {
             RadioEngine e = engine;
             if (e != null) {
                 e.setStereoEnabled(on);
             }
         });
 
-        HBox box = new HBox(8, new Label("Region"), regionCombo, stereoCheck);
-        box.setAlignment(Pos.CENTER);
+        Label volumeLabel = new Label("VOL");
+        volumeLabel.getStyleClass().add("footer-label");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        HBox box = new HBox(9, volumeLabel, volumeSlider, spacer, regionCombo, stereoCheck);
+        box.getStyleClass().add("footer");
+        box.setAlignment(Pos.CENTER_LEFT);
         return box;
     }
 
-    /** Left/right step a channel, shift+left/right seek — the gestures a radio's rocker switch has. */
-    private void installKeyboardTuning() {
-        setOnKeyPressed(e -> {
+    private static Button transportButton(javafx.scene.Node glyph, String tooltip) {
+        Button button = new Button();
+        button.setGraphic(glyph);
+        button.getStyleClass().add("tune-button");
+        button.setTooltip(new javafx.scene.control.Tooltip(tooltip));
+        return button;
+    }
+
+    /**
+     * Switches ground. Night is the default; daylight inverts it and keeps every other rule.
+     *
+     * <p>Deliberately has no control in the footer — the budget goes on listening, not on preferences
+     * — but it is a real code path rather than a dead token block, and it is what a system-appearance
+     * listener would call.
+     */
+    public void setDaylight(boolean daylight) {
+        if (daylight == getStyleClass().contains(DAYLIGHT)) {
+            return;
+        }
+        if (daylight) {
+            getStyleClass().add(DAYLIGHT);
+        } else {
+            getStyleClass().remove(DAYLIGHT);
+        }
+        applyTheme();
+    }
+
+    /**
+     * Hands the strip its colours, because a Canvas cannot read a stylesheet.
+     *
+     * <p>This is the one place the palette leaves the sheet, so it is the one place that has to be
+     * updated alongside it.
+     */
+    private void applyTheme() {
+        boolean daylight = getStyleClass().contains(DAYLIGHT);
+        glass.spectrumStrip()
+                .setPalette(
+                        Color.web(daylight ? "#97907F" : "#5C6371"),
+                        Color.web(daylight ? "#5F5A50" : "#9AA0AC"),
+                        Color.web(daylight ? "#B4560A" : "#FFB454"));
+    }
+
+    // --- keyboard ------------------------------------------------------------------------------
+
+    private void installKeyboard() {
+        addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             if (e.getTarget() instanceof TextField) {
-                return; // typing a frequency or a name
+                return; // the inline tune entry or a preset rename owns the keys
             }
             switch (e.getCode()) {
-                case LEFT -> {
-                    if (e.isShiftDown()) {
-                        seek(Scanner.Direction.DOWN);
-                    } else {
-                        tuneTo(band.previous(frequencyHz));
+                case LEFT -> step(e, Scanner.Direction.DOWN, band.previous(frequencyHz));
+                case RIGHT -> step(e, Scanner.Direction.UP, band.next(frequencyHz));
+                case UP -> nudgeVolume(e, +0.05);
+                case DOWN -> nudgeVolume(e, -0.05);
+                case SPACE -> {
+                    togglePower();
+                    e.consume();
+                }
+                default -> {
+                    if (!handleDigit(e)) {
+                        return;
                     }
                     e.consume();
                 }
-                case RIGHT -> {
-                    if (e.isShiftDown()) {
-                        seek(Scanner.Direction.UP);
-                    } else {
-                        tuneTo(band.next(frequencyHz));
-                    }
-                    e.consume();
-                }
-                default -> {}
             }
         });
+    }
+
+    private void step(KeyEvent e, Scanner.Direction direction, long next) {
+        if (e.isShiftDown()) {
+            seek(direction);
+        } else {
+            tuneTo(next);
+        }
+        e.consume();
+    }
+
+    private void nudgeVolume(KeyEvent e, double delta) {
+        volumeSlider.setValue(Math.clamp(volumeSlider.getValue() + delta, 0.0, 1.0));
+        e.consume();
+    }
+
+    /** A digit recalls a preset; typing a number opens the inline entry, which is the same gesture. */
+    private boolean handleDigit(KeyEvent e) {
+        String typed = e.getText();
+        if (typed == null || typed.length() != 1 || !Character.isDigit(typed.charAt(0))) {
+            return false;
+        }
+        if (e.isShiftDown() || e.isControlDown() || e.isAltDown()) {
+            return false;
+        }
+        int digit = typed.charAt(0) - '0';
+        if (digit >= 1 && presetBar.recall(digit)) {
+            return true;
+        }
+        showTuneEntry(typed);
+        return true;
+    }
+
+    private void showTuneEntry(String seed) {
+        tuneEntry.setText(seed);
+        tuneEntry.setVisible(true);
+        tuneEntry.setManaged(true);
+        powerButton.setVisible(false);
+        powerButton.setManaged(false);
+        tuneEntry.requestFocus();
+        tuneEntry.positionCaret(tuneEntry.getText().length());
+    }
+
+    private void hideTuneEntry() {
+        tuneEntry.setVisible(false);
+        tuneEntry.setManaged(false);
+        powerButton.setVisible(true);
+        powerButton.setManaged(true);
+        requestFocus();
+    }
+
+    private void commitTuneEntry() {
+        String text = tuneEntry.getText();
+        hideTuneEntry();
+        if (text == null || text.isBlank()) {
+            return;
+        }
+        try {
+            long hz = Math.round(Double.parseDouble(text.trim()) * MHZ);
+            if (!band.contains(hz)) {
+                setStatusText(
+                        "%.1f is outside the %s band (%.1f–%.1f MHz)"
+                                .formatted(hz / MHZ, band.name(), band.minHz() / MHZ, band.maxHz() / MHZ),
+                        true);
+                return;
+            }
+            tuneTo(band.snap(hz));
+        } catch (NumberFormatException ex) {
+            setStatusText("Not a frequency: " + text, true);
+        }
     }
 
     // --- actions -------------------------------------------------------------------------------
@@ -297,19 +349,19 @@ public final class RadioPane extends VBox {
         if (engine != null && engine.isRunning()) {
             dispose();
             powerButton.setText("Listen");
-            signalBar.setProgress(0);
-            setPilotLocked(false);
-            setStatusText("Stopped.");
+            powerButton.getStyleClass().remove("running");
+            faulted = false;
+            glass.apply(ReceiverState.NOT_LISTENING, null, frequencyHz);
+            setStatusText("Stopped.", false);
             return;
         }
         start();
     }
 
     /**
-     * Prefers the dongle directly, falling back to {@code rtl_tcp}.
-     *
-     * <p>The fallback is not a consolation prize: it is how the dongle lives on another machine, and
-     * how development works with no hardware attached.
+     * Prefers the dongle directly, falling back to {@code rtl_tcp} — which is not a consolation
+     * prize: it is how the dongle lives on another machine and how development works with nothing
+     * attached.
      */
     private IqSource createSource() {
         if (RtlSdrNativeSource.isAvailable()) {
@@ -321,7 +373,11 @@ public final class RadioPane extends VBox {
     private void start() {
         IqSource source = createSource();
         if (!source.tunableRange().contains(frequencyHz)) {
-            setStatusText(describeOutOfRange(source));
+            IqSource.Range range = source.tunableRange();
+            setStatusText(
+                    "%.1f MHz is outside the tuner's range (%.1f–%.0f MHz)"
+                            .formatted(frequencyHz / MHZ, range.minHz() / MHZ, range.maxHz() / MHZ),
+                    true);
             return;
         }
         JavaSoundSink audio = new JavaSoundSink(DemodChain.AUDIO_RATE, DemodChain.CHANNELS);
@@ -330,98 +386,89 @@ public final class RadioPane extends VBox {
         e.setStereoEnabled(stereoCheck.isSelected());
         e.setListener(this::onStatus);
         e.setErrorListener(error -> Platform.runLater(() -> {
-            setStatusText("Stopped: " + describe(error));
+            faulted = true;
             powerButton.setText("Listen");
-            signalBar.setProgress(0);
-            setPilotLocked(false);
+            powerButton.getStyleClass().remove("running");
+            glass.apply(ReceiverState.FAULT, latestStatus.get(), frequencyHz);
+            setStatusText("Stopped: " + describe(error), true);
         }));
         try {
             e.start(frequencyHz);
         } catch (Exception ex) {
-            setStatusText("Could not start: " + describe(ex));
+            faulted = true;
+            setStatusText("Could not start: " + describe(ex), true);
             return;
         }
         engine = e;
         sink = audio;
+        faulted = false;
         powerButton.setText("Stop");
-        setStatusText(source instanceof RtlSdrNativeSource ? "Listening — dongle." : "Listening — rtl_tcp.");
+        if (!powerButton.getStyleClass().contains("running")) {
+            powerButton.getStyleClass().add("running");
+        }
+        setStatusText(source instanceof RtlSdrNativeSource ? "Listening — dongle." : "Listening — rtl_tcp.", false);
     }
 
     private void seek(Scanner.Direction direction) {
         RadioEngine e = engine;
         if (e == null || !e.isRunning()) {
-            setStatusText("Press Listen first.");
+            setStatusText("Press Listen first.", false);
             return;
         }
         if (e.isSeeking()) {
             e.cancelSeek();
-            setStatusText("Seek cancelled.");
+            setSeekLabels(false);
+            setStatusText("Seek cancelled.", false);
             return;
         }
         e.seek(direction);
-        setStatusText("Seeking…");
+        setSeekLabels(true);
     }
 
-    private void tuneFromField() {
-        String text = frequencyField.getText();
-        if (text == null || text.isBlank()) {
-            return;
-        }
-        try {
-            long hz = Math.round(Double.parseDouble(text.trim()) * MHZ);
-            if (!band.contains(hz)) {
-                setStatusText("Outside the %s band (%.1f–%.1f MHz)."
-                        .formatted(band.name(), band.minHz() / MHZ, band.maxHz() / MHZ));
-                return;
-            }
-            tuneTo(band.snap(hz));
-            frequencyField.clear();
-            requestFocus();
-        } catch (NumberFormatException ex) {
-            setStatusText("Not a frequency: " + text);
-        }
+    /** The seek buttons relabel while a sweep runs, because pressing them again cancels it. */
+    private void setSeekLabels(boolean seeking) {
+        seekDown.setTooltip(new javafx.scene.control.Tooltip(seeking ? "Cancel the seek" : "Seek down"));
+        seekUp.setTooltip(new javafx.scene.control.Tooltip(seeking ? "Cancel the seek" : "Seek up"));
     }
 
     private void tuneTo(long hz) {
         frequencyHz = hz;
-        refreshFrequency();
-        refreshPresetButtons();
+        glass.setFrequency(hz);
+        presetBar.setTuned(hz);
         RadioEngine e = engine;
         if (e != null) {
             e.setFrequency(hz);
         }
     }
 
-    private void tuneToSelectedPreset() {
-        Preset selected = presetList.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            tuneTo(band.snap(selected.frequencyHz()));
-        }
-    }
-
-    private void saveCurrentAsPreset() {
-        String name = nameField.getText() == null ? "" : nameField.getText().strip();
-        presets = Presets.withPreset(presets, new Preset(frequencyHz, name));
-        config.savePresets(presets);
-        nameField.clear();
-        refreshPresets();
-        setStatusText("Saved %.1f MHz.".formatted(frequencyHz / MHZ));
-    }
-
-    private void removeSelectedPreset() {
-        Preset selected = presetList.getSelectionModel().getSelectedItem();
-        if (selected == null) {
+    /** Stores the frequency immediately, then offers the name — not the other way round. */
+    private void savePreset() {
+        if (Presets.contains(presets, frequencyHz)) {
             return;
         }
-        presets = Presets.withoutFrequency(presets, selected.frequencyHz());
+        Preset saved = Preset.of(frequencyHz);
+        presets = Presets.withPreset(presets, saved);
         config.savePresets(presets);
-        refreshPresets();
-        setStatusText("Removed %.1f MHz.".formatted(selected.frequencyHz() / MHZ));
+        presetBar.setPresets(presets, frequencyHz);
+        presetBar.promptNameFor(saved);
     }
 
-    private void setRegion(Region value) {
+    private void removePreset(Preset preset) {
+        presets = Presets.withoutFrequency(presets, preset.frequencyHz());
+        config.savePresets(presets);
+        presetBar.setPresets(presets, frequencyHz);
+    }
+
+    private void renamePreset(Preset preset, String name) {
+        presets = Presets.withPreset(presets, new Preset(preset.frequencyHz(), name));
+        config.savePresets(presets);
+        presetBar.setPresets(presets, frequencyHz);
+    }
+
+    private void setRegion(com.modula.band.Region value) {
         region = value;
         band = BandPlan.fm(value);
+        glass.setBand(band, region);
         tuneTo(band.snap(frequencyHz));
         if (engine != null && engine.isRunning()) {
             // De-emphasis and the band plan are fixed when the chain is built; restart to pick them up.
@@ -433,21 +480,7 @@ public final class RadioPane extends VBox {
         }
     }
 
-    // --- view ----------------------------------------------------------------------------------
-
-    private void refreshFrequency() {
-        frequencyLabel.setText("%.1f".formatted(frequencyHz / MHZ));
-    }
-
-    private void refreshPresets() {
-        presetList.getItems().setAll(presets);
-        refreshPresetButtons();
-    }
-
-    private void refreshPresetButtons() {
-        saveButton.setDisable(Presets.contains(presets, frequencyHz));
-        removeButton.setDisable(presetList.getSelectionModel().getSelectedItem() == null);
-    }
+    // --- status --------------------------------------------------------------------------------
 
     /** Called on the receive thread. */
     private void onStatus(RadioEngine.Status status) {
@@ -464,46 +497,31 @@ public final class RadioPane extends VBox {
         if (status == null) {
             return;
         }
-        // Seek retunes the engine, so the displayed frequency must follow it rather than the buttons.
+        // Seek retunes the engine, so the display follows it rather than the buttons.
         if (status.frequencyHz() > 0 && status.frequencyHz() != frequencyHz) {
             frequencyHz = status.frequencyHz();
-            refreshFrequency();
-            refreshPresetButtons();
+            presetBar.setTuned(frequencyHz);
         }
 
-        // Map roughly -60..0 dBFS onto the bar.
-        double normalised = Math.clamp((status.signalDbfs() + 60.0) / 60.0, 0.0, 1.0);
-        signalBar.setProgress(normalised);
-        setPilotLocked(status.running() && status.pilotLocked());
-        applyStationInfo(status.running() ? status.station() : StationInfo.NONE);
+        ReceiverState state = ReceiverState.of(status, faulted);
+        glass.apply(state, status, frequencyHz);
 
+        if (!status.seeking()) {
+            setSeekLabels(false);
+        }
         if (!status.running()) {
             return;
         }
-        if (status.seeking()) {
-            setStatusText("Seeking…");
+        if (state == ReceiverState.SEEKING) {
+            setStatusText("Seeking…", false);
+        } else if (state == ReceiverState.FAULT) {
+            setStatusText(
+                    "Dropped %d samples — the audio device is not keeping up".formatted(status.droppedSamples()), true);
         } else {
-            String dropped = status.droppedSamples() > 0 ? "  ·  dropped %d".formatted(status.droppedSamples()) : "";
-            setStatusText("%.0f dBFS  ·  %s%s".formatted(status.signalDbfs(), status.rdsDiagnostic(), dropped));
+            setStatusText("%s  ·  %s".formatted(Readouts.dbfs(status.signalDbfs()), status.rdsDiagnostic()), false);
         }
     }
 
-    private void applyStationInfo(StationInfo station) {
-        String name = station.programService();
-        String type = ProgramType.name(station.programType(), region);
-        stationLabel.setText(name.isBlank() ? "" : (type.isBlank() ? name : name + "  ·  " + type));
-        radioTextLabel.setText(station.radioText());
-    }
-
-    /** Reports what the station is broadcasting, not what we chose to listen to. */
-    private void setPilotLocked(boolean locked) {
-        stereoLabel.setStyle(
-                locked
-                        ? "-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -fx-accent;"
-                        : "-fx-font-size: 11px; -fx-font-weight: bold; -fx-opacity: 0.25;");
-    }
-
-    /** Says up front where the signal will come from, so a missing dongle is not a surprise on Listen. */
     private String describeAvailableSource() {
         if (RtlSdrNativeSource.isAvailable()) {
             String name = RtlSdrNativeSource.describeDevice();
@@ -513,14 +531,13 @@ public final class RadioPane extends VBox {
                 .formatted(RtlSdrNativeSource.unavailableReason());
     }
 
-    private String describeOutOfRange(IqSource source) {
-        IqSource.Range range = source.tunableRange();
-        return "%.1f MHz is outside this dongle's tuner range (%.1f–%.0f MHz)."
-                .formatted(frequencyHz / MHZ, range.minHz() / MHZ, range.maxHz() / MHZ);
-    }
-
-    private void setStatusText(String text) {
-        statusLabel.setText(text);
+    private void setStatusText(String text, boolean fault) {
+        statusLine.setText(text);
+        if (fault && !statusLine.getStyleClass().contains("fault")) {
+            statusLine.getStyleClass().add("fault");
+        } else if (!fault) {
+            statusLine.getStyleClass().remove("fault");
+        }
     }
 
     private static String describe(Throwable t) {

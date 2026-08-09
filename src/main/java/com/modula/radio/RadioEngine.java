@@ -38,6 +38,7 @@ public final class RadioEngine implements AutoCloseable {
             boolean seeking,
             StationInfo station,
             String rdsDiagnostic,
+            float[] spectrum,
             long droppedSamples,
             boolean running) {}
 
@@ -236,6 +237,8 @@ public final class RadioEngine implements AutoCloseable {
                 scanner.isScanning(),
                 chain.stationInfo(),
                 chain.rdsDiagnostic(),
+                // Computed here rather than in the loop: nine transforms a second, not seventy-three.
+                running ? chain.captureSpectrum() : null,
                 droppedSamples(),
                 running));
     }

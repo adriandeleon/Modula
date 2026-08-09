@@ -2,11 +2,13 @@
 
 Listen to broadcast radio with an RTL-SDR dongle. Java 25 + JavaFX 26.
 
-Not an SDR panel — a radio. A frequency, two tune buttons, volume, a signal bar. No demodulator
-picker, no filter-bandwidth slider, no gain or AGC controls, no FFT settings.
+Not an SDR panel — a radio. One amber number is the brightest thing on screen; everything else is
+instrumentation around it, dimmed until it has something to say. No demodulator picker, no
+filter-bandwidth slider, no gain or AGC controls, no FFT settings.
 
-**Status:** FM works, in stereo, with RDS station names and radio text, over `rtl_tcp`. Measured
-channel separation is 33 dB, flat from 100 Hz to 10 kHz.
+**Status:** complete. FM in stereo with RDS, seek, presets, a ±600 kHz spectrum strip, and direct
+hardware access. Measured channel separation is 33 dB flat from 100 Hz to 10 kHz; RDS is verified
+against an off-air recording.
 
 ## Running it
 
@@ -30,9 +32,16 @@ Press **Listen**, then:
 |---|---|
 | ◀ ▶ or **←** **→** | step one channel |
 | ◀◀ ▶▶ or **shift+←/→** | seek to the next real station (press again to cancel) |
-| MHz box | tune directly |
-| **★ Save** | add the current frequency to the preset bank, optionally named |
-| double-click a preset | tune to it (**Delete** removes it) |
+| type a number, **Enter** | tune directly — the entry opens as you type |
+| **1**–**9** | recall that preset |
+| **↑** **↓** | volume |
+| **Space** | listen / stop |
+| **+** | save the tuned station, then name it inline |
+| right-click a chip | rename or remove it (**Delete** also removes) |
+
+The band across the middle of the glass is a ±600 kHz spectrum: the amber line is where you are
+tuned and the humps either side are the neighbours. During a seek the frequency dims and the strip
+is where the sweep is visible.
 
 The **STEREO** indicator lights when the station is transmitting a pilot; the **Stereo** checkbox
 forces mono, which is often more listenable on a weak station since stereo raises the noise floor by
@@ -83,10 +92,13 @@ rather than tuning into silence.
 A recorded IQ file makes every later DSP change verifiable without hardware attached:
 
 ```bash
-rtl_sdr -f 101500000 -s 1200000 -n 12000000 station.iq
+rtl_sdr -f 98900000 -s 1200000 -n 36000000 station.iq
 ```
 
 Replay it through `FileReplaySource`, which satisfies the same `IqSource` interface as the dongle.
+`scripts/MakeRdsFixture.java` distils one into the 281 KB golden fixture the RDS test decodes.
+
+Check the spectrum before trusting a capture — an empty channel looks exactly like a broken decoder.
 
 ## Layout
 
@@ -100,7 +112,7 @@ Replay it through `FileReplaySource`, which satisfies the same `IqSource` interf
 | `audio` | Ring buffer and the `javax.sound.sampled` sink. |
 | `radio` | `DemodChain`, `RadioEngine` and seek — the only package that owns threads. |
 | `config` | Presets and session state. Only `ConfigStore` touches the disk. |
-| `ui` | The only package that touches JavaFX. |
+| `ui` | The only package that touches JavaFX. Implements the Night Dial kit. |
 
 Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md).
 
@@ -111,7 +123,7 @@ Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md
 3. **Seek, presets, persistence** — done
 4. **RDS** (station name, radio text, programme type) — done
 5. **Direct hardware** via Panama/`librtlsdr` — done
-6. Spectrum strip; the Night Dial interface
+6. **Spectrum strip and the Night Dial interface** — done
 
 ## Licence
 

@@ -15,6 +15,7 @@
         <maven.compiler.release>25</maven.compiler.release>
         <javafx.version>26.0.1</javafx.version>
         <javafx.plugin.version>0.0.8</javafx.plugin.version>
+        <atlantafx.version>2.1.0</atlantafx.version>
         <junit.version>5.11.4</junit.version>
         <spotless.version>2.44.5</spotless.version>
         <palantir.version>2.72.0</palantir.version>
@@ -27,6 +28,14 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- Themes the five standard controls the radio uses, so modula.css only has to describe
+             the parts no toolkit has heard of: the glass, the dial, the meter, the preset chips. -->
+        <dependency>
+            <groupId>io.github.mkpaz</groupId>
+            <artifactId>atlantafx-base</artifactId>
+            <version>${atlantafx.version}</version>
         </dependency>
 
         <dependency>

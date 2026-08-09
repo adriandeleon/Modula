@@ -1,0 +1,321 @@
+/*
+ * Modula — "Night Dial" v1.
+ *
+ * One idea runs through the palette: the dial is emitting light and everything else is reflecting
+ * it. So the ground is a cool near-black rather than a warm charcoal — a warm ground would put the
+ * amber into the surface, and the amber has to read as the only lit thing.
+ *
+ * Amber is a budget, not a palette. It is spent on the frequency, on the control that changes it,
+ * on the spectrum's centre marker, and on a traffic announcement. Nothing else. If a fifth thing
+ * turns amber the frequency stops being the brightest mark and the display becomes a panel of
+ * equals, which is the failure this product is defined against.
+ *
+ * Lock is teal, faults are coral, everything else is ink at one of three weights.
+ *
+ * Daylight is the same sheet with the ground inverted: add the "daylight" class to the root.
+ */
+
+.root {
+    -ground: #0B0C0E;
+    -surface: #14161A;
+    -glass: #07080A;
+    -line: #23262C;
+
+    -ink: #F2EDE4;
+    -ink-dim: #9AA0AC;
+    -ink-faint: #5C6371;
+
+    -dial: #FFB454;
+    -dial-soft: rgba(255, 180, 84, 0.14);
+
+    -lock: #6FD3C2;
+    -fault: #FF6B5A;
+
+    -fx-background-color: -ground;
+    -fx-font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+    -fx-font-size: 12px;
+}
+
+.root.daylight {
+    -ground: #F5F2EC;
+    -surface: #FCFAF6;
+    -glass: #EAE4D8;
+    -line: #DED7C9;
+
+    -ink: #1A1814;
+    -ink-dim: #5F5A50;
+    -ink-faint: #97907F;
+
+    -dial: #B4560A;
+    -dial-soft: rgba(180, 86, 10, 0.13);
+
+    -lock: #0E7A6B;
+    -fault: #C2331F;
+}
+
+/* ── The glass ──────────────────────────────────────────────────────────────
+ * Everything the receiver reports, on one inset panel. Nothing in here is
+ * interactive: the glass reports, the body below it acts. */
+
+.glass {
+    -fx-background-color: -glass;
+    -fx-background-radius: 7;
+    -fx-border-color: -line;
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-padding: 18 18 13 18;
+}
+
+.glass-header {
+    -fx-font-size: 10px;
+}
+
+.glass-title {
+    -fx-text-fill: -ink-faint;
+    -fx-font-weight: bold;
+}
+
+.band-label {
+    -fx-text-fill: -ink-dim;
+}
+
+/* Badges are always present and merely unlit, so nothing moves when one lights.
+ * The 120 ms fade reads as an indicator warming up, which is what a real one does. */
+.badge {
+    -fx-text-fill: -ink-faint;
+    -fx-opacity: 0.3;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 5 1 5;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+}
+
+.badge.lit {
+    -fx-opacity: 1.0;
+    -fx-text-fill: -lock;
+}
+
+/* The one sanctioned exception to the amber budget: a traffic announcement is the single
+ * event in this product important enough to outrank the frequency. */
+.badge.traffic-announcement.lit {
+    -fx-text-fill: -dial;
+}
+
+/* ── The dial ────────────────────────────────────────────────────────────── */
+
+.dial {
+    -fx-text-fill: -dial;
+    -fx-font-size: 58px;
+    -fx-font-weight: bold;
+}
+
+.dial-unit {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 13px;
+    -fx-padding: 0 0 12 4;
+}
+
+/* Not listening: the dial is present but unlit. */
+.state-not-listening .dial,
+.state-fault .dial {
+    -fx-text-fill: -ink-faint;
+}
+
+/* Seeking dims the dial on purpose — the frequency is changing several times a second and is
+ * not information yet. The band cursor is the thing worth watching. */
+.state-seeking .dial {
+    -fx-opacity: 0.55;
+}
+
+/* ── Station ────────────────────────────────────────────────────────────── */
+
+.station-name {
+    -fx-text-fill: -ink;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* Radio text is a song title, not an identity — never bold. */
+.radio-text {
+    -fx-text-fill: -ink-dim;
+    -fx-font-size: 11px;
+}
+
+/* Characters still arriving, held as faint middots so the name grows in place. */
+.station-pending {
+    -fx-text-fill: -ink-faint;
+}
+
+/* ── Meter and band scale ───────────────────────────────────────────────── */
+
+.scale-label {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 10px;
+}
+
+.readout {
+    -fx-text-fill: -ink-dim;
+    -fx-font-size: 11px;
+    -fx-min-width: 62;
+}
+
+.meter-track {
+    -fx-background-color: -line;
+    -fx-background-radius: 2;
+}
+
+.meter-fill {
+    -fx-background-radius: 2;
+    -fx-background-color: linear-gradient(to right, derive(-dial, -30%) 0%, -dial 100%);
+}
+
+/* The last third resolves toward lock teal only while the pilot holds, so signal strength and
+ * stereo — two facts a listener conflates anyway — are carried by one mark. */
+.meter-fill.locked {
+    -fx-background-color: linear-gradient(to right, derive(-dial, -30%) 0%, -dial 62%, -lock 100%);
+}
+
+/* ── Transport ──────────────────────────────────────────────────────────── */
+
+.transport {
+    -fx-padding: 13 0 11 0;
+}
+
+.tune-button {
+    -fx-background-color: -surface;
+    -fx-border-color: -line;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-padding: 7 11 7 11;
+    -fx-min-width: 40;
+}
+
+.tune-button:hover {
+    -fx-border-color: -ink-faint;
+}
+
+/* The control that changes the frequency is the one other place amber is spent. */
+.tune-button .glyph {
+    -fx-fill: -dial;
+}
+
+.tune-button:disabled .glyph {
+    -fx-fill: -ink-faint;
+}
+
+.power-button {
+    -fx-background-color: -surface;
+    -fx-text-fill: -ink;
+    -fx-border-color: -line;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-padding: 8 26 8 26;
+    -fx-font-weight: bold;
+}
+
+.power-button:hover {
+    -fx-border-color: -ink-faint;
+}
+
+.power-button.running {
+    -fx-border-color: -dial;
+    -fx-text-fill: -dial;
+}
+
+/* ── Presets ────────────────────────────────────────────────────────────── */
+
+.preset-bar {
+    -fx-padding: 4 0 4 0;
+}
+
+.preset-bar .scroll-bar:horizontal {
+    -fx-pref-height: 6;
+}
+
+.preset-chip {
+    -fx-background-color: -surface;
+    -fx-text-fill: -ink-dim;
+    -fx-border-color: -line;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 5 10 5 10;
+    -fx-font-size: 11px;
+}
+
+.preset-chip:hover {
+    -fx-border-color: -ink-faint;
+    -fx-text-fill: -ink;
+}
+
+/* Selected means tuned — which is also what makes a Save button redundant. */
+.preset-chip.tuned {
+    -fx-border-color: -dial;
+    -fx-text-fill: -ink;
+    -fx-background-color: -dial-soft;
+}
+
+.preset-add {
+    -fx-background-color: transparent;
+    -fx-text-fill: -ink-faint;
+    -fx-border-color: -line;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 5 10 5 10;
+}
+
+.preset-add:hover {
+    -fx-text-fill: -dial;
+    -fx-border-color: -dial;
+}
+
+.preset-empty {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 11px;
+}
+
+/* ── Footer and status ─────────────────────────────────────────────────────
+ * Set once per session, so it should not sit at eye level. */
+
+.footer {
+    -fx-background-color: -surface;
+    -fx-border-color: -line transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 9 14 9 14;
+}
+
+.footer-label {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 10px;
+}
+
+/* The status line changes constantly, so it gets its own ground and never moves the layout. */
+.status-line {
+    -fx-background-color: -ground;
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 10px;
+    -fx-padding: 6 14 8 14;
+}
+
+.status-line.fault {
+    -fx-text-fill: -fault;
+}
+
+/* ── Type-to-tune ──────────────────────────────────────────────────────────
+ * Replaces the MHz label, its field and its Tune button — three controls for a gesture that is
+ * really just "type a number", and a field that sat focused eating the arrow keys. */
+
+.tune-entry {
+    -fx-background-color: -glass;
+    -fx-text-fill: -dial;
+    -fx-border-color: -dial;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 10 2 10;
+}
+
+.volume-slider .track {
+    -fx-pref-height: 3;
+}
