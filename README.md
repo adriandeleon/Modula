@@ -114,15 +114,28 @@ Replay it through `FileReplaySource`, which satisfies the same `IqSource` interf
 
 Check the spectrum before trusting a capture — an empty channel looks exactly like a broken decoder.
 
-## The icon
+## Branding
 
-`scripts/make-icon.py` generates `branding/modula-icon.svg` and every PNG size from one set of
-constants (needs Pillow). The mark is the tray glyph's, so the dock entry and the panel entry are the
-same thing; both drop the dim outer ring at small sizes rather than drawing it thinner.
+Everything under `branding/` is generated — edit the scripts, not the output (needs Pillow).
 
 ```bash
-python3 scripts/make-icon.py
+python3 scripts/make-icon.py     # modula-icon.svg, the PNG set, modula.ico, modula.icns
+python3 scripts/make-social.py   # social-preview.png
 ```
+
+The mark is the tray glyph's, so the dock entry and the panel entry are the same thing; both drop the
+dim outer ring at small sizes rather than drawing it thinner.
+
+| Artifact | |
+|---|---|
+| `modula-icon.svg` | the design source, generated from the same constants as the PNGs |
+| `modula-icon-*.png` | 16 – 512, mirrored into the app's resources and loaded onto the window |
+| `modula.ico` | Windows, 7 sizes, PNG-compressed entries |
+| `modula.icns` | macOS, 11 slots including the retina pairs |
+| `social-preview.png` | 1280×640, for GitHub → Settings → Social preview |
+
+The `.ico` and `.icns` are **staged for native packaging, which does not exist yet** — nothing in the
+build consumes them today. The social preview has to be attached by hand: GitHub has no API for it.
 
 ## Layout
 

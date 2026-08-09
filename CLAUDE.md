@@ -87,6 +87,12 @@ ring plus half its stroke fits (without it the arcs clip flat, which at 16 pixel
 error rather than a signal). **Both simplify at small sizes rather than drawing the same detail
 thinner** — below the two-ring floor the dim outer ring becomes mud, so the mark keeps one.
 
+**The native icon containers are hand-written, and that is the point.** `.ico` and `.icns` are both
+simple containers — a directory of PNGs, and length-prefixed typed chunks — so `make-icon.py` writes
+them directly rather than delegating to Pillow's savers. A saver downsamples one source image, which
+would throw away the per-size simplification the small marks depend on and ship exactly the mud the
+two-ring floor exists to avoid. Both are validated on generation by walking them back.
+
 **The transport glyphs are drawn, not typed.** ◀◀ ▶ ★ are absent from most UI and mono faces, IBM
 Plex Mono included, so typed they render from whatever fallback each platform picks. `Glyphs` draws
 them as `SVGPath` shapes, identical everywhere, taking the button's colour from the sheet.

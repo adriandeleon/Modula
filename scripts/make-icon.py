@@ -155,6 +155,74 @@ def render(size, tile=True, rings=None, mono=None, supersample=4):
     return img.resize((size, size), Image.LANCZOS)
 
 
+# --- native containers ----------------------------------------------------------------------
+#
+# Both are hand-written rather than delegated to Pillow's savers, for one reason: the mark is drawn
+# DIFFERENTLY per size — below TWO_RING_FLOOR it sheds a ring — and a saver that downsamples one
+# source image would throw that away and ship the mud the floor exists to avoid.
+
+ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
+
+# (OSType, pixel size). The pairs at equal sizes are the retina slots: ic11 is 16@2x, ic12 32@2x,
+# ic13 128@2x, ic14 256@2x. macOS picks by slot, so a missing one falls back to a blurry upscale.
+ICNS_ENTRIES = [
+    (b"icp4", 16), (b"icp5", 32), (b"icp6", 64),
+    (b"ic11", 32), (b"ic12", 64),
+    (b"ic07", 128), (b"ic13", 256),
+    (b"ic08", 256), (b"ic14", 512),
+    (b"ic09", 512), (b"ic10", 1024),
+]
+
+
+def png_bytes(size):
+    import io
+
+    buffer = io.BytesIO()
+    render(size).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def write_ico(path, sizes=None):
+    """A Windows .ico: a directory of PNG-compressed entries (Vista and later read PNG at any size)."""
+    import struct
+
+    sizes = sizes or ICO_SIZES
+    images = [(size, png_bytes(size)) for size in sizes]
+    offset = 6 + 16 * len(images)
+    directory, payload = b"", b""
+    for size, data in images:
+        directory += struct.pack(
+            "<BBBBHHII",
+            0 if size >= 256 else size,  # 0 means 256 in this field
+            0 if size >= 256 else size,
+            0,  # palette size: 0 for truecolour
+            0,
+            1,  # colour planes
+            32,  # bits per pixel
+            len(data),
+            offset,
+        )
+        payload += data
+        offset += len(data)
+    with open(path, "wb") as f:
+        f.write(struct.pack("<HHH", 0, 1, len(images)) + directory + payload)
+
+
+def write_icns(path, entries=None):
+    """A macOS .icns: the 'icns' magic, then length-prefixed typed chunks holding PNG data."""
+    import struct
+
+    entries = entries or ICNS_ENTRIES
+    cache, body = {}, b""
+    for ostype, size in entries:
+        if size not in cache:
+            cache[size] = png_bytes(size)
+        data = cache[size]
+        body += ostype + struct.pack(">I", 8 + len(data)) + data
+    with open(path, "wb") as f:
+        f.write(b"icns" + struct.pack(">I", 8 + len(body)) + body)
+
+
 def main():
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     branding = os.path.join(root, "branding")
@@ -169,7 +237,10 @@ def main():
         image = render(size)
         image.save(os.path.join(branding, "modula-icon-%d.png" % size))
         image.save(os.path.join(icons, "icon-%d.png" % size))
-    print("wrote modula-icon.svg and %d PNGs" % len(SIZES))
+
+    write_ico(os.path.join(branding, "modula.ico"))
+    write_icns(os.path.join(branding, "modula.icns"))
+    print("wrote modula-icon.svg, %d PNGs, modula.ico and modula.icns" % len(SIZES))
 
 
 if __name__ == "__main__":
