@@ -89,6 +89,9 @@ public final class RadioPane extends StackPane {
 
     private java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
     private javafx.application.HostServices links;
+    private java.util.List<com.modula.schedule.Recording> schedules = java.util.List.of();
+    private String activeScheduleId;
+    private javafx.animation.Timeline scheduleWatch;
     private ContextMenu contextMenu;
     private com.modula.update.ReleaseInfo update;
     private com.modula.band.Region region;
@@ -125,6 +128,8 @@ public final class RadioPane extends StackPane {
         getChildren().addAll(shell, palette);
         palette.setOnHidden(this::requestFocus);
         installContextMenu();
+        schedules = config.loadSchedules();
+        startScheduleWatch();
 
         statusLine.getStyleClass().add("status-line");
         statusLine.setMaxWidth(Double.MAX_VALUE);
@@ -151,6 +156,9 @@ public final class RadioPane extends StackPane {
             e.stop();
         }
         stopRecording();
+        if (scheduleWatch != null) {
+            scheduleWatch.stop();
+        }
         config.saveSettings(currentSettings());
     }
 
@@ -208,9 +216,80 @@ public final class RadioPane extends StackPane {
                 "Toggle daylight",
                 "",
                 () -> setDaylight(!getStyleClass().contains(DAYLIGHT))));
+        list.add(Command.of("schedule.reload", "Reload scheduled recordings", "", this::reloadSchedules));
+        list.add(Command.of("schedule.show", "What is scheduled?", "", this::describeSchedules));
         list.add(Command.of("settings", "Settings\u2026", "", this::showSettings));
         list.add(Command.of("about", "About Modula", "", this::showAbout));
         return list;
+    }
+
+    /**
+     * Watches the clock and starts or stops a scheduled recording.
+     *
+     * <p>Fifteen seconds, because a schedule is expressed to the minute and polling is the honest
+     * mechanism for something the user may edit at any moment — a timer set once per schedule would
+     * have to be torn down and rebuilt on every edit, and would drift across a laptop suspend.
+     *
+     * <p>It cannot wake a sleeping machine, and it only runs while Modula is open. That is stated in
+     * the UI rather than implied.
+     */
+    private void startScheduleWatch() {
+        javafx.animation.Timeline watch = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.seconds(15), e -> checkSchedule()));
+        watch.setCycleCount(javafx.animation.Animation.INDEFINITE);
+        watch.play();
+        scheduleWatch = watch;
+    }
+
+    private void checkSchedule() {
+        if (schedules.isEmpty()) {
+            return;
+        }
+        com.modula.schedule.Recording due =
+                com.modula.schedule.Scheduler.activeAt(schedules, java.time.LocalDateTime.now());
+        if (due != null && !due.id().equals(activeScheduleId)) {
+            activeScheduleId = due.id();
+            beginScheduled(due);
+        } else if (due == null && activeScheduleId != null) {
+            activeScheduleId = null;
+            if (isRecording()) {
+                toggleRecording(); // the window closed; stop where the schedule said to
+                setStatusText("Scheduled recording finished.", false);
+            }
+        }
+    }
+
+    /** Tunes and records. Starting the receiver first is the point — recording tees what is playing. */
+    private void beginScheduled(com.modula.schedule.Recording due) {
+        setBand(due.band());
+        tuneTo(due.frequencyHz());
+        if (engine == null || !engine.isRunning()) {
+            togglePower();
+        }
+        if (isRecording()) {
+            toggleRecording(); // whatever was being recorded, the schedule takes over
+        }
+        // The receiver has just started; give it a moment to produce a sink before teeing it.
+        javafx.animation.PauseTransition settle = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(2));
+        settle.setOnFinished(e -> {
+            if (!isRecording()) {
+                toggleRecording();
+            }
+            setStatusText("Recording \"%s\" as scheduled.".formatted(due.name()), false);
+        });
+        settle.play();
+    }
+
+    /** The schedule list, reloaded from disk. */
+    public void reloadSchedules() {
+        schedules = config.loadSchedules();
+        java.time.LocalDateTime next =
+                com.modula.schedule.Scheduler.nextStart(schedules, java.time.LocalDateTime.now());
+        setStatusText(
+                schedules.isEmpty()
+                        ? "No recordings are scheduled."
+                        : "%d scheduled; next at %s".formatted(schedules.size(), next == null ? "never" : next),
+                false);
     }
 
     /** Receives what the tray should show. Set once the tray exists; null until then. */
@@ -323,6 +402,40 @@ public final class RadioPane extends StackPane {
     public void showPalette() {
         hideContextMenu();
         palette.show();
+    }
+
+    /** Says what is scheduled and where the file is, since the list is edited as text. */
+    private void describeSchedules() {
+        if (schedules.isEmpty()) {
+            setStatusText(
+                    "Nothing scheduled. Add lines to " + config.directory().resolve("schedules.txt"), false);
+            return;
+        }
+        StringBuilder text = new StringBuilder();
+        for (com.modula.schedule.Recording r : schedules) {
+            text.append(r.name())
+                    .append(" \u00b7 ")
+                    .append(Readouts.megahertz(r.frequencyHz()))
+                    .append(" \u00b7 ")
+                    .append(r.describe())
+                    .append(r.enabled() ? "" : "  (off)")
+                    .append('\n');
+        }
+        java.time.LocalDateTime next =
+                com.modula.schedule.Scheduler.nextStart(schedules, java.time.LocalDateTime.now());
+        text.append("\nNext: ").append(next == null ? "never" : next);
+        text.append("\n\nModula must be running; it cannot wake a sleeping machine.");
+        text.append("\n\nEdit ").append(config.directory().resolve("schedules.txt"));
+
+        javafx.scene.control.Alert alert =
+                new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION, text.toString());
+        alert.setTitle("Scheduled recordings");
+        alert.setHeaderText(null);
+        alert.initOwner(getScene() == null ? null : getScene().getWindow());
+        Windows.styleLike(
+                getScene() == null ? null : getScene().getWindow(),
+                alert.getDialogPane().getScene());
+        alert.showAndWait();
     }
 
     private void showSettings() {

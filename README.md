@@ -174,6 +174,26 @@ baking it in would make a recording made at a low listening level unrecoverable.
 If the disk fills, the recording stops and the radio keeps playing. A receiver that goes silent
 because a file could not be written is the wrong failure.
 
+Choose **WAV**, **FLAC** or **MP3** in Settings. The compressed formats need `ffmpeg` on your PATH;
+without it Modula records WAV and says so rather than refusing. The sizes are why the option exists:
+WAV is about **690 MB an hour**, FLAC roughly half that losslessly, MP3 about **57 MB an hour**.
+
+### Scheduled recordings
+
+`~/.modula/schedules.txt`, one tab-separated line per entry — the same hand-editable shape as
+`presets.txt`:
+
+```
+# id  name  frequencyHz  band  start  minutes  days  date  enabled
+a1	Morning show	98900000	FM	09:00	90	MONDAY,FRIDAY		true
+b2	Concert	91700000	FM	20:30	120		2026-09-01	true
+```
+
+Leave `days` blank for a one-off and fill in `date`; leave `date` blank for a weekly repeat. Modula
+checks every fifteen seconds, tunes, starts listening and records. **It must be running to do so, and
+it cannot wake a sleeping machine.** `Reload scheduled recordings` and `What is scheduled?` are in the
+command palette.
+
 While recording, the tray icon carries a red dot and its menu offers **Stop recording** — so a
 recording you started and then minimised is both visible and stoppable without reopening the window.
 

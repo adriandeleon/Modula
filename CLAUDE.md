@@ -333,6 +333,29 @@ from a stranger's transmitter, so `sanitise` strips anything that could steer a 
 joined onto a directory, and a station calling itself `../../x` must not get to choose where the
 recording lands.
 
+## Recording formats and schedules
+
+**ffmpeg only, and WAV is the floor.** 48 kHz stereo 16-bit is 691 MB an hour, which is the whole
+argument for compression. A missing encoder falls back to WAV and reports why rather than refusing —
+someone who pressed Record wants a recording, and a bigger file beats none.
+
+`EncodedWriter.close()` has real work: close the pipe so the encoder sees end-of-input, then **wait
+for it**. A container writes its header last, so a process killed early leaves a file that exists,
+has plausible bytes, and will not open. ffmpeg's own output is discarded rather than piped, because
+an unread pipe fills and blocks the encoder mid-recording — which would stall the audio thread
+feeding it. The tests **decode the result back** rather than checking its size: the JDK reads WAV, AU
+and AIFF only, and size cannot tell a finished container from a truncated one.
+
+**Scheduling is polled, not timed.** Fifteen seconds, because the list is editable at any moment and
+a timer set per schedule would have to be rebuilt on every edit and would drift across a suspend. The
+decision lives in the pure `schedule/Scheduler`, so the awkward cases are testable at any instant —
+in particular **an occurrence that crosses midnight is still running on a date its own start never
+mentions**, which is the case a naive implementation gets wrong. Overlaps resolve to the most
+recently started, so adding a schedule takes effect rather than being ignored until an older one
+ends. A repeat with no days means never, not every day.
+
+Modula must be open, and it cannot wake a sleeping machine. That is said in the UI, not implied.
+
 ## The system tray
 
 Taken from Nux whole, **both backends**, because Modula runs on three platforms and each backend

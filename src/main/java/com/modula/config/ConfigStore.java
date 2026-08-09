@@ -28,6 +28,7 @@ public final class ConfigStore {
 
     private static final String SETTINGS_FILE = "settings.properties";
     private static final String PRESETS_FILE = "presets.txt";
+    private static final String SCHEDULES_FILE = "schedules.txt";
 
     private final Path directory;
 
@@ -91,6 +92,29 @@ public final class ConfigStore {
             Files.writeString(file, Presets.format(presets), StandardCharsets.UTF_8);
         } catch (IOException e) {
             LOG.log(Level.WARNING, "Could not write " + file, e);
+        }
+    }
+
+    public List<com.modula.schedule.Recording> loadSchedules() {
+        Path file = directory.resolve(SCHEDULES_FILE);
+        if (!Files.isReadable(file)) {
+            return List.of();
+        }
+        try {
+            return com.modula.schedule.Schedules.parse(Files.readString(file, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "could not read schedules", e);
+            return List.of();
+        }
+    }
+
+    public void saveSchedules(List<com.modula.schedule.Recording> schedules) {
+        Path file = directory.resolve(SCHEDULES_FILE);
+        try {
+            Files.createDirectories(directory);
+            Files.writeString(file, com.modula.schedule.Schedules.format(schedules), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "could not write schedules", e);
         }
     }
 }
