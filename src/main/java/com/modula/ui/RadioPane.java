@@ -372,11 +372,20 @@ public final class RadioPane extends StackPane {
             return;
         }
         try {
-            java.nio.file.Path file = r.start(settings.resolveRecordingDirectory(), recordingLabel());
+            java.nio.file.Path file = r.start(
+                    settings.resolveRecordingDirectory(),
+                    recordingLabel(),
+                    com.modula.audio.RecordingFormat.of(settings.recordingFormat()),
+                    settings.encoderPath());
             if (!recordButton.getStyleClass().contains("recording")) {
                 recordButton.getStyleClass().add("recording");
             }
-            setStatusText("Recording to " + file.getFileName(), false);
+            String note = r.failure();
+            setStatusText(
+                    note.isBlank()
+                            ? "Recording to " + file.getFileName()
+                            : "Recording to " + file.getFileName() + " \u2014 " + note,
+                    false);
             publishTray();
         } catch (java.io.IOException e) {
             setStatusText("Could not record: " + describe(e), true);

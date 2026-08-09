@@ -22,7 +22,7 @@ import java.nio.file.StandardOpenOption;
  * placeholders are left as the largest plausible size, which every player treats as "read to the end
  * of the file" — so a crash costs the last buffer, not the recording.
  */
-public final class WavWriter implements AutoCloseable {
+public final class WavWriter implements RecordingWriter {
 
     private static final int HEADER_BYTES = 44;
 
@@ -44,11 +44,13 @@ public final class WavWriter implements AutoCloseable {
         out.write(header(sampleRate, channels, UNKNOWN_SIZE));
     }
 
+    @Override
     public Path path() {
         return path;
     }
 
     /** Seconds recorded so far, from the byte count rather than a clock. */
+    @Override
     public double seconds(int sampleRate) {
         return dataBytes / (double) (2 * channels * sampleRate);
     }
@@ -58,6 +60,7 @@ public final class WavWriter implements AutoCloseable {
     }
 
     /** Appends {@code count} samples of interleaved PCM. */
+    @Override
     public void write(short[] pcm, int count) throws IOException {
         byte[] bytes = new byte[count * 2];
         for (int n = 0, b = 0; n < count; n++, b += 2) {

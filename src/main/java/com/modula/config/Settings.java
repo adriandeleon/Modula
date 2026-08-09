@@ -27,7 +27,43 @@ public record Settings(
         boolean closeToTray,
         boolean updateCheck,
         long lastUpdateCheck,
-        String recordingDirectory) {
+        String recordingDirectory,
+        String recordingFormat,
+        String encoderPath) {
+
+    /**
+     * The shape before recording formats existed.
+     *
+     * <p>Kept so adding two components did not mean rewriting every positional call site — a record
+     * with a dozen fields makes each of those an opportunity to transpose two strings silently.
+     */
+    public Settings(
+            long frequencyHz,
+            Region region,
+            String band,
+            double volume,
+            boolean stereo,
+            boolean daylight,
+            boolean tray,
+            boolean closeToTray,
+            boolean updateCheck,
+            long lastUpdateCheck,
+            String recordingDirectory) {
+        this(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                tray,
+                closeToTray,
+                updateCheck,
+                lastUpdateCheck,
+                recordingDirectory,
+                "WAV",
+                "");
+    }
 
     public static final Settings DEFAULTS =
             new Settings(101_500_000L, Region.AMERICAS, "FM", 0.7, true, false, true, false, true, 0L, "");
@@ -43,6 +79,8 @@ public record Settings(
     private static final String KEY_UPDATE_CHECK = "updateCheck";
     private static final String KEY_LAST_UPDATE_CHECK = "lastUpdateCheck";
     private static final String KEY_RECORDINGS = "recordings";
+    private static final String KEY_RECORDING_FORMAT = "recordingFormat";
+    private static final String KEY_ENCODER = "encoderPath";
 
     public Settings {
         volume = Math.clamp(volume, 0.0, 1.0);
@@ -54,6 +92,44 @@ public record Settings(
         }
         band = band == null || band.isBlank() ? "FM" : band.strip().toUpperCase(Locale.ROOT);
         recordingDirectory = recordingDirectory == null ? "" : recordingDirectory.strip();
+        recordingFormat = recordingFormat == null || recordingFormat.isBlank()
+                ? "WAV"
+                : recordingFormat.strip().toUpperCase(Locale.ROOT);
+        encoderPath = encoderPath == null ? "" : encoderPath.strip();
+    }
+
+    public Settings withRecordingFormat(String format) {
+        return new Settings(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                tray,
+                closeToTray,
+                updateCheck,
+                lastUpdateCheck,
+                recordingDirectory,
+                format,
+                encoderPath);
+    }
+
+    public Settings withEncoderPath(String path) {
+        return new Settings(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                tray,
+                closeToTray,
+                updateCheck,
+                lastUpdateCheck,
+                recordingDirectory,
+                recordingFormat,
+                path);
     }
 
     /** Where recordings go: the configured directory, or {@code ~/Music/Modula} by default. */
@@ -76,7 +152,9 @@ public record Settings(
                 closeToTray,
                 updateCheck,
                 epochMillis,
-                recordingDirectory);
+                recordingDirectory,
+                recordingFormat,
+                encoderPath);
     }
 
     public Properties toProperties() {
@@ -92,6 +170,8 @@ public record Settings(
         p.setProperty(KEY_UPDATE_CHECK, Boolean.toString(updateCheck));
         p.setProperty(KEY_LAST_UPDATE_CHECK, Long.toString(lastUpdateCheck));
         p.setProperty(KEY_RECORDINGS, recordingDirectory);
+        p.setProperty(KEY_RECORDING_FORMAT, recordingFormat);
+        p.setProperty(KEY_ENCODER, encoderPath);
         return p;
     }
 
@@ -110,7 +190,9 @@ public record Settings(
                 parseBoolean(p.getProperty(KEY_CLOSE_TO_TRAY), DEFAULTS.closeToTray()),
                 parseBoolean(p.getProperty(KEY_UPDATE_CHECK), DEFAULTS.updateCheck()),
                 parseLong(p.getProperty(KEY_LAST_UPDATE_CHECK), 0L),
-                p.getProperty(KEY_RECORDINGS, ""));
+                p.getProperty(KEY_RECORDINGS, ""),
+                p.getProperty(KEY_RECORDING_FORMAT, "WAV"),
+                p.getProperty(KEY_ENCODER, ""));
     }
 
     private static long parseLong(String value, long fallback) {

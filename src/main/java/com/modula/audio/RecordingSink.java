@@ -33,7 +33,7 @@ public final class RecordingSink implements AudioSink {
     private final int sampleRate;
     private final int channels;
 
-    private volatile WavWriter writer;
+    private volatile RecordingWriter writer;
     private volatile String failure = "";
 
     public RecordingSink(AudioSink delegate, int sampleRate, int channels) {
@@ -50,18 +50,45 @@ public final class RecordingSink implements AudioSink {
      * @return the file being written
      */
     public Path start(Path directory, String label) throws IOException {
+        return start(directory, label, RecordingFormat.WAV, "");
+    }
+
+    /**
+     * Starts a recording in the requested format.
+     *
+     * <p>Falls back to WAV rather than refusing when the format needs an encoder that is not
+     * installed. A listener who pressed Record wants a recording; silently getting a bigger file is a
+     * far better outcome than getting none, and {@link #failure()} says what happened.
+     *
+     * @param format what to write
+     * @param encoderCommand the configured ffmpeg path, or blank for the default
+     */
+    public Path start(Path directory, String label, RecordingFormat format, String encoderCommand) throws IOException {
         stop();
         Files.createDirectories(directory);
+
+        RecordingFormat effective = format;
+        String note = "";
+        if (format.needsEncoder() && !Encoders.isAvailable(encoderCommand)) {
+            effective = RecordingFormat.WAV;
+            note = "ffmpeg was not found, so this is being recorded as WAV";
+        }
+
         Path file = directory.resolve(
-                "%s_%s.wav".formatted(sanitise(label), LocalDateTime.now().format(STAMP)));
-        writer = new WavWriter(file, sampleRate, channels);
-        failure = "";
+                "%s_%s.%s".formatted(sanitise(label), LocalDateTime.now().format(STAMP), effective.extension()));
+        writer = effective.needsEncoder()
+                ? new EncodedWriter(
+                        Encoders.argv(Encoders.command(encoderCommand), effective, sampleRate, channels, file),
+                        file,
+                        channels)
+                : new WavWriter(file, sampleRate, channels);
+        failure = note;
         return file;
     }
 
     /** Stops and finalises the file. Safe to call when not recording. */
     public Path stop() {
-        WavWriter w = writer;
+        RecordingWriter w = writer;
         writer = null;
         if (w == null) {
             return null;
@@ -79,12 +106,12 @@ public final class RecordingSink implements AudioSink {
     }
 
     public Path file() {
-        WavWriter w = writer;
+        RecordingWriter w = writer;
         return w == null ? null : w.path();
     }
 
     public double seconds() {
-        WavWriter w = writer;
+        RecordingWriter w = writer;
         return w == null ? 0 : w.seconds(sampleRate);
     }
 
@@ -101,7 +128,7 @@ public final class RecordingSink implements AudioSink {
     @Override
     public void write(short[] pcm, int count) {
         delegate.write(pcm, count);
-        WavWriter w = writer;
+        RecordingWriter w = writer;
         if (w == null) {
             return;
         }

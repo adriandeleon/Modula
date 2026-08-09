@@ -99,7 +99,53 @@ public final class SettingsWindow {
                 commitDirectory.run();
             }
         });
-        body.getChildren().addAll(new HBox(8, directory, browse), gap());
+        body.getChildren().add(new HBox(8, directory, browse));
+
+        // Only formats that can actually be written are offered. ffmpeg is detected once; without it
+        // the two compressed options would be choices that quietly produce a WAV.
+        javafx.scene.control.ComboBox<com.modula.audio.RecordingFormat> format = new javafx.scene.control.ComboBox<>();
+        format.getItems().setAll(com.modula.audio.RecordingFormat.values());
+        format.setValue(com.modula.audio.RecordingFormat.of(current.recordingFormat()));
+        format.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(com.modula.audio.RecordingFormat f) {
+                return f == null ? "" : f.name() + " \u2014 " + f.description();
+            }
+
+            @Override
+            public com.modula.audio.RecordingFormat fromString(String s) {
+                return com.modula.audio.RecordingFormat.of(s);
+            }
+        });
+        format.valueProperty().addListener((o, was, now) -> {
+            if (now != null) {
+                holder.update(settings -> settings.withRecordingFormat(now.name()));
+            }
+        });
+
+        TextField encoder = new TextField(current.encoderPath());
+        encoder.setPromptText("ffmpeg (leave blank to find it on PATH)");
+        HBox.setHgrow(encoder, Priority.ALWAYS);
+        Label encoderStatus = new Label();
+        Runnable refreshEncoder = () -> {
+            boolean found = com.modula.audio.Encoders.isAvailable(encoder.getText());
+            encoderStatus.setText(found ? "ffmpeg found" : "ffmpeg not found — only WAV can be written");
+            encoderStatus.getStyleClass().setAll(found ? "settings-git-found" : "settings-git-missing");
+        };
+        Runnable commitEncoder = () -> {
+            holder.update(settings -> settings.withEncoderPath(encoder.getText()));
+            com.modula.audio.Encoders.forgetDetection();
+            refreshEncoder.run();
+        };
+        encoder.setOnAction(e -> commitEncoder.run());
+        encoder.focusedProperty().addListener((o, was, has) -> {
+            if (!has) {
+                commitEncoder.run();
+            }
+        });
+        refreshEncoder.run();
+
+        body.getChildren().addAll(format, new HBox(8, encoder), encoderStatus, gap());
 
         body.getChildren().add(heading("System tray"));
         CheckBox tray = new CheckBox("Show a tray icon");
