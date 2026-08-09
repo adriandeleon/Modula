@@ -1,0 +1,1625 @@
+<title>Modula UI Kit — Night Dial v1</title>
+
+<style>
+  /* ───────────────────────────────────────────────────────────────────────────
+     Modula UI Kit — "Night Dial"
+     Typeface: IBM Plex Mono (subset, WOFF2, inlined). Designed for IBM's
+     technical products, so it reads as instrumentation rather than as a code
+     editor. Carries every number the receiver reports.
+     ─────────────────────────────────────────────────────────────────────────── */
+
+  @font-face {
+    font-family: "Plex Mono Kit";
+    src: url(data:font/woff2;base64,d09GMgABAAAAAC4kABEAAAAAeMQAAC3GAAIAxAAAAAAAAAAAAAAAAAAAAAAAAAAAGjQbIBwwBmAAgy4IQAmCcxEQCoHYBIG/KwE2AiQDg0ALg0AABCAFgnoHIAyDNBuHaUUHYtg4AGCRlm80MoKNA1IAthtFsHEg2PYel/1/O9BGDMF1qP0q4SEGqDUdbawZBrUQSoL2tlZrZq2hmt2j8abkCoT9C66ZosWD7iKPHY26PTaNGkuU6pTcFe95FY8+yq4QwuOh4qL9QnD47VNSQvGtUmw06VDGj9DYJ7kEgV3fV/fMWdkeqViIoBCMwOxdTkSB9M0Z4LfZPwWMYc1ABQkBUUAqFPo9In3IAxEDI2rRf9bN9V/1nctQV7fouN52lZuXtlRKWOvvTIBPRpK0nj8TB6hLl9YpzRATQhloivzfWv17q7iLGqZhupoHd6ZndxbxEwRIvxOhvoojDXx8vnCJZ+GQZWRUbIhwdx9RizCylsYSCL39t7Z/d/jKg4+IVdMtkdSh9pm9XK4zEnpCqQldoXNHbVlqE/4kLcYizL7b1/rn/VLXuysdzLyVAtimSglUpSeWzP98H52JJz2Q3UpFE4IqXGLL1Lq4uTB5/vt7fgvoz2kmCDzYYHGAyRN4363gA+/xI3g9CvU+1XYAMLMbft17q/9Cm9qWlsDQpRy/cdQnH/T3c1U2f4DUAkogv0Ixll/h6eV3ZueHmiCwnSHOAEDPIhwgqEyW+jiXOUAQBhywcMDCqKtT68//MrVM5/1Gc864oTnUhVNDypkgG91Cio1LGcSKBn8/0DtoNJqkIIPjQs6Be9Y3e7gFAjjrcjkTRN6EF14pUxK4PLk0F/FfN757RRDZTvTVTpoajyTAw8RTalsrm4CwxYsax0BdDOf28elhTt0pWHApgK5CIgvY2Gz82rKf9s/e+Hpjt71ptwuFChggIaBtbQHQ1PzTmEIECRcESyxIr15BllsuyLBhQUaMCBIE0FgKkqBpM+YtEwYNoBoHBEBjmbhQ1764+Dtp91akV7p3OxIZYlTmqjgLA8jjMQ9g7vR9ig2UkTQMzyb1GtXLQnBxBFAA1ADA7D2/hr5kvxIa9P93SBnRRnapLPPhCKHkBKBpbaEEgeMvXQGL0M9uoCxafiUmm26c0rYv+6af9avhB11Uz5HV8GXTKVBqig2z3k/7ukj+7ptcD1A9RqoNAN4MehPyJugNvuGAVxsFoQCMA5gBsADibUw09P/WS5Jdo+nKaNjk82vQwkLHKMDMqkunbj5aBUoUamJwR4FyxZo9J0w1zRQzVKh0S5VabpPp1bjpnTan7bm1rVKP+3bUQlxy7BTaYqNNvrDZ54ZttdsOO+2y3x577bPdAUccdMiow9qNOOGoY447acxKc8w0y1yz/U+vPvMMGPSZReZbYKF+iy2zxFIr/F+H5dZZbY211ltlgyvOXbpgRgki4afXpY3BIAaLXF6AptUoETFbSGwREguFxC4hWYrIhyLyA6P7AJOiRRr19U/EaaCoHlnTgr8aWWSzliQEY/ZNYWySJAWJDJekEMzBorsz1FFgpmZmH03NYdfdEcvuGzo7zMmszjO0VN+Whss0x0ng3zc7AVQlKUUkljAIGGB35sQ7rdn/jnA90UKLRY++Hmg8ovw4SYGfc2bj8/6Deh7hAAOu+lrSrLo3j76ogad+RgsNBZCRIZN0ntXmeEmLcjxiCvymKxQnIs8nywzJk3xEWM2iu01xpH+aHAHOP4ILrBv8h5GSpJFojbStEpjeX2kxIoSkRNh/JQQA8C8A0AvAfwhfIP0WIA8A/C5w9gsAw9BK6slO3hW+fuQw0VJ0vgmDJ9dkMSIkj/uvrvOhv+DZwzaNREpbaXT3lEBjIylEgrNQ8yb2mJI5H1ztkili11bFU8McTI+1I3bG4w377aZkDQBmj1jnNR257OZc6ZV2FFl2Gwr0x6N5aHQrkWpF0qSi5mVl1Naa3PPYpi2jfMurXclXErUqbXnT3wzdjHzQetf6G3PqKaXUeUQ1IbibUFOtaJfk/QP3G7ewTW9VG61+o+XkYIxLbWiM9JYizPhyS+kcr31VOtwURXrywf3Kq7oczGtazT065521qjL13oxdQ0PHexYYU33d27589uuvEaSPQlngtBcg3GMWqHdG+/DsDCIjIzQXl2s65Vxzkn2RKPn/wBpv9AtCGgW1FDd3lsdJ1JWFksAfBXFPJJGAtK7y6NW6oZkbJzBYzy99mpZBmkn8ES0DJNGvIK/XVhcriWUCwB9HOmrBwI+8dZK1eYoyWHSPEIgopZjTHf+iYRhtajsFuIgXuiJPzOu3cQ9MYM+t1aZpQ32ghXBBIuP9geGDBAGWCkMk1CEeSAS2PPe6vrbkliC0ycWDNnR7JvcgdrztamU4q4HmZWjiLQ46ynD+MhZilKbgclY4wtIeBLob9BmF5PoQYt8GSkAGZQ1OtswNPenQjcOwZeBFGRzGpccVCcVu3Qpl18AgnnfBeFsmuT/BOI1k9jW7OnODQRSNs0NDrnJocbqrEuzqLCarqbt6eFscmcEFFzE4P9khqGqco3zKY4+yhK36PK4oy/PsbKmojoFknCAlMhHvPVajqiGXcqGrUCBDEJLT2Jm6JGHOvXP6K8rwPAMX+KIYTrgxbGnBkq22Ri0zp1gmtR+kYHKwLri+ZyaZi0FlBBEdxFlftGUXOxa8TVtd9QGItvHalJVoGZ3fcwkxsNYeyNCSoUXWgVemoeOehUk7F8B6crAoNEZhKMrazXN6eAjW1w60bBa4TFvVkYWbKS01jsyxA6gMIE0G1RtGVjDigR0FEKkxuEfPyLAXieIDe7N6u5cs7LbVcQ4NU5WW2gCfYvUPyO/Yzw8nmIiY4HwHs50HzldFf2InZTQsk8M/CLNekXVHJzO2CBL+wLEzm513AwzBy6lWHZtZQ9zOiQTBWvPMEjMtE8lzKEuodrzPEDGdCMvTQmVlkSjRzOp9iVpuuE2OI3TSOiUWm7MjPpPdcYSK5YbT77Uu11+2TxsAd/NYb/s6nKuaMdPSOrKArpzGWD92JoPrDZOEV7vcPM60aSsHDCnsUywbbk5PoDmr0ZpMngGxXclTFq4edu5SsUiLgh19Re1NptQZ6rqDKIHWEPxA64RbKZU/rZngnWcSnVDEKiXum8e0cAaE9zqZ9i4MF+HOn7GcTBAX6tTm7qImeWdRe72iWvC2Q6sbLzMx4SEE3BZ2IOFK3lczFyzBncoVL7k8VAyFSb0B40rSxK7mjrSagDTwOpAkDulOBgKNSsYKW1oUa15OniOzYdDArTANB0hEkHtbalomGRotqmW8MJ5PaLqVC0QZJAjcIi0lp0Kxt1xWUKHM4a4SV5WHUZn+tDTZwkl0mG5odyD/96NqL7tzjInNAYKJQEGJPEoYB2gxLOJeqAoTGmIugBE1hJUHFWNLGAm1I8MyBnujVql9zGwsl4ZMO1/q2dRt65IwSggjVC1GVALG0QEiFPcWhbTUVl4t3zJsPJw2wy/UD5R4NHZaO9Xi2eCtaZajmjIhifwO0173ar/naM7+PJyZ/Q5nPck62qcMaajJOKVv4iR+YtXVBZvNKRnLKDJsRdJ8Zwz7D8IjY0fWEAHtDwn7HxMdvWKGLC1CO7ox1C5vH7/vIfF/mBUme5yyf+hyeESg5H2DF2PTstQukhHGoJ3NtyChnOhegKwAiKhp+d4nqS3SERJdbJU8Tqvy3OXMoYZw0YGo5Kp/brcCsXfzFFUhhVKJ44q1z+vWKjy7Yuv0KVATupYsvWMBIzvQZYG5urmHGrSWklQi6fkhcqNQs7DZtGhvb51BdEoYoFR9JIQIdBw8jBIFFUo9F2m/FHP8mVMqtOKEcD9oCpbtVyCfrzv4Tk44me9+GrDJRB+eC6f4+/syn8dgAIcddnmfMDVzOShzBWZzkXUo1lldrOEdXuHTgan5z00lhPN0jmepeN4aIEGYIgj9EsAyNmzVfHjmGXhL+68kU6zJ8QnT+Q3x7tPkMtj5Snh0JyEL2fdJ6zqEPvOBX/o45WToWLx+Q8nya/soM2VHcss0sFdLPvjomAVIuCopjw8bExXN/nvUn9j4SNzoAZla8bFqArn4v7ic2KRDgt/Aih5LOurgREZ84d2FDP2GjMfy1CQtsU7X1+S9D8C9TDooadYaG7NKblHWkUjzQFam+hiPdZN8tPOqVT3EcLlL7wh8Dt9g8kuKRtrD8yxEpprGzlS3RftuqCuavfLOjTx1dcxf3sdslqu5Gld5JDRCF8yXqQuJc3RnOnl6XQ+M4ROM+HnZkytH5p4pm/9nlp/nbchD8q9actaGHUqW11RTo5hL74kvpoW8laHjz7VPMtAt0duN4H53JXXXroBFE0OJhGjPMa8uo4c7XtL0x9qGrmKhjG5ohviRR2nVMm9kjfwzawoRY7Gr+aGojiaLjKBtXbMfUli024SghBrD6SOfR0W5iXlKOwzgemqEc2hjXIrdg28MfC1NnMnCXlI1Dp6a1hAO1kmBS+HK3GjyqZZ8JG3Uq9Zl4Uo9pnG4htFksK9gerUzt22e0m1xoLlwYMibB6c2/vECM1wdw9NMUEUmWZMuomWVVuqNxTPodJ2W6xFjhc5MPhfl1saijpepMdOUG7H16zOkRryri0yHPBbqxup2/Y0NTQZdiC2zmJakyJKpvbaNd/tRFKFIeifCJY/Ed3VRGKqmj61BDINZgTK8HNivW9Um6ZSM+T7gzGHXXKBTZKmwO1OqR1MWyZSPxo+8GSAmYo5Q4wq4LeYaR2eTKOuvqIouQ5i3JCHlJ7dFXUFuitlIl5K5Pn28p8msS2ckZPQPFr+BxWhBoDFQNzRzJkGA2wSNwHeyjXbE6Fu6CR/hHxM/hjdmf/zxgJV7GQoDqVylIpcrjJ40ma1Ih/z8QMvm06rymVQflZnfRReDvKze8hIQ3OrmejNi+C08J1uY00rCR2mWGCv3pamNqWUqNbVcZfSmScRImkJPLpAxpidR8we+oIttvKzh8jq961Fq90ANNTQDSzWZDfW54O6pI9BInViqU+yCbqy5QXT6sT/cxs92zrLOntagU7OOT47wt+IzTJPQvw0byNIJOqclmZN9MJx0hBowdtCOEHXM9BSd2prMiWzdt29F8Z3IxOdpbRX5VqueHK8+IBZQYY3T6GAdy1X2cYncXqWya5e6z5e67bm3tTHHKYPSqmIbrDKpIGXSE5knuQqut3XSjuFicMdoYAstGJs6Bk34cjc0Ul45559pKMjtVfeSD2Np6pueal7NG/gOOh/Zsbbs3qUPWeUXsT74KFyeAx4sPAihN9AzHTFJ0VYl+vgom3MMRN1WcTWsvNwqa75+E53Sw5qyHUWj9F+f4TI0jKgWp56NlXrTlEZymVpFLme4BWl5arlKTS5rJIFAVw5iRU4XuL3UYhSMRPMyU+A7wWnSQ9xHIfDV+QZ/bOzg8qnLoW9mY/5bBRnMcKkBydG9uAjtaRNgXR3SoWJjHlOttLO48d+v/6t1H7v5vZrGSv+2yxbLMVaxjfzBL8oUVJWWmdFKCwtOP/DMqqPLXW9QSHVi605oJh7C9zkO/wD9MJXOs+Jzt0PiIvgqGA3X/j1CXJYHOd+iHX0Zj6AgIsqUfTw877gvT0N46w1OVI1rT5h7T81k1UnM2MdNjgaVB63w2BsKj/334lWJtyfbhZa73D3dt1HweMdc+O4qoh3qyRq68Xeu94H9DFo18Xkc9jY9tBL1eZD7Vfb532FS3r3R5rc6vCS8FL5WkTf63l9ZmqtRmj6hdtnsFhbBkgaRMrA/z8rWiaRMiU6cve7jmRfJCX46/6Rk4deNeuzMqaN79pClmXxDMgF3xUTp7Yk6RXHD02rbaieLbsqpqJ5eE+VqAsGQDBaPnpk5bc+uXWAw88wJM4K01zXUwccXqc+w+cd2W/w/OC3O3/yWPP/YiKXiB6PFqHIcLcTM6bQL6G1NR3YenDQ6Q2BKZuN2mCi9NVG3yIhzWm2DJNqbs4kN2Vw68xLwVb6z64AyRoWMIeIY8TTHTATcLd4N7n3rbS9GMZlEU6kNz4Grc6OtOTEQ+vJ6YpZaa9j132xNhKe88yUyhjSgCtqv/Vn5W9pf/RfLe8aQVptFcr7oWdjiqq1x2LNix1jDZFHIdMqaMUfrJluo3T7W/X4dp5SN1RbwFQWEuV4PoZfh5rVlALfHKzG6P42ZtbAgBpG0iWM8BQtZ89k84jZJDNIY9I992lxZGwjQ/Zduz2jdKtkiEAu2SLZ6vt/cmUb3Ns1olwr8idOdfDff2tKx2si85SfWKKW7kcmZPXmV7tB9nOJtzOZhI/ePJLCzN7a4G6o8Ndsv0NhzDBrRChPWEZEB0RanpJZMK61H2mTUTedcPJ3JplDyBi0R1ogMA20jkVo6vbHc09KKtH5nYVhUm0c3izA5KxoFgsYVbCzajCxwRrVzHV6GyUQAcBs6Fxh/vb6SX1ZoDcUccBHvmzHkl47aUhZE3Q4r2FmMJCwAEstTm4RsCFMvZbcmkDtYsBxdvDxvsPBN+X1PAO71zkN75rl7Cx8g3cGxP/16VX4IWYf2rrtIsfo2J/6Mv1IH0yZb7ts+S1vrDsSYvbaJkyZ6bHtpwAACsDXzLW1HPC5+B219jhfwWC6KQvdsRo/snNM6YilIvu399hZHVyKN0OggnRbSYqyEdawiO0EkhomVKZbMDJxhwTzO6W1T3JGLLGatKFRulGXJIX7ej2d9PH0cm+PAraHoWFSDiXAYfc6/al46h2p96yNKuca40oE/fri/VUNMtTpBTZjaDjrc5tLJAz4r5+vJ72oMNQOF1yJ3oAO/tcjjJoSe/2tUzp7STXaKRGTkaV6qPBOK003648f7U76PlLrdYQgzOBwWYWmNMTxpxtS8TKwsj66EKOVqJ7ff3JLv3d7Q73OACKfknW7QJddxbcRuUo5AlIpc9aZKjGanwxRmMk5z8ZJU74ppFc62Xb5txTab2FhVAekcycI2O9w/hbVpESXcWVxXR25YudtvC/tpvtvMJlnu+UlKo9WtU+KUuTqbLRfBam7xQMYsaZTUnKXXmwHgnmYmjjq5/ZYWn0Lpq+Bh7MRqklMooiBPvzKVP8gP2xX7T3+I5RqJ6GRDBv7IXSD3Ft3GYVyL0CWmpZatPVemS70uT+cY2WEx04DPe+Y3mfMxVahy8hBoS8/vXtE7aUHAW4W541FzjWwdjbfr1tM0MztaatIcPtc8xV4lVFfhV9Z0kNYoAr4MhRJJk+iS/OIOUxZm5eNMlamqudlUrcJh2/+0Y5I8xlI4396/fFZ2dAXLamUppzjH6MOMlYxhOmsrqAK39q7CIFQkUTHB+tKaiLX6rJGKrXtwtZlB+Fh8EHNdk16Hoh3DEXtmDLu6rmS3Aug72hYPJmCuJ9gTSJI3oDh+FinuDa4jdcuu7YKPcP+SNVpKON+y5vsxfcL4oS0BQ1HHX2HLpUaEhG8zrK+yf/RPJ3/OIOsU346HiQY2L9XogkhplTlrPahSPRQl18uylSbdbSthYXa9NTkFYjkfyg/3SYbi89qf9gJZdF2VWii98nZb4XrXXrs3uyq1S+vVnhDgrWiva52tKA+1QMLgDZsUrXNtcIAq3eBabyuE074cmJ2kvhNyR83s+nP3aUhTD7DW0TSE4fFwg7oawzBQIafaCRmojJirqEH5p+FKQ1vH2qs+6WBO+Q3znMLazEAzNrMozzG/7Wc6TqpNSX+yLn/rp5UaH66SP5BwZraZQgmHULOPK++sZ5t3lBY699Zyfa7PA4n6TWudhH6KL+Sfoo/36SHfeBhrsOP7GA0bmG2cnRC2sNpYbcCfvxPTvg6mX7JYEjhcXzLnm/b7jKxPHokGzs85OAss4mdZEEw1Hcy4fCbWE/aSmy9RIR+ktK3R5MjfB/ZTn1BzBQIiT6JF3vc55mh/tFnMnqhp4MAe7iSHnTvZwMprygBuu0NiZPS1yJum1tPyRUrRCQHehhR9egllpRa4xJXrCpj5V1D2YUJK+iZmFmsxk6R6SArWchrZ+Qw9gUzQp6cTIUeWkaRHpwCSaPhMPmKwIIcUT8oRBBPnH0kgY9ST8gGfbufYOAwDUYlPCk3C02Xvd1akHk1Cf1HJk87lSJ0CsyXF6aC9+2JRQ3/c0RStWafazpDvWco6kjhBoMrYT2KuYhfa3QEPggRsNkxDPK2tYs59toJ9n7M+u4fdTH/0fh2dvu79I/qupobbyOE0ch/jgbtNA1O2ndfF685rHlofajoQ3cPawNQdE5c8+J9+IW7uHP2CtAeWyaMW4RGTVujWfks65kHDpOe3pvitkhadZVhPLeqMIzZG26/FFBjKFYysvQfSEQAu1uvXEupMiAWjunURunjL/jpMuioKegolYpZfWHwX7OCJW/7UgezxTVXg6DrjBxLu//5xH7k/dc5xBFS1tz1PLpwGTCQM3vXX0rKLYSbPk4CUbUHQ38e3y35f30+RyB4F6zNTMuvBtcWEs45TfdBVTCK7S7wE6jxtmVZUW1ukyen7wEvEWBWRXqrV6n+CWuk23IprbfxrR1QMtbRUDhVG1KqrtWiXVvPzbmTFwi27ML05Hh2Irt5uUshy/YN+Wa6i3Va7kA7yItMJpQbnxniQxSU7LnhJUrhGHfxuxJqZpbfrHMxY3Z5LhsO0OPLrnmsPMTPhctyEXHSjXnBKmSOAMOVyA30xieppKCkOqVJXQegKee67zRA7/vd7dwNtE5nma6itDK1ST+4R9Okj3x36Z4wrvWDA/vMpVjdshUbHRg1DpzqLjnSiD1KA3iED9pE93TUPm2WxWZ1+Z55GAm5hMHbc1rZ/7ggicR5gUGO01HRnTlenNDjZxM/nxX2oiYZXde0sTyOLLAoD6rFeGpnEn3owARHLLnCjmR/9v1wBZKZ+STUv5++aMjqKo1+nsgK9NWghNS2eWEpJIL+ZhGN+v8s3eBMXNz8maun/D0SCBZEVQ81s/Cm0XT7jVX7IdmQW4Vt086YM1MvzaEqQXKxQ0BsmBx00nipH1i0Y0geWlxkKCzThJg4yfYJZU6TtOQK6bE6j02UDN9FALRixtjN9Bbnbkv3SWLF2pin5vNp+qoThi9sL341fvt6c8OX3JJ1m0au0vqqJ7b5uA4Ydq/Nydr6sCukIBMT0HFBSQlDqIb3fqzElg4Xyqhhoz5uoL4eSEn1nmuGriyuOnypybdRp2PrzlTfX/HPzzb9IblVzb8s8/VQOdPtdwUyYgr85U5W3NgKsi6o+tJFLtWurzIG1MOsYc1ri2JEnVPFqSDsU2szGFjRzcw4oKtcmzXCR3ZB/xsfMH6d4zKP6e/7csDTR2EFglS9myCwzWu8fQxZtL62sKyykkZduX/12u2QzX8zfLNleXnrhKqya1510JR3iqueECHpOWfh1ku0AOmTpmtl7zMLG8FrpZ9O0kKZMWHDIHJM1q+ZCFCEEH0WhpXa7XTlhz0lqnZKfKdauL7Fey0tOZdgT0cksErH77sawM8Iss4BDf/QHKoGQIbBn62UPmK/uTaExmokhMgdH1HRsTfHXvswp9TKI6Bb+pNArxKv+fbPIoRAnJIYmSlNpQhrlm4mh8Q/wvP5FyYFM6Sd33nsW/du9OQeS9OzPasn38zBx2/H4dysNG09LsvozWDl2e/ZB4R9o1GxWDN3JfcHj87Sqlu2o1m31r9njHk9ycAADQ3AAE9zJ4xm/fkj85/9PHu8iCqbkPfQeU0JZ5PH+pGJhvbzC0wftHGL+Mh3leNefUydEtlr7LvTOTdrRg85a/2USlARdryWvjI+KX0lex64uGXGEZhmyzUyljX2zQGgioxX91zT/eocnu7mqnq1J2vAhGaIfNiTtWrUQ3uFx+HeE9Qkcsuu5drXYEmE0nImXT5zojtLu8tZE/NpWsXF5wl8U7IHFk2MS3gxPNi6L/d39lQeH0AGSASQANFh5Yl4yd3Ja6k0YybCt9qafec5wHErMSHTayL4BaAC4zCXTgZxqKgAZuSM4fBAclds/etdb3vFebgRTbqd3vZU7GSq3a971Vu4cUXJ6sURPwLve8k5uJKHc/t+73sqdMxkG5FYIPvKJD33s0/bgrm8bFvLrUT3wiQ/zeKZJliZNWjLyYGayyZQpU6Y8efLkXSLSR09nqy0AspV+NXBe02y9sH9uvG21fwHww7/7/+/+X1Nt9BJxOSHxJPxeV3/El7KZq9WeHON+1bvvzo3YkW/l4M/k46UZ9yYp5AMXiEX02+r7a64K7JX5ccHdc1cWjOyhWGRn4cr86O/CjXWA7AJX5kd/F5KyL8W/+WdRLhftcpmUh6NqJMm/JP4nmwp64H9/7kZJRyUNunBHO0COKQ6BHl40HfTNbDZcXssx/rphS5Cu84cQEF+CrvOHwMIkb3qMvL9m30N6eNF0VCFgSEG6zh9C35gIyJmA2I0Z+TCd/c95/hCYT1THTt70CpsBW7kP3vyBKn2q+K/vJxJtwRG04A+JoRl5sIRK1J7NrjY5NbO55w9oOlANIqkiAN19dxLF5hZMN8UDWgtCbaQl1mY8aaXlE4WtcMaGphVBI65MTkzFrGoWmwaV9ysl9dKKtxbKx/qfuU4JubKjoBwQKROKWpEnFekgA9kadrRaPGuNdpWjhTqZHYdU8IVSbR2LYWtBkr2oRD5JHbf9ws4sky8Qc9KWaJvylNpU3uUA1BOjnME5B9lgkVsDH8SVlhOf9wU5jzdA/NsGUlkuaVgyeJiielC2t7UYEeVkTGj840boGfJeGX1khK/oATFeTx4meT981D+ifXx3X/Nr429/0RV9AqVex2jf3qH0n/BZu+RjuU2yLKkoF2RaxsuMzrFYcas/4HSqmYamRp0OU5GSVRLh75IMAYjzBYGfctfBybOk4MwNpPEoAiWP4GW5SuBJfUglArW6OiTMM6ec8LSkauMWgIJyQJYsuyVjbFef7Vb4NUcUfZy2i1thEZCEVPw7K0urUEZazR6YliDWDA1QXa5p0pp4kbM14SEEOyEckaqoim2lUA9VGixPMi7iu6YakSMnddUlCqSJVJMDzMw5PU7e9aTpI6mGAYIPE8BT1I5EpDvUKdauYStuEupR9tBRlII2kY61WVO6GAD1YEsfOBuqhAfwrXPnLqSRX8Unw8wPzVXPI3MgvaATvX0WEVUsRoK/qTU3GtZOZSY+vgbiq3C54GC8k34iZeJa6faCZI/5irL5DIiXOU1bU3AV5gAhxQpJO/WyFd2oSHYiLfP7bisSExDEQh/naO53Ykkvbf8+Lg3SZvWHV5a620lMCD9CrHl8ILpjxGDQkA4ls5shjHsGsqrKNAzYIxKO1UGGDgQ8+pwhBzZp0TvAZ/ZlKV+nNiQy4FgPCsmwkGBhu4M6kBO/O+bOOGMoj9m5Y31S1gYqz2or6yt1LceoG5/IISgDxRQfUlWrp0vwpRtL5afCsme28KVNaQ/3uGHOL69Bca03pnQhTKQQKwY6koRkMHwgdWID1x5bd5poAgTKEdmk4JLQaOcDnh9jRUuxu7c1ktEm3m7QprWBcUV8tgpc3Gr7c9sAS31XYiV5/MENG3HsonrYiTd/zmxFbwB0h3vNd6DRvcWlfsE2xGWbZI8P3w5lszgxadi6roN2rjDd7vXWzOcy4aUyl2ph9Z1gUy9QcKYgDp5DzUGhHwDBiVxhrqJTQcSSqApGYqwpxB8rxrPWQYuLGZMl0zVLPYG2143WB/EB+/Br2WUrKrdg5HHa1kmt9UZHF0Ymh4E8mTK5VxkCLJpY8PODRt/7FAU8wjDgpTWxFtufluZilhWMi5qn8nUY/VLg9lSZOsJlTGgVNL2KAoZmRcgCcBEoWGCd7xZ2DilfIZfw5QRyNJUpnAbA3dc2msuJT5i7RRh82VIwdQkTDiathTN3T3gVlVTG3V/ITx4GH4+IOmASqwhItlQIH+GE2OVx4tictRxAVCkDwCYCw0wCSHAVedpkbFrH9Y4ERERPuKppCBH8LCCEVKRUCPgiNrkJd4wJFgD24istFMIzvOXJOER1IewqVx5AOetqRkkxKAhxFFvXbkSpj/rWYVSm2OrAT78NneDeh2TnUksBeEKGKwTeqCB6Q6C5TSSBlo93k4zYbDKkPucNBYmJvv+tO4rKES3Xl5yNeBI0rrGs8JLrqJvas7+mAupY9AeRGOozdQ3Jgrxb8KWQkZDnYVlMQ9ndlY0trbGO+qnxepR9gZkIt45nsXoZGCrJRrZ3Dh8xmAajpLYCANUi7mclRTI6zaWAOqlExKQVzikAzH5UjHnj1p1uF+/CTLw6hDgLBN1aOhssydbhv3WnVthxZ7OdZRV1HlEUlSH0xkOcK0MYn7tZYueSeKMoGLQ6vLD0hje168XgJinYGEbpfO2ctRWyWEjcILHV5+mDKg4slIUHtzplEh1GQIJzGVZjelGcWrlw9wULXGjPXqDp4ale4gHql8YBWkNpay+XFLWnbeSNgv4qNBF+Y+KUtXl647QF1n4BDbZBJXMAih3IT4z/ewNAP8uOO7wKOs9g26jft0GL3qEy64igPLyyrhLu4glFRntHC1nZm5ujhS2KDfa40QwpnqqOHiBYg87xNiPIA5JHkU9YovhNXCpD68twJu5/QlxwjhDn5MWA5eJRh7Xna+ZhHsU257p9QQu7aPByDczzA47Ix5eN47k0iNkf3jQ11PBx/ZCLxi6qRS3YNCtMhxLUbSKTOV2CWPE5RvgsUqgYLqiIt8HIOXoUxKdwEoUQjh+xfe3egxtqwuAWyZfNBRglFYwjhNKOvplbVoE7zHCnbovErRkShN2myS3mR0KJBGxjSh4ZyzIoMQoQ77aI2EgcsXHVmQCsd1WS0k/TiG/c5TjoWoe6oc6403hqhbz3H8wcVepoNpx1qAAYcAveG5LJDCYVFge82fggCrNHB3GAi2bSSSkoAe85oDn1kCGgNEt84MMjkNBbYIF4ozqUejNmapMnNliFs70Zs/XPnwtv79m/e+Bzl94dZR8T7xcXhyz0DWQf/l4z6OW7ALzpLSJq1XB5WnpCN3k7SPd+YaFb9o7XqSts8TjhXNjHqvbOk6Qv7sXgXvjkuSF3sV52hW+4PasWGSs1TBfBk/Eeoexjox8TfolfP45es4+niwcGJE+zeWwc/neT5QGfen98R6nRkzhMNa55liZ3BqDcrtnPwy5SPRSPHox4VJfFqUeXR+PAeWraEBJYGp68jyHfLmQ+1os2+vVmLaK+vj/qSZ9tLev056P1lmWSrCsFwS1uel0S6zOHILAbA1JDW1XeAHRocSzQtf8HhEUEiHv6rEHsyVS40RveMyWllX91fqBXzhfO0fSRQLIvcgsoEET4TJxTm1VsppbVN5Q45lJEgaefQSEqcC7h7+JUkks01WXzoI2yBHxgSNTLhCXnJNvzqXf6+58AX0pSgYGlo5w1uaJJzpVsAxgWGIQFyUAAKxWSKCWlbBqJr3M3DwJcRVgY3r+B2aeGfa3xbGZ8mVbc4/v3Blk/PmmnRIEHer0r+ADt7SYoYxAbnFdFMNDQZzPPdtj1nkIloCFRrH8CCwMEKaelIBlNoypeDQQZytF+KynvvO0Ug7lbh3OPHpYpNwyX4KwBVyKNEGHi/aXw46IxTXtuQShUdSzm7s0rDHd9marcKCQGXKNEtSqZQvlw4Le5vHTo6KRxjTAWXzI3tS2k0nYsM98kgR3SzgZUCJeuINxIo1c5I3rxfB5iwwV7hY3Nh9fiWbDzVcU8U7SROgNgCThYr2+ZxkT05Cs+6SQNboZGSK2i0ngASY27iYsJ0vugzrgTHaoon/rQJyYwxfFd1y/yTs1VJ77R3WYEZaB9a490qqHRyi6hgtMu93iStLB7ssqnoVJvFJ2FN9AVZy5pcPWADu9yT/wpdY0sTMZjYohuoRt1IqaJ85/RbBBCjY6wfxNywele2C0tvYdbLcS/EFahgvrl/R0qHMFmvYBH73N0eJOBWuW5Q6umN768L/1NhSP7gDauu36RZaWG5T5s5Uig4B4LsLggG+LDrfOHg5sl/OxANlfzQzq6XcFdsw3kHD/A+G1WodEvi3C4DB6CDWdLmlWo2udrXW5wmpOpyEdhuJ/l9dd+KVsf8mGEKyS5w3jagDBh7sMm405lzg+8amxpHFpJOFhBDHaiNd86evQ0KnTmz9o3UE1ufDYQJC7aie15yK0IOXKVY8QSrRzjDufNXOWloBfZm9Qi6KsXebUpowiozdonwoDXs2xr0J/SHqbuaADn41IWTfwQLAYewQ2AwbGtuBW7PlCErLVPVkVjzRatAaTH7qTgrhVKYXqJmkfBzdARMdz4Jg0AXWdl58nilmXSbnpPDGmt4yZHMA9aTxllCXv5h/MII5hJyM4oYzJJPbU103CmKUlYKEfyHocEIdCbBCQzZQixc3Ju7JXWmqUDSqw/c4y7fFD2IOVytzPakUud8ZBJwrx/y6nuEfKeHfgU3RE/CYBYncRRRQbggIOfm4UXi1RzQlQwSAsF4AoXBKZAFAUosajtBbXllmAI1Yp4hdOCgWOu2Se5bqBP4amO+wwQLaYTFsI76X2Ikl+W38/V/RdJhwe/VkLmZIG6PpcSsOnJvMtSAhxpTqqlgLwqrKswxxwqqFpMSYzLmSsyNM0wXudnywoTTUaMIpLEMsc2vK7m0t5qDjUIAR6yvsGXr5b9GJEEcI32m7VfrYX0Kdzq+KWAc0TLPQKYsMUzsTDZNyAakX2EnG0RBRf9Df2SVzYqZgTApOm0nQroJ3E/OuJmhRV7wYLnoDGCBfuBRcWhvexPiUlgD2ixGaKf/RoqF0UtHnmRDwho9P5ZqQEQvwKuV/InqnUoJhOtyJwFqqMokPpMpEhVeoktBCAkDzuPHxbiLJ/kFnzzOkC+PnZAdKOREVn8b/cAAJif1Rhk8kv+Pv3ixfC9vNnZzTWevbm9iKGjmdi1Fhit9yfIawNHWpJVgYD+CyEIIJ3dMGD37Y3huN9kUHxBeDmuGIfX52r+/9+nTdlfBgAaCQYgAP9tYz9XNZL/uAjfzkXxVaLQC0AogSxAZeoUqQWTKptlSo7XNl0hLRIVCQ8yH6MAPz85GMLKowcEJudf/L/gSAajo8GbiE9OQoePykJLR0YrmdpqqykBxnnN22vnziPEbmf8lqPJdhekAL32j4HDNbVeKVKrlp9frNiERyMuHIB9Bs0zC1sMDjH11PqK2gOT12bjxA4pf6sQjh5NJkDQgZDW+bKrNQ8vVAkoRJCUyXk8I5z2a2QLJrc8vzgY/pGJyqyy0XLbDdtli9hvWbyi3030PxssMw488pkR91Iz7cf3V3gdf2GpFRLbpPFtEqoOanRDA/7ddWUjgANmnwuCP7cTLErHDorc7B00lrEdDJy3r2UIhn+AmrWYpE2tajU6UAjxCchQWOg5UAjqNvvvclHoNGhAIbbtpbqSUVl3mc9V4LJNYA3inj0oHJo1UZ27/PlqnRqUaiPEJaIgNbsei5ku4EBT0YsoM+vV6bBd7TVHkXZyCYdQ3j6+qoMSIBzdB/R1R3av4L4xJkLwFidfDUSGjSwOoGHfZyJpSTCRxGLnTL8qSCEbBRbcDb8qmAtIjCEJfQOlhsdOM5HgG2hqwvEpRTw8FAOmJ5Im4leF4ElHkigC+1WhBBhoEsRgDw3jpCVEZ/hV4Vio8OJgsV81wSLdiuhlYHfFslHjo4EvLbcPF9r3PuC/ptxtjFasoH1MMclerdFa3aI3uBhSp4GpVjyLgF6vN+gbumWjGe6aEkmDPWWVRNG0T0CtBw==) format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+  }
+  @font-face {
+    font-family: "Plex Mono Kit";
+    src: url(data:font/woff2;base64,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) format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: block;
+  }
+
+  /* ── Tokens. DAY is the base; NIGHT overrides only the token values. ─────── */
+
+  :root {
+    --ground:     #F5F2EC;
+    --surface:    #FCFAF6;
+    --surface-2:  #EFEAE0;
+    --glass:      #EAE4D8;
+    --line:       #DED7C9;
+    --line-soft:  #E9E3D7;
+
+    --ink:        #1A1814;
+    --ink-dim:    #5F5A50;
+    --ink-faint:  #97907F;
+
+    --dial:       #B4560A;
+    --dial-soft:  rgba(180, 86, 10, 0.13);
+    --dial-edge:  rgba(180, 86, 10, 0.34);
+
+    --lock:       #0E7A6B;
+    --lock-soft:  rgba(14, 122, 107, 0.13);
+    --fault:      #C2331F;
+    --fault-soft: rgba(194, 51, 31, 0.11);
+
+    --mono: "Plex Mono Kit", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+
+    --r-sm: 4px;
+    --r-md: 7px;
+    --r-lg: 11px;
+
+    --shadow: 0 1px 2px rgba(26, 24, 20, 0.06), 0 8px 24px -12px rgba(26, 24, 20, 0.16);
+    --inset: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(26, 24, 20, 0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:     #0B0C0E;
+      --surface:    #14161A;
+      --surface-2:  #1C1F25;
+      --glass:      #07080A;
+      --line:       #262A32;
+      --line-soft:  #1E222A;
+
+      --ink:        #F2EDE4;
+      --ink-dim:    #9AA0AA;
+      --ink-faint:  #5C6371;
+
+      --dial:       #FFB454;
+      --dial-soft:  rgba(255, 180, 84, 0.13);
+      --dial-edge:  rgba(255, 180, 84, 0.30);
+
+      --lock:       #6FD3C2;
+      --lock-soft:  rgba(111, 211, 194, 0.13);
+      --fault:      #FF6B5A;
+      --fault-soft: rgba(255, 107, 90, 0.13);
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -14px rgba(0, 0, 0, 0.8);
+      --inset: inset 0 1px 0 rgba(255, 255, 255, 0.04), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    }
+  }
+
+  /* The viewer's toggle must win over the media query, in both directions. */
+  :root[data-theme="dark"] {
+    --ground:     #0B0C0E;
+    --surface:    #14161A;
+    --surface-2:  #1C1F25;
+    --glass:      #07080A;
+    --line:       #262A32;
+    --line-soft:  #1E222A;
+    --ink:        #F2EDE4;
+    --ink-dim:    #9AA0AA;
+    --ink-faint:  #5C6371;
+    --dial:       #FFB454;
+    --dial-soft:  rgba(255, 180, 84, 0.13);
+    --dial-edge:  rgba(255, 180, 84, 0.30);
+    --lock:       #6FD3C2;
+    --lock-soft:  rgba(111, 211, 194, 0.13);
+    --fault:      #FF6B5A;
+    --fault-soft: rgba(255, 107, 90, 0.13);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -14px rgba(0, 0, 0, 0.8);
+    --inset: inset 0 1px 0 rgba(255, 255, 255, 0.04), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+  :root[data-theme="light"] {
+    --ground:     #F5F2EC;
+    --surface:    #FCFAF6;
+    --surface-2:  #EFEAE0;
+    --glass:      #EAE4D8;
+    --line:       #DED7C9;
+    --line-soft:  #E9E3D7;
+    --ink:        #1A1814;
+    --ink-dim:    #5F5A50;
+    --ink-faint:  #97907F;
+    --dial:       #B4560A;
+    --dial-soft:  rgba(180, 86, 10, 0.13);
+    --dial-edge:  rgba(180, 86, 10, 0.34);
+    --lock:       #0E7A6B;
+    --lock-soft:  rgba(14, 122, 107, 0.13);
+    --fault:      #C2331F;
+    --fault-soft: rgba(194, 51, 31, 0.11);
+    --shadow: 0 1px 2px rgba(26, 24, 20, 0.06), 0 8px 24px -12px rgba(26, 24, 20, 0.16);
+    --inset: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(26, 24, 20, 0.05);
+  }
+
+  /* Forced scopes, so day and night can be shown side by side in any theme. */
+  .force-night {
+    --ground: #0B0C0E; --surface: #14161A; --surface-2: #1C1F25; --glass: #07080A;
+    --line: #262A32; --line-soft: #1E222A;
+    --ink: #F2EDE4; --ink-dim: #9AA0AA; --ink-faint: #5C6371;
+    --dial: #FFB454; --dial-soft: rgba(255,180,84,.13); --dial-edge: rgba(255,180,84,.30);
+    --lock: #6FD3C2; --lock-soft: rgba(111,211,194,.13);
+    --fault: #FF6B5A; --fault-soft: rgba(255,107,90,.13);
+    --inset: inset 0 1px 0 rgba(255,255,255,.04), inset 0 0 0 1px rgba(255,255,255,.03);
+  }
+  .force-day {
+    --ground: #F5F2EC; --surface: #FCFAF6; --surface-2: #EFEAE0; --glass: #EAE4D8;
+    --line: #DED7C9; --line-soft: #E9E3D7;
+    --ink: #1A1814; --ink-dim: #5F5A50; --ink-faint: #97907F;
+    --dial: #B4560A; --dial-soft: rgba(180,86,10,.13); --dial-edge: rgba(180,86,10,.34);
+    --lock: #0E7A6B; --lock-soft: rgba(14,122,107,.13);
+    --fault: #C2331F; --fault-soft: rgba(194,51,31,.11);
+    --inset: inset 0 1px 0 rgba(255,255,255,.6), inset 0 0 0 1px rgba(26,24,20,.05);
+  }
+
+  /* ── Page ────────────────────────────────────────────────────────────────── */
+
+  * { box-sizing: border-box; }
+
+  .kit {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    margin: 0 auto;
+    padding: 0;
+    max-width: 1180px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .kit h1, .kit h2, .kit h3, .kit h4 { text-wrap: balance; margin: 0; }
+
+  .lede { color: var(--ink-dim); font-size: 1.0625rem; max-width: 66ch; }
+
+  .kit p { margin: 0; max-width: 68ch; }
+  .kit p + p { margin-top: 0.85em; }
+
+  .kit a { color: var(--dial); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .kit a:focus-visible, .kit button:focus-visible, .kit .toc a:focus-visible {
+    outline: 2px solid var(--dial);
+    outline-offset: 3px;
+    border-radius: var(--r-sm);
+  }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  code, .m { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .kit code {
+    font-size: 0.875em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-sm);
+    padding: 0.1em 0.36em;
+  }
+
+  /* ── The tick scale: the one graphic form unique to a radio. Used as the
+        section rule, and functionally as the band-position indicator. ─────── */
+
+  .ticks {
+    height: 13px;
+    background-image:
+      repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 12px),
+      repeating-linear-gradient(to right, var(--ink-faint) 0 1px, transparent 1px 60px);
+    background-position: bottom left;
+    background-repeat: repeat-x;
+    background-size: 12px 6px, 60px 11px;
+    opacity: 0.85;
+  }
+
+  /* ── Layout shell ────────────────────────────────────────────────────────── */
+
+  .shell { display: grid; grid-template-columns: 1fr; }
+
+  @media (min-width: 1040px) {
+    .shell { grid-template-columns: 216px 1fr; gap: 48px; align-items: start; }
+    .rail { position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 40px 0 40px 24px; }
+  }
+
+  .rail { display: none; }
+  @media (min-width: 1040px) { .rail { display: block; } }
+
+  .toc { display: flex; flex-direction: column; gap: 1px; list-style: none; margin: 14px 0 0; padding: 0; }
+  .toc a {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.78125rem;
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 5px 10px 5px 14px;
+    border-left: 2px solid var(--line);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  }
+  .toc a:hover { color: var(--ink); background: var(--surface-2); border-left-color: var(--dial-edge); }
+  .toc a.on { color: var(--dial); border-left-color: var(--dial); background: var(--dial-soft); }
+  .toc .n { color: var(--ink-faint); margin-right: 8px; }
+
+  .main { padding: 0 24px 96px; min-width: 0; }
+  @media (min-width: 1040px) { .main { padding: 0 32px 120px 0; } }
+
+  section { padding-top: 56px; scroll-margin-top: 16px; }
+  section > .ticks { margin-bottom: 26px; }
+
+  .h2row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .h2row h2 { font-family: var(--mono); font-size: 1.4375rem; font-weight: 700; letter-spacing: -0.01em; }
+  .h2row .idx {
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 700;
+    color: var(--dial); background: var(--dial-soft);
+    border: 1px solid var(--dial-edge); border-radius: 999px;
+    padding: 2px 9px; letter-spacing: 0.06em;
+  }
+
+  h3 { font-family: var(--mono); font-size: 1rem; font-weight: 700; margin-top: 34px; margin-bottom: 8px; }
+
+  .stack { display: flex; flex-direction: column; gap: 18px; }
+  .stack-sm { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── Masthead ────────────────────────────────────────────────────────────── */
+
+  .mast { padding: 56px 0 8px; }
+  .mast h1 {
+    font-family: var(--mono);
+    font-size: clamp(2rem, 5.2vw, 3.125rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+  }
+  .mast .sub {
+    font-family: var(--mono); font-size: 0.8125rem; color: var(--ink-faint);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-top: 14px;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  }
+  .mast .sub .dot { color: var(--line); }
+
+  /* ── The radio mockups ───────────────────────────────────────────────────── */
+
+  .radio {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    max-width: 520px;
+    font-family: var(--mono);
+  }
+  .radio.wide { max-width: 100%; }
+
+  .chrome {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 13px;
+    border-bottom: 1px solid var(--line-soft);
+    background: var(--surface-2);
+  }
+  .chrome .dots { display: flex; gap: 6px; }
+  .chrome .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); display: block; }
+  .chrome .name { font-size: 0.75rem; color: var(--ink-faint); letter-spacing: 0.06em; }
+
+  /* The glass: one inset panel carrying everything the receiver reports. */
+  .glass {
+    background: var(--glass);
+    margin: 13px;
+    border-radius: var(--r-md);
+    box-shadow: var(--inset);
+    padding: 15px 17px 13px;
+    position: relative;
+  }
+
+  .glass-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .badges { display: flex; gap: 6px; align-items: center; }
+
+  .badge {
+    font-size: 0.625rem; font-weight: 700; letter-spacing: 0.13em;
+    padding: 2px 6px; border-radius: var(--r-sm);
+    border: 1px solid var(--line); color: var(--ink-faint);
+  }
+  .badge.on { color: var(--dial); border-color: var(--dial-edge); background: var(--dial-soft); }
+  .badge.lock { color: var(--lock); border-color: var(--lock); background: var(--lock-soft); }
+  .badge.off { opacity: 0.3; }
+  .badge.fault { color: var(--fault); border-color: var(--fault); background: var(--fault-soft); }
+
+  /* The dial: the brightest thing on the screen, and the only amber thing. */
+  .dial-row { display: flex; align-items: baseline; gap: 9px; margin: 5px 0 2px; }
+  .dial-num {
+    font-size: clamp(2.75rem, 8vw, 3.75rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    color: var(--dial);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 26px var(--dial-soft);
+  }
+  .dial-unit { font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.1em; color: var(--ink-faint); }
+
+  .station { font-size: 0.9375rem; font-weight: 700; color: var(--ink); min-height: 1.4em; }
+  .station .pty { color: var(--ink-dim); font-weight: 400; }
+  .rtext {
+    font-size: 0.78125rem; color: var(--ink-dim); min-height: 2.6em;
+    line-height: 1.35; margin-top: 2px;
+  }
+  .rtext.pending { color: var(--ink-faint); }
+
+  /* Band position — the analogue scale, kept because it answers "where am I
+     in the band" without reading the number. */
+  .bandscale { margin-top: 12px; position: relative; height: 20px; }
+  .bandscale .rule {
+    position: absolute; inset: auto 0 6px 0; height: 10px;
+    background-image:
+      repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(to right, var(--ink-faint) 0 1px, transparent 1px 40px);
+    background-position: bottom left; background-size: 8px 4px, 40px 9px; background-repeat: repeat-x;
+  }
+  .bandscale .cursor {
+    position: absolute; bottom: 2px; width: 2px; height: 18px;
+    background: var(--dial); border-radius: 1px;
+    box-shadow: 0 0 10px var(--dial);
+  }
+  .bandscale .ends {
+    position: absolute; inset: 0 0 auto 0; display: flex; justify-content: space-between;
+    font-size: 0.5625rem; color: var(--ink-faint); letter-spacing: 0.08em;
+  }
+
+  /* Meter */
+  .meter-row { display: flex; align-items: center; gap: 11px; margin-top: 13px; }
+  .meter {
+    flex: 1; height: 7px; border-radius: 999px;
+    background: var(--surface-2); overflow: hidden; position: relative;
+    box-shadow: var(--inset);
+  }
+  .meter i {
+    display: block; height: 100%; border-radius: 999px;
+    background: linear-gradient(to right, var(--dial) 0%, var(--dial) 62%, var(--lock) 100%);
+    transition: width 0.28s ease-out;
+  }
+  .meter.weak i { background: var(--dial); }
+  .dbfs { font-size: 0.6875rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; min-width: 6.5ch; text-align: right; }
+
+  /* Transport + body controls */
+  .body { padding: 0 13px 13px; display: flex; flex-direction: column; gap: 11px; }
+
+  .transport { display: flex; align-items: center; gap: 7px; }
+  .btn {
+    font-family: var(--mono); font-size: 0.8125rem;
+    color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 7px 11px; cursor: pointer; line-height: 1;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn:hover { border-color: var(--dial-edge); }
+  .btn.icon { padding: 7px 10px; }
+  .btn.grow { flex: 1; }
+  .btn.power { color: var(--dial); border-color: var(--dial-edge); background: var(--dial-soft); font-weight: 700; }
+  .btn.stop { color: var(--ink); }
+  .btn[disabled] { opacity: 0.36; cursor: default; }
+
+  /* Tune/seek glyphs drawn as shapes, never as ◀ ▶ characters — see §7. */
+  .tri { width: 0; height: 0; border-style: solid; display: block; }
+  .tri.l { border-width: 5px 7px 5px 0; border-color: transparent currentColor transparent transparent; }
+  .tri.r { border-width: 5px 0 5px 7px; border-color: transparent transparent transparent currentColor; }
+  .glyph { display: inline-flex; gap: 2px; align-items: center; color: var(--ink); }
+
+  /* Presets as a scrolling chip row — a car radio's preset buttons, not a list. */
+  .presets { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 3px; }
+  .chip {
+    flex: 0 0 auto; font-family: var(--mono); font-size: 0.75rem;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-md); padding: 6px 10px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 1px; min-width: 74px;
+  }
+  .chip:hover { border-color: var(--dial-edge); }
+  .chip .f { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chip .n { font-size: 0.625rem; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+  .chip.on { border-color: var(--dial); background: var(--dial-soft); }
+  .chip.on .f { color: var(--dial); }
+  .chip.add { color: var(--ink-faint); justify-content: center; min-width: 40px; }
+
+  .footbar {
+    display: flex; align-items: center; gap: 11px; flex-wrap: wrap;
+    padding-top: 10px; border-top: 1px solid var(--line-soft);
+    font-size: 0.75rem; color: var(--ink-dim);
+  }
+  .vol { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 130px; }
+  .track { flex: 1; height: 4px; border-radius: 999px; background: var(--surface-2); position: relative; box-shadow: var(--inset); }
+  .track i { position: absolute; inset: 0 auto 0 0; background: var(--ink-dim); border-radius: 999px; }
+  .track b {
+    position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+    background: var(--surface); border: 1px solid var(--ink-dim); border-radius: 50%;
+  }
+  .select {
+    font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-dim);
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--r-sm); padding: 3px 7px;
+  }
+
+  .statusline {
+    font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-faint);
+    padding: 8px 13px; border-top: 1px solid var(--line-soft);
+    background: var(--surface-2);
+    display: flex; gap: 8px; align-items: center; min-height: 30px;
+  }
+  .statusline.bad { color: var(--fault); }
+
+  /* ── Callout pins ────────────────────────────────────────────────────────── */
+
+  .pinned { position: relative; }
+  .pin {
+    position: absolute; z-index: 2;
+    width: 20px; height: 20px; border-radius: 50%;
+    font-family: var(--mono); font-size: 0.625rem; font-weight: 700;
+    display: grid; place-items: center;
+    background: var(--dial); color: var(--glass);
+    box-shadow: 0 0 0 3px var(--surface), 0 2px 6px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"] .pin, .force-day .pin { color: #FFF8EF; }
+
+  .legend { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 9px; }
+  @media (min-width: 720px) { .legend { grid-template-columns: 1fr 1fr; gap: 9px 26px; } }
+  .legend li { display: flex; gap: 10px; font-size: 0.875rem; color: var(--ink-dim); align-items: flex-start; }
+  .legend .k {
+    flex: 0 0 auto; width: 19px; height: 19px; border-radius: 50%;
+    background: var(--dial-soft); border: 1px solid var(--dial-edge); color: var(--dial);
+    font-family: var(--mono); font-size: 0.625rem; font-weight: 700;
+    display: grid; place-items: center; margin-top: 2px;
+  }
+  .legend b { color: var(--ink); font-weight: 700; }
+
+  /* ── Swatches ────────────────────────────────────────────────────────────── */
+
+  .swatches { display: grid; gap: 11px; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
+  .sw { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+  .sw .chipc { height: 56px; display: block; border-bottom: 1px solid var(--line); }
+  .sw .meta { padding: 8px 10px; font-family: var(--mono); font-size: 0.6875rem; }
+  .sw .meta .nm { color: var(--ink); font-weight: 700; }
+  .sw .meta .hx { color: var(--ink-faint); }
+  .sw .meta .use { color: var(--ink-dim); font-family: var(--sans); font-size: 0.6875rem; margin-top: 3px; line-height: 1.4; }
+
+  /* ── Tables ──────────────────────────────────────────────────────────────── */
+
+  .tw { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.8125rem; min-width: 560px; }
+  th, td { text-align: left; padding: 9px 13px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 0.625rem; font-weight: 700;
+    letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-faint);
+    background: var(--surface-2); white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: 0; }
+  td.m { color: var(--ink); white-space: nowrap; }
+  td .sub { color: var(--ink-faint); font-size: 0.75rem; }
+
+  /* ── Notes ───────────────────────────────────────────────────────────────── */
+
+  .note {
+    border-left: 2px solid var(--dial);
+    background: var(--dial-soft);
+    padding: 12px 15px;
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    font-size: 0.875rem;
+    color: var(--ink-dim);
+  }
+  .note b { color: var(--ink); }
+  .note.meas { border-left-color: var(--lock); background: var(--lock-soft); }
+  .note.gap { border-left-color: var(--fault); background: var(--fault-soft); }
+
+  /* ── State switcher ─────────────────────────────────────────────────────── */
+
+  .states { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .states button {
+    font-family: var(--mono); font-size: 0.75rem;
+    background: var(--surface); color: var(--ink-dim);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 5px 12px; cursor: pointer;
+  }
+  .states button:hover { color: var(--ink); border-color: var(--dial-edge); }
+  .states button[aria-pressed="true"] {
+    color: var(--dial); border-color: var(--dial); background: var(--dial-soft); font-weight: 700;
+  }
+  .state-explain {
+    font-size: 0.875rem; color: var(--ink-dim); margin-top: 14px;
+    border-top: 1px solid var(--line-soft); padding-top: 14px; max-width: 62ch;
+  }
+  .state-explain b { color: var(--ink); }
+
+  .two { display: grid; gap: 22px; }
+  @media (min-width: 860px) { .two { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 26px; align-items: start; } }
+
+  .cap { font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-faint); letter-spacing: 0.09em; text-transform: uppercase; margin-bottom: 9px; }
+
+  /* Type specimen */
+  .spec { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
+  .spec .row { display: flex; align-items: baseline; gap: 16px; padding: 12px 15px; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
+  .spec .row:last-child { border-bottom: 0; }
+  .spec .row .tag { font-family: var(--mono); font-size: 0.625rem; color: var(--ink-faint); letter-spacing: 0.1em; text-transform: uppercase; flex: 0 0 118px; }
+  .spec .row .ex { color: var(--ink); min-width: 0; }
+
+  /* Spectrum canvas */
+  .specwrap { background: var(--glass); border-radius: var(--r-md); padding: 12px; box-shadow: var(--inset); }
+  canvas { display: block; width: 100%; height: auto; }
+
+  /* Adoption */
+  .prop { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
+  .prop > header { display: flex; gap: 12px; align-items: baseline; padding: 13px 16px; border-bottom: 1px solid var(--line-soft); background: var(--surface-2); flex-wrap: wrap; }
+  .prop > header .num { font-family: var(--mono); font-weight: 700; color: var(--dial); font-size: 0.8125rem; }
+  .prop > header h3 { margin: 0; font-size: 0.9375rem; }
+  .prop .in { padding: 15px 16px; display: flex; flex-direction: column; gap: 11px; }
+  .prop .files { font-family: var(--mono); font-size: 0.75rem; color: var(--ink-faint); display: flex; flex-direction: column; gap: 3px; }
+  .prop .files span::before { content: "→ "; color: var(--line); }
+
+  .foot { margin-top: 64px; padding-top: 22px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 0.6875rem; color: var(--ink-faint); letter-spacing: 0.06em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .meter i { transition: none; }
+    * { animation: none !important; }
+  }
+</style>
+
+<div class="kit">
+  <div class="shell">
+
+    <!-- ── Rail ──────────────────────────────────────────────────────────── -->
+    <nav class="rail" aria-label="Contents">
+      <div class="label">Modula Kit</div>
+      <div class="ticks" style="margin-top:10px"></div>
+      <ul class="toc" id="toc">
+        <li><a href="#foundations"><span class="n">01</span>Foundations</a></li>
+        <li><a href="#dial"><span class="n">02</span>The dial</a></li>
+        <li><a href="#state"><span class="n">03</span>State language</a></li>
+        <li><a href="#signal"><span class="n">04</span>Signal &amp; lock</a></li>
+        <li><a href="#station"><span class="n">05</span>Station (RDS)</a></li>
+        <li><a href="#presets"><span class="n">06</span>Presets</a></li>
+        <li><a href="#controls"><span class="n">07</span>Controls</a></li>
+        <li><a href="#spectrum"><span class="n">08</span>Spectrum strip</a></li>
+        <li><a href="#shell"><span class="n">09</span>The shell</a></li>
+        <li><a href="#adoption"><span class="n">10</span>Adoption</a></li>
+      </ul>
+    </nav>
+
+    <!-- ── Main ──────────────────────────────────────────────────────────── -->
+    <main class="main">
+
+      <header class="mast">
+        <h1>Modula&nbsp;UI&nbsp;Kit<br /><span style="color:var(--dial)">Night&nbsp;Dial</span></h1>
+        <div class="sub">
+          <span>v1</span><span class="dot">/</span>
+          <span>JavaFX 26</span><span class="dot">/</span>
+          <span>AtlantaFX + modula.css</span><span class="dot">/</span>
+          <span>2026-08-08</span>
+        </div>
+        <p class="lede" style="margin-top:22px">
+          Modula is a radio, not an SDR panel — so this kit specifies a
+          <em>listening device</em>, not a dashboard. One amber number is the brightest thing on the
+          screen; everything else is instrumentation around it, dimmed until it has something to say.
+          Every value shown below is one the receiver actually reports.
+        </p>
+      </header>
+
+      <!-- ═══ 01 Foundations ═══════════════════════════════════════════════ -->
+      <section id="foundations">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">01</span><h2>Foundations</h2></div>
+
+        <p>
+          The palette has one idea behind it: <b>the dial is emitting light and everything else is
+          reflecting it.</b> That is why the ground is a cool-neutral near-black rather than a warm
+          charcoal — a warm ground would put the amber <em>in</em> the surface, and the amber has to
+          read as the only lit thing. Daylight inverts the ground but keeps the same rule: the
+          frequency is the one saturated mark on the page.
+        </p>
+
+        <h3>Colour</h3>
+        <div class="swatches" style="margin-top:12px">
+          <div class="sw"><span class="chipc" style="background:#0B0C0E"></span><div class="meta"><div class="nm">ground</div><div class="hx">#0B0C0E · #F5F2EC</div><div class="use">The cabin. Never carries text directly.</div></div></div>
+          <div class="sw"><span class="chipc" style="background:#14161A"></span><div class="meta"><div class="nm">surface</div><div class="hx">#14161A · #FCFAF6</div><div class="use">Panels, chrome, the status line.</div></div></div>
+          <div class="sw"><span class="chipc" style="background:#07080A"></span><div class="meta"><div class="nm">glass</div><div class="hx">#07080A · #EAE4D8</div><div class="use">The display inset. Darker than surface — it is behind glass.</div></div></div>
+          <div class="sw"><span class="chipc" style="background:#F2EDE4"></span><div class="meta"><div class="nm">ink</div><div class="hx">#F2EDE4 · #1A1814</div><div class="use">Warm white, not pure — matches the dial's temperature.</div></div></div>
+          <div class="sw"><span class="chipc" style="background:#FFB454"></span><div class="meta"><div class="nm">dial</div><div class="hx">#FFB454 · #B4560A</div><div class="use"><b>The accent, spent only on frequency</b> and on the control that changes it.</div></div></div>
+          <div class="sw"><span class="chipc" style="background:#6FD3C2"></span><div class="meta"><div class="nm">lock</div><div class="hx">#6FD3C2 · #0E7A6B</div><div class="use">Pilot locked, i.e. STEREO. Semantic, not accent.</div></div></div>
+          <div class="sw"><span class="chipc" style="background:#FF6B5A"></span><div class="meta"><div class="nm">fault</div><div class="hx">#FF6B5A · #C2331F</div><div class="use">Dropped samples, dead socket, out of tuner range.</div></div></div>
+          <div class="sw"><span class="chipc" style="background:#5C6371"></span><div class="meta"><div class="nm">ink-faint</div><div class="hx">#5C6371 · #97907F</div><div class="use">Units, unlit indicators, the whole idle state.</div></div></div>
+        </div>
+
+        <div class="note" style="margin-top:18px">
+          <b>Amber is a budget, not a palette.</b> If a second thing turns amber, the frequency stops
+          being the brightest mark and the display becomes a panel of equals — which is the exact
+          failure mode the product brief rules out. Lock is teal, faults are coral, everything else
+          is ink at one of three weights.
+        </div>
+
+        <h3>Type</h3>
+        <p>
+          One face does the instrument work: <b>IBM Plex Mono</b>, drawn for IBM's technical
+          products, so its digits read as a readout rather than as code. It is the only face allowed
+          to show a number. Prose — this document, tooltips, error text — is the platform sans.
+        </p>
+        <div class="spec" style="margin-top:12px">
+          <div class="row"><span class="tag">Dial</span><span class="ex m" style="font-size:2.5rem;font-weight:700;letter-spacing:-.035em;color:var(--dial)">101.5</span></div>
+          <div class="row"><span class="tag">Station</span><span class="ex m" style="font-size:.9375rem;font-weight:700">BBC R4 <span style="color:var(--ink-dim);font-weight:400">· Pop Music</span></span></div>
+          <div class="row"><span class="tag">Readout</span><span class="ex m" style="font-size:.8125rem">−41 dBFS · pilot 19.001 kHz · 0 dropped</span></div>
+          <div class="row"><span class="tag">Label</span><span class="ex label" style="color:var(--ink-faint)">STEREO · FM · MHz</span></div>
+          <div class="row"><span class="tag">Prose</span><span class="ex" style="font-size:.9375rem">Start <code>rtl_tcp -a 127.0.0.1</code>, then press Listen.</span></div>
+        </div>
+        <div class="note meas" style="margin-top:14px">
+          <b>Every digit is tabular.</b> <code>font-variant-numeric: tabular-nums</code> in CSS,
+          and in JavaFX a mono face — because <span class="m">101.5&nbsp;→&nbsp;107.9</span> must not
+          shift the layout, and <span class="m">−41&nbsp;→&nbsp;−9</span> must not make the meter row
+          jump while you listen.
+        </div>
+
+        <h3>Rhythm</h3>
+        <div class="tw" style="margin-top:12px">
+          <table>
+            <thead><tr><th>Token</th><th>Value</th><th>Applies to</th></tr></thead>
+            <tbody>
+              <tr><td class="m">gap / padding</td><td class="m">4 · 7 · 11 · 13 · 18 · 26</td><td>A slightly irregular scale, tuned by eye at the 520 px window width rather than a doubling series.</td></tr>
+              <tr><td class="m">radius</td><td class="m">4 · 7 · 11</td><td>Chips and fields · buttons and the glass · the window.</td></tr>
+              <tr><td class="m">window</td><td class="m">520 × 560</td><td>Up from today's 440. The glass needs 64 characters of radio text on two lines without reflowing.</td></tr>
+              <tr><td class="m">hairline</td><td class="m">1 px <span class="sub">line</span></td><td>Every division. No shadows between sections — a head unit has seams, not depth.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ═══ 02 The dial ══════════════════════════════════════════════════ -->
+      <section id="dial">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">02</span><h2>The dial</h2></div>
+
+        <p>
+          Everything the receiver knows lives on one inset panel — <b>the glass</b> — in a fixed
+          reading order: where you are, who it is, what they're playing, how well it's coming in.
+          Nothing in the glass is interactive. That separation is the whole layout idea: the glass
+          reports, the body below it acts.
+        </p>
+
+        <div class="pinned" style="margin-top:22px">
+          <div class="radio">
+            <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="name">Modula</span></div>
+            <div class="glass">
+              <div class="glass-top">
+                <span class="badges"><span class="badge on">FM</span><span class="badge">EUROPE</span></span>
+                <span class="badges"><span class="badge lock">STEREO</span><span class="badge off">TP</span></span>
+              </div>
+              <div class="dial-row">
+                <span class="dial-num">101.5</span>
+                <span class="dial-unit">MHz</span>
+              </div>
+              <div class="station">BBC R4 <span class="pty">· Current Affairs</span></div>
+              <div class="rtext">The World at One — Sarah Montague with the day's news and analysis</div>
+              <div class="bandscale">
+                <span class="ends"><span>87.5</span><span>108.0</span></span>
+                <span class="rule"></span>
+                <span class="cursor" style="left:68%"></span>
+              </div>
+              <div class="meter-row">
+                <span class="meter"><i style="width:74%"></i></span>
+                <span class="dbfs">−16 dBFS</span>
+              </div>
+            </div>
+          </div>
+          <span class="pin" style="left:16px;  top:66px">1</span>
+          <span class="pin" style="left:150px; top:66px">2</span>
+          <span class="pin" style="left:16px;  top:112px">3</span>
+          <span class="pin" style="left:16px;  top:186px">4</span>
+          <span class="pin" style="left:16px;  top:236px">5</span>
+          <span class="pin" style="left:16px;  top:290px">6</span>
+        </div>
+
+        <ul class="legend">
+          <li><span class="k">1</span><span><b>Band and region.</b> Two enum values that change channel spacing and de-emphasis together. Shown because they silently change what the tune buttons do — <span class="m">100 kHz</span> steps in Europe, <span class="m">200 kHz</span> in the Americas.</span></li>
+          <li><span class="k">2</span><span><b>Lock and traffic.</b> Lit only when the station is transmitting it. Unlit is <span class="m">ink-faint</span> at 30% — present, so nothing moves when it lights.</span></li>
+          <li><span class="k">3</span><span><b>The frequency.</b> <span class="m">%.1f</span>, tabular, amber, the largest thing in the app. <span class="m">MHz</span> sits beside it as a unit, not as part of the number.</span></li>
+          <li><span class="k">4</span><span><b>Station and programme type.</b> Eight RDS characters and a PTY name, from <code>StationInfo.programService</code> and <code>ProgramType.name</code>.</span></li>
+          <li><span class="k">5</span><span><b>Radio text.</b> Up to 64 characters, two lines reserved permanently so arriving text never pushes the controls down.</span></li>
+          <li><span class="k">6</span><span><b>Band position and signal.</b> The analogue answer to "where am I" plus <code>signalDbfs</code> as both a bar and a number.</span></li>
+        </ul>
+
+        <div class="note gap" style="margin-top:18px">
+          <b>Two things the receiver already decodes and the UI never shows.</b>
+          <code>StationInfo</code> carries <code>trafficProgram</code> and
+          <code>trafficAnnouncement</code>, and <code>Status</code> carries <code>droppedSamples</code>.
+          The first two are a <span class="m">TP</span>/<span class="m">TA</span> badge pair — free,
+          and exactly what a car radio shows. The third belongs in the status line, not the glass.
+        </div>
+      </section>
+
+      <!-- ═══ 03 State language ════════════════════════════════════════════ -->
+      <section id="state">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">03</span><h2>State language</h2></div>
+
+        <p>
+          <code>RadioEngine.Status</code> has eight fields and they combine into seven states a
+          listener can actually be in. Each one has to be readable without reading: the glass changes
+          brightness and the badges change colour, so you can tell across the room whether it is
+          working. Pick a state to see it.
+        </p>
+
+        <div class="states" id="states" role="group" aria-label="Receiver state">
+          <button type="button" data-s="idle" aria-pressed="true">Not listening</button>
+          <button type="button" data-s="starting" aria-pressed="false">Starting</button>
+          <button type="button" data-s="locked" aria-pressed="false">Stereo</button>
+          <button type="button" data-s="mono" aria-pressed="false">Mono</button>
+          <button type="button" data-s="weak" aria-pressed="false">Weak</button>
+          <button type="button" data-s="seeking" aria-pressed="false">Seeking</button>
+          <button type="button" data-s="fault" aria-pressed="false">Fault</button>
+        </div>
+
+        <div class="two">
+          <div>
+            <div class="radio" id="demo">
+              <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="name">Modula</span></div>
+              <div class="glass" id="d-glass">
+                <div class="glass-top">
+                  <span class="badges"><span class="badge on">FM</span><span class="badge">EUROPE</span></span>
+                  <span class="badges"><span class="badge off" id="d-stereo">STEREO</span><span class="badge off" id="d-tp">TP</span></span>
+                </div>
+                <div class="dial-row"><span class="dial-num" id="d-freq">101.5</span><span class="dial-unit">MHz</span></div>
+                <div class="station" id="d-station">BBC R4 <span class="pty">· Current Affairs</span></div>
+                <div class="rtext" id="d-rtext">The World at One</div>
+                <div class="bandscale">
+                  <span class="ends"><span>87.5</span><span>108.0</span></span>
+                  <span class="rule"></span>
+                  <span class="cursor" id="d-cursor" style="left:68%"></span>
+                </div>
+                <div class="meter-row">
+                  <span class="meter" id="d-meter"><i id="d-fill" style="width:0%"></i></span>
+                  <span class="dbfs" id="d-dbfs">—</span>
+                </div>
+              </div>
+              <div class="statusline" id="d-status">Start <span class="m">rtl_tcp -a 127.0.0.1</span>, then press Listen.</div>
+            </div>
+          </div>
+          <div>
+            <div class="cap">What changes, and why</div>
+            <div class="state-explain" id="d-explain" style="border-top:0;padding-top:0"></div>
+          </div>
+        </div>
+
+        <h3>The full mapping</h3>
+        <div class="tw" style="margin-top:12px">
+          <table>
+            <thead><tr><th>State</th><th>Condition</th><th>Glass</th><th>Status line</th></tr></thead>
+            <tbody>
+              <tr><td class="m">Not listening</td><td class="m">!running</td><td>Dial at <span class="m">ink-faint</span>, meter empty, all badges unlit, no station</td><td>How to start, in plain language</td></tr>
+              <tr><td class="m">Starting</td><td class="m">running, no block yet</td><td>Dial lights amber, meter empty, badges unlit</td><td><span class="m">Listening.</span></td></tr>
+              <tr><td class="m">Stereo</td><td class="m">pilotLocked</td><td>STEREO teal; meter tip goes teal</td><td>dBFS · RDS diagnostic</td></tr>
+              <tr><td class="m">Mono</td><td class="m">!pilotLocked</td><td>STEREO unlit; meter stays amber end-to-end</td><td>dBFS · RDS diagnostic</td></tr>
+              <tr><td class="m">Weak</td><td class="m">signalDbfs &lt; −45</td><td>Meter under a third; station and radio text usually blank</td><td>dBFS only — no RDS to report</td></tr>
+              <tr><td class="m">Seeking</td><td class="m">seeking</td><td>Dial dims to 55% and the band cursor is the lit thing; station cleared</td><td><span class="m">Seeking…</span> — and the seek buttons read <span class="m">Cancel</span></td></tr>
+              <tr><td class="m">Fault</td><td class="m">error, or droppedSamples &gt; 0</td><td>Coral badge; dial holds its last value rather than blanking</td><td>Coral, naming the cause and the fix</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note" style="margin-top:18px">
+          <b>Seeking dims the dial on purpose.</b> While a seek runs, the frequency is changing several
+          times a second and is not information — the thing worth watching is the cursor sweeping the
+          band. Dimming the number and lighting the cursor says "this is in motion, don't read it yet"
+          without a spinner.
+        </div>
+      </section>
+
+      <!-- ═══ 04 Signal & lock ═════════════════════════════════════════════ -->
+      <section id="signal">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">04</span><h2>Signal &amp; lock</h2></div>
+
+        <p>
+          The receiver measures signal two ways and they mean opposite things. The kit shows one and
+          hides the other, because only one of them is about listening.
+        </p>
+
+        <div class="tw" style="margin-top:14px">
+          <table>
+            <thead><tr><th>Measurement</th><th>Range seen</th><th>Direction</th><th>Shown as</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="m">signalDbfs<div class="sub">RF power</div></td>
+                <td class="m">−60 … 0</td>
+                <td>higher = stronger</td>
+                <td>The meter and the number beside it</td>
+              </tr>
+              <tr>
+                <td class="m">noiseDbfs<div class="sub">multiplex noise</div></td>
+                <td class="m">−5.8 empty<br />−51 strong</td>
+                <td><b>lower = stronger</b></td>
+                <td><b>Never.</b> It drives seek, and a meter that fell as reception improved would be unreadable.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note meas" style="margin-top:16px">
+          <b>Why the meter is honest but not useful for tuning.</b> With the dongle's AGC on, an
+          empty channel is gained up until its RF power reads much like an occupied one — measured
+          <span class="m">−9.85 dBFS</span> empty against <span class="m">−9.75</span> for a weak
+          station. So the meter tells you how hard the front end is working, not whether anything is
+          there. <b>Seek is what answers that</b>, from multiplex noise, thresholded at
+          <span class="m">−20 dBFS</span>. Do not add a signal-strength squelch to the UI; it would
+          be measuring the wrong thing.
+        </div>
+
+        <h3>Meter anatomy</h3>
+        <div class="two" style="margin-top:12px">
+          <div>
+            <div class="cap">Mono — amber end to end</div>
+            <div class="specwrap">
+              <div class="meter-row" style="margin:0">
+                <span class="meter weak"><i style="width:52%"></i></span><span class="dbfs">−31 dBFS</span>
+              </div>
+            </div>
+            <div class="cap" style="margin-top:16px">Stereo — tip resolves to teal</div>
+            <div class="specwrap">
+              <div class="meter-row" style="margin:0">
+                <span class="meter"><i style="width:88%"></i></span><span class="dbfs">−7 dBFS</span>
+              </div>
+            </div>
+            <div class="cap" style="margin-top:16px">Weak — no RDS at this level</div>
+            <div class="specwrap">
+              <div class="meter-row" style="margin:0">
+                <span class="meter weak"><i style="width:19%"></i></span><span class="dbfs">−49 dBFS</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p style="font-size:.9375rem">
+              The bar maps <span class="m">−60…0 dBFS</span> onto its width, which is what
+              <code>RadioPane</code> already does. The one addition is that the last third of the
+              gradient resolves toward <span class="m">lock</span> teal <em>only while the pilot is
+              locked</em> — so signal strength and stereo, two facts a listener conflates anyway, are
+              carried by one mark.
+            </p>
+            <p style="font-size:.9375rem">
+              <b>STEREO reports the transmitter, not your setting.</b> Forcing mono with the checkbox
+              must not unlight it; the station is still sending a pilot. That distinction is already
+              correct in <code>setPilotLocked</code> and is easy to lose.
+            </p>
+            <div class="note" style="margin-top:14px;font-size:.8125rem">
+              <b>Pilot lock is a product-visible delay.</b> At the shipped 50 Hz loop bandwidth the
+              PLL locks within about <span class="m">100 ms</span> of a retune. That is fast enough
+              to animate the badge on rather than pop it — a 120 ms fade reads as the indicator
+              warming up, which is what a real one does.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ 05 Station ═══════════════════════════════════════════════════ -->
+      <section id="station">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">05</span><h2>Station (RDS)</h2></div>
+
+        <p>
+          RDS arrives slowly and in pieces: the station name comes two characters at a time across
+          four transmissions, radio text four at a time across sixteen. So the display has a
+          <b>filling-in</b> state that lasts a second or two, and it must not look broken while it
+          happens.
+        </p>
+
+        <div class="two" style="margin-top:20px">
+          <div>
+            <div class="cap">Arriving — about 0.4 s in</div>
+            <div class="radio" style="max-width:100%">
+              <div class="glass" style="margin:11px">
+                <div class="glass-top"><span class="badges"><span class="badge on">FM</span></span><span class="badges"><span class="badge lock">STEREO</span></span></div>
+                <div class="dial-row"><span class="dial-num" style="font-size:2.25rem">101.5</span><span class="dial-unit">MHz</span></div>
+                <div class="station">BB<span style="color:var(--ink-faint)">······</span></div>
+                <div class="rtext pending">receiving…</div>
+              </div>
+            </div>
+            <p style="font-size:.875rem;margin-top:12px">
+              Received characters in <span class="m">ink</span>, the rest as faint middots holding
+              the eight-character width. The name grows in place instead of jumping when it completes.
+            </p>
+          </div>
+          <div>
+            <div class="cap">Complete — about 1.6 s in</div>
+            <div class="radio" style="max-width:100%">
+              <div class="glass" style="margin:11px">
+                <div class="glass-top"><span class="badges"><span class="badge on">FM</span></span><span class="badges"><span class="badge lock">STEREO</span><span class="badge lock">TP</span></span></div>
+                <div class="dial-row"><span class="dial-num" style="font-size:2.25rem">101.5</span><span class="dial-unit">MHz</span></div>
+                <div class="station">BBC R4 <span class="pty">· Current Affairs</span></div>
+                <div class="rtext">The World at One — Sarah Montague with the day's news and analysis</div>
+              </div>
+            </div>
+            <p style="font-size:.875rem;margin-top:12px">
+              Two lines are reserved for radio text at all times. A station that sends none leaves a
+              gap; that is the correct trade against controls that jump every time a song changes.
+            </p>
+          </div>
+        </div>
+
+        <div class="tw" style="margin-top:20px">
+          <table>
+            <thead><tr><th>Field</th><th>Source</th><th>Treatment</th></tr></thead>
+            <tbody>
+              <tr><td class="m">programService</td><td class="m">group 0</td><td>8 chars, bold ink, width always reserved</td></tr>
+              <tr><td class="m">programType</td><td class="m">group 0</td><td>Resolved through <code>ProgramType.name(pty, region)</code> — the names differ by region, so it must be passed</td></tr>
+              <tr><td class="m">radioText</td><td class="m">group 2</td><td>64 chars, 2 lines, <span class="m">ink-dim</span>. Never bold — it is a song title, not an identity</td></tr>
+              <tr><td class="m">trafficProgram</td><td class="m">group 0</td><td><span class="m">TP</span> badge, teal when set <span class="sub">(not yet built)</span></td></tr>
+              <tr><td class="m">trafficAnnouncement</td><td class="m">group 0</td><td><span class="m">TA</span> badge, amber while on air <span class="sub">(not yet built)</span></td></tr>
+              <tr><td class="m">programIdentification</td><td class="m">every block</td><td>Not shown. It is a numeric identity for the receiver, not for a listener</td></tr>
+              <tr><td class="m">rdsDiagnostic</td><td class="m">demodulator</td><td>Status line only, and only in <code>--dev</code>-style builds</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note gap" style="margin-top:16px">
+          <b>TA is the one case where amber is allowed to leave the dial.</b> A traffic announcement
+          is the single event in this product important enough to outrank the frequency, and every
+          car radio in existence signals it. It is also the only one — adding a second exception is
+          how the accent budget in §01 gets spent.
+        </div>
+      </section>
+
+      <!-- ═══ 06 Presets ═══════════════════════════════════════════════════ -->
+      <section id="presets">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">06</span><h2>Presets</h2></div>
+
+        <p>
+          Today presets are a <code>ListView</code> with a name field, a Save button and a Remove
+          button — four controls and 150 px of vertical space for something a car radio does with one
+          row of buttons. The kit replaces it with a <b>chip row</b>: one tap tunes, the current
+          station reads as selected, and saving is the trailing <span class="m">+</span>.
+        </p>
+
+        <div style="margin-top:20px">
+          <div class="radio" style="max-width:100%">
+            <div class="body" style="padding:13px">
+              <div class="presets">
+                <button class="chip"><span class="f">88.6</span><span class="n">Radio 3</span></button>
+                <button class="chip on"><span class="f">101.5</span><span class="n">BBC R4</span></button>
+                <button class="chip"><span class="f">94.9</span><span class="n">LBC</span></button>
+                <button class="chip"><span class="f">100.0</span><span class="n">Classic FM</span></button>
+                <button class="chip"><span class="f">97.3</span><span class="n">—</span></button>
+                <button class="chip add">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <ul class="legend" style="margin-top:18px">
+          <li><span class="k">·</span><span><b>Selected = tuned.</b> The chip matching the current frequency is outlined amber, which is also what makes Save redundant — <code>Presets.contains</code> already drives that today.</span></li>
+          <li><span class="k">·</span><span><b>Unnamed presets show an em dash</b>, not an empty chip, so the row keeps its rhythm. <code>Preset.label()</code> already falls back to the frequency alone.</span></li>
+          <li><span class="k">·</span><span><b>Naming happens after saving</b>, not before. <span class="m">+</span> stores the frequency immediately and offers the name inline; a name field standing empty next to a Save button asks a question before you've decided to keep the station.</span></li>
+          <li><span class="k">·</span><span><b>Remove is on the chip</b> — long-press, or <span class="m">Delete</span> with it focused. A dedicated Remove button that is disabled most of the time is a control earning its keep 5% of the time.</span></li>
+        </ul>
+
+        <div class="note" style="margin-top:16px">
+          The row scrolls horizontally and never wraps, so the window height is fixed no matter how
+          many presets exist. <code>~/.modula/presets.txt</code> stays hand-editable and unchanged —
+          this is a view change only.
+        </div>
+      </section>
+
+      <!-- ═══ 07 Controls ══════════════════════════════════════════════════ -->
+      <section id="controls">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">07</span><h2>Controls</h2></div>
+
+        <p>
+          Below the glass, in one row: the tuning rocker, then power. Everything else — volume,
+          region, forced mono — is secondary and sits in a footer bar at the bottom edge, because
+          none of it is touched while listening.
+        </p>
+
+        <div style="margin-top:20px">
+          <div class="radio" style="max-width:100%">
+            <div class="body" style="padding:13px">
+              <div class="transport">
+                <button class="btn icon" title="Seek down"><span class="glyph"><i class="tri l"></i><i class="tri l"></i></span></button>
+                <button class="btn icon" title="Tune down"><span class="glyph"><i class="tri l"></i></span></button>
+                <button class="btn power grow">Listen</button>
+                <button class="btn icon" title="Tune up"><span class="glyph"><i class="tri r"></i></span></button>
+                <button class="btn icon" title="Seek up"><span class="glyph"><i class="tri r"></i><i class="tri r"></i></span></button>
+              </div>
+              <div class="footbar">
+                <span class="vol">
+                  <span class="label" style="letter-spacing:.1em">VOL</span>
+                  <span class="track"><i style="width:70%"></i><b style="left:70%"></b></span>
+                </span>
+                <span class="select">EUROPE</span>
+                <span class="select">STEREO ON</span>
+              </div>
+            </div>
+            <div class="statusline">−16 dBFS <span style="color:var(--line)">·</span> sync 98% <span style="color:var(--line)">·</span> 0 dropped</div>
+          </div>
+        </div>
+
+        <div class="note gap" style="margin-top:20px">
+          <b>A real finding: the arrow glyphs are not in the font.</b> The buttons are labelled
+          <span style="font-family:var(--sans)">◀◀ ◀ ▶ ▶▶</span> and <span style="font-family:var(--sans)">★</span> —
+          <span class="m">U+25C0</span>, <span class="m">U+25B6</span>, <span class="m">U+2605</span>.
+          Those are absent from most UI and mono faces, so today they render from whatever fallback
+          each OS happens to pick, at whatever size and baseline that face uses. Draw them as
+          <b>shapes</b> instead — an <code>SVGPath</code> triangle, or a CSS border triangle as above.
+          Identical on every platform, and they take the button's text colour for free.
+        </div>
+
+        <h3>Keyboard</h3>
+        <div class="tw" style="margin-top:12px">
+          <table>
+            <thead><tr><th>Key</th><th>Does</th><th>Note</th></tr></thead>
+            <tbody>
+              <tr><td class="m">← →</td><td>Step one channel</td><td>Grid step — <span class="m">100 kHz</span> Europe, <span class="m">200 kHz</span> Americas</td></tr>
+              <tr><td class="m">shift + ← →</td><td>Seek to the next station</td><td>Press again to cancel; the button relabels to <span class="m">Cancel</span> while it runs</td></tr>
+              <tr><td class="m">↑ ↓</td><td>Volume</td><td><span class="sub">Proposed — the rocker's other axis, and currently unbound</span></td></tr>
+              <tr><td class="m">1 … 9</td><td>Recall preset <em>n</em></td><td><span class="sub">Proposed — the one thing a preset row makes obvious</span></td></tr>
+              <tr><td class="m">Space</td><td>Listen / Stop</td><td><span class="sub">Proposed</span></td></tr>
+              <tr><td class="m">Digits, then Enter</td><td>Tune directly</td><td>Replaces the MHz field and Tune button — typing <span class="m">101.5</span> anywhere opens the entry inline</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note" style="margin-top:16px">
+          The <code>MHz</code> label, its text field and its Tune button are three controls for a
+          gesture that is really just "type a number". Folding them into type-to-tune removes a whole
+          row from the window and keeps the <code>TextField</code> guard in
+          <code>installKeyboardTuning</code> honest, since there is no longer a field sitting focused
+          and swallowing the arrow keys.
+        </div>
+      </section>
+
+      <!-- ═══ 08 Spectrum ══════════════════════════════════════════════════ -->
+      <section id="spectrum">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">08</span><h2>Spectrum strip</h2></div>
+
+        <p>
+          Milestone 5 calls for a spectrum strip — <b>±600 kHz, and explicitly not a waterfall.</b>
+          It is not built yet, so this is a specification rather than a reskin. The job it does is
+          narrow: show that the neighbours exist, and that you are centred on one of them.
+        </p>
+
+        <div class="specwrap" style="margin-top:20px">
+          <canvas id="spec" width="1000" height="150" aria-label="Spectrum strip specification: a 1.2 MHz span centred on the tuned channel, with adjacent channels marked"></canvas>
+        </div>
+
+        <ul class="legend" style="margin-top:18px">
+          <li><span class="k">·</span><span><b>Span is fixed at the sample rate</b> — <span class="m">1.2 MHz</span>, which is ±600 kHz. No zoom, no span control: it is a fact of the front end, not a setting.</span></li>
+          <li><span class="k">·</span><span><b>The centre marker is amber</b> and everything else is ink. This is the one place the accent leaves the dial, because the mark means "the frequency you are reading above".</span></li>
+          <li><span class="k">·</span><span><b>Channel grid, not a frequency axis.</b> Ticks land on <code>BandPlan</code> grid points, so a neighbour reads as "the next station up" rather than as an offset in kHz.</span></li>
+          <li><span class="k">·</span><span><b>Filled area, one hairline.</b> A stroke-only trace on a dark ground reads as noise; a filled area under a 1 px line reads as a shape at a glance.</span></li>
+          <li><span class="k">·</span><span><b>No waterfall, no dB axis, no peak hold.</b> Each is a panel feature. If the answer to "would a car radio have it" is no, the strip does not get it.</span></li>
+          <li><span class="k">·</span><span><b>Redraw at status cadence</b>, coalesced the same way <code>onStatus</code> already is — at most one pending repaint, on a <code>Canvas</code>, never per FFT frame.</span></li>
+        </ul>
+
+        <div class="note meas" style="margin-top:16px">
+          <b>It also makes seek legible.</b> During a seek the strip is the one surface where the
+          sweep is visible as motion across the band — which is exactly why §03 dims the dial and
+          lights the cursor. Build them together; each is half of the same feedback.
+        </div>
+      </section>
+
+      <!-- ═══ 09 The shell ═════════════════════════════════════════════════ -->
+      <section id="shell">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">09</span><h2>The shell</h2></div>
+
+        <p>
+          Today <code>RadioPane</code> is a centred <code>VBox</code> of nine stacked rows, each
+          centre-aligned, at 440 px wide — so the eye has no column to follow and the frequency
+          competes with eight sibling rows. The kit's shell is three bands: <b>glass</b>,
+          <b>transport</b>, <b>footer</b>, with the status line pinned to the bottom edge.
+        </p>
+
+        <div class="two" style="margin-top:22px">
+          <div class="force-night">
+            <div class="cap">Night — the default</div>
+            <div class="radio wide" style="background:var(--surface);color:var(--ink)">
+              <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="name">Modula</span></div>
+              <div class="glass">
+                <div class="glass-top">
+                  <span class="badges"><span class="badge on">FM</span><span class="badge">EUROPE</span></span>
+                  <span class="badges"><span class="badge lock">STEREO</span><span class="badge lock">TP</span></span>
+                </div>
+                <div class="dial-row"><span class="dial-num" style="font-size:3rem">101.5</span><span class="dial-unit">MHz</span></div>
+                <div class="station">BBC R4 <span class="pty">· Current Affairs</span></div>
+                <div class="rtext">The World at One — Sarah Montague with the day's news</div>
+                <div class="bandscale"><span class="ends"><span>87.5</span><span>108.0</span></span><span class="rule"></span><span class="cursor" style="left:68%"></span></div>
+                <div class="meter-row"><span class="meter"><i style="width:74%"></i></span><span class="dbfs">−16 dBFS</span></div>
+              </div>
+              <div class="body">
+                <div class="transport">
+                  <button class="btn icon"><span class="glyph"><i class="tri l"></i><i class="tri l"></i></span></button>
+                  <button class="btn icon"><span class="glyph"><i class="tri l"></i></span></button>
+                  <button class="btn power grow">Stop</button>
+                  <button class="btn icon"><span class="glyph"><i class="tri r"></i></span></button>
+                  <button class="btn icon"><span class="glyph"><i class="tri r"></i><i class="tri r"></i></span></button>
+                </div>
+                <div class="presets">
+                  <button class="chip"><span class="f">88.6</span><span class="n">Radio 3</span></button>
+                  <button class="chip on"><span class="f">101.5</span><span class="n">BBC R4</span></button>
+                  <button class="chip"><span class="f">94.9</span><span class="n">LBC</span></button>
+                  <button class="chip add">+</button>
+                </div>
+                <div class="footbar">
+                  <span class="vol"><span class="label" style="letter-spacing:.1em">VOL</span><span class="track"><i style="width:70%"></i><b style="left:70%"></b></span></span>
+                  <span class="select">EUROPE</span><span class="select">STEREO ON</span>
+                </div>
+              </div>
+              <div class="statusline">−16 dBFS <span style="color:var(--line)">·</span> sync 98% <span style="color:var(--line)">·</span> 0 dropped</div>
+            </div>
+          </div>
+
+          <div class="force-day">
+            <div class="cap">Daylight — same tokens, inverted ground</div>
+            <div class="radio wide" style="background:var(--surface);color:var(--ink)">
+              <div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="name">Modula</span></div>
+              <div class="glass">
+                <div class="glass-top">
+                  <span class="badges"><span class="badge on">FM</span><span class="badge">EUROPE</span></span>
+                  <span class="badges"><span class="badge lock">STEREO</span><span class="badge lock">TP</span></span>
+                </div>
+                <div class="dial-row"><span class="dial-num" style="font-size:3rem">101.5</span><span class="dial-unit">MHz</span></div>
+                <div class="station">BBC R4 <span class="pty">· Current Affairs</span></div>
+                <div class="rtext">The World at One — Sarah Montague with the day's news</div>
+                <div class="bandscale"><span class="ends"><span>87.5</span><span>108.0</span></span><span class="rule"></span><span class="cursor" style="left:68%"></span></div>
+                <div class="meter-row"><span class="meter"><i style="width:74%"></i></span><span class="dbfs">−16 dBFS</span></div>
+              </div>
+              <div class="body">
+                <div class="transport">
+                  <button class="btn icon"><span class="glyph"><i class="tri l"></i><i class="tri l"></i></span></button>
+                  <button class="btn icon"><span class="glyph"><i class="tri l"></i></span></button>
+                  <button class="btn power grow">Stop</button>
+                  <button class="btn icon"><span class="glyph"><i class="tri r"></i></span></button>
+                  <button class="btn icon"><span class="glyph"><i class="tri r"></i><i class="tri r"></i></span></button>
+                </div>
+                <div class="presets">
+                  <button class="chip"><span class="f">88.6</span><span class="n">Radio 3</span></button>
+                  <button class="chip on"><span class="f">101.5</span><span class="n">BBC R4</span></button>
+                  <button class="chip"><span class="f">94.9</span><span class="n">LBC</span></button>
+                  <button class="chip add">+</button>
+                </div>
+                <div class="footbar">
+                  <span class="vol"><span class="label" style="letter-spacing:.1em">VOL</span><span class="track"><i style="width:70%"></i><b style="left:70%"></b></span></span>
+                  <span class="select">EUROPE</span><span class="select">STEREO ON</span>
+                </div>
+              </div>
+              <div class="statusline">−16 dBFS <span style="color:var(--line)">·</span> sync 98% <span style="color:var(--line)">·</span> 0 dropped</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>What moved, and what it costs</h3>
+        <div class="tw" style="margin-top:12px">
+          <table>
+            <thead><tr><th>Today</th><th>Kit</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>9 centred rows, 440 px</td><td>3 bands, 520 px</td><td>A left edge to read down; the frequency stops competing with its siblings</td></tr>
+              <tr><td>Meter and STEREO in their own row</td><td>Inside the glass</td><td>They describe the station, so they belong with it</td></tr>
+              <tr><td>Power button mid-window</td><td>Centre of the transport row</td><td>It is the most-pressed control and the only one with two states</td></tr>
+              <tr><td><code>ListView</code> + name + Save + Remove</td><td>Chip row + <span class="m">+</span></td><td>−150 px, −3 controls, one tap to recall</td></tr>
+              <tr><td>MHz field + Tune button</td><td>Type-to-tune</td><td>−1 row, and no field left focused to eat the arrow keys</td></tr>
+              <tr><td>Status label, last child</td><td>Pinned footer, own ground</td><td>It changes constantly; it should not move the layout when it does</td></tr>
+              <tr><td>Region + Stereo mid-window</td><td>Footer bar</td><td>Set once per session, so they should not sit at eye level</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ═══ 10 Adoption ══════════════════════════════════════════════════ -->
+      <section id="adoption">
+        <div class="ticks"></div>
+        <div class="h2row"><span class="idx">10</span><h2>Adoption</h2></div>
+
+        <p>
+          Everything above documents surfaces that already exist, reskinned. These three are the
+          actual changes, ordered so each is worth landing on its own — and none of them touches
+          <code>dsp</code>, <code>demod</code>, <code>band</code>, <code>radio</code> or
+          <code>config</code>. The layering rule holds: this is all <code>ui</code>.
+        </p>
+
+        <div class="stack" style="margin-top:22px">
+
+          <div class="prop">
+            <header><span class="num">01</span><h3>A stylesheet at all</h3></header>
+            <div class="in">
+              <p>
+                Modula has no CSS today — the look is a dozen inline <code>setStyle</code> calls with
+                hardcoded pixel sizes, so there is nowhere to put a theme and no way to have two.
+                Add AtlantaFX as the user-agent stylesheet so the five standard controls in use
+                (<code>ComboBox</code>, <code>Slider</code>, <code>ListView</code>,
+                <code>CheckBox</code>, <code>ProgressBar</code>) come themed, then layer
+                <code>modula.css</code> for the parts AtlantaFX has never heard of: the glass, the
+                dial, the meter gradient, the band scale, the preset chips.
+              </p>
+              <p style="font-size:.875rem;color:var(--ink-dim)">
+                Night and day become two token blocks in one sheet, selected by a looked-up colour
+                set — the same mechanism Editora uses, so there is precedent to copy rather than
+                invent. Every <code>setStyle</code> call becomes a style class, which is also what
+                makes the state language in §03 expressible: a state is a pseudo-class on the glass,
+                not seven branches of string concatenation.
+              </p>
+              <div class="files">
+                <span><code>pom.xml</code> — add <code>atlantafx-base</code></span>
+                <span><code>ModulaApp.start</code> — <code>setUserAgentStylesheet</code>, attach <code>modula.css</code></span>
+                <span><code>RadioPane</code> — delete every <code>setStyle</code>, add style classes</span>
+                <span><code>resources/com/modula/modula.css</code> — new</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="prop">
+            <header><span class="num">02</span><h3>The glass, and the shell around it</h3></header>
+            <div class="in">
+              <p>
+                Restructure the nine centred rows into the three bands in §09, with everything the
+                receiver <em>reports</em> inside one inset panel and everything that <em>acts</em>
+                below it. This is the change that makes it read as a radio, and it is mostly a
+                reparenting job — the frequency, station, radio text, meter and STEREO labels all
+                already exist and keep their update paths.
+              </p>
+              <p style="font-size:.875rem;color:var(--ink-dim)">
+                Do the preset chip row and type-to-tune here too: together they remove two rows and
+                four controls, which is what buys the glass its vertical space at 520 px. Add the
+                <span class="m">TP</span>/<span class="m">TA</span> badges while the glass is open —
+                <code>StationInfo</code> has carried those two booleans all along and nothing has
+                ever shown them.
+              </p>
+              <p style="font-size:.875rem;color:var(--ink-dim)">
+                <code>RadioPane</code> is 507 lines and its own comment says to move to FXML once the
+                spectrum strip lands. This is that moment: split the glass into its own node so the
+                strip has somewhere to go, and the state mapping has one owner.
+              </p>
+              <div class="files">
+                <span><code>ui/RadioPane</code> — three bands; <code>buildStationInfo</code>/<code>buildMeter</code> fold into a glass node</span>
+                <span><code>ui/GlassPane</code> — new; owns the report surfaces and the state mapping</span>
+                <span><code>ui/PresetBar</code> — new; replaces the <code>ListView</code> block</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="prop">
+            <header><span class="num">03</span><h3>One state function, not seven branches</h3></header>
+            <div class="in">
+              <p>
+                <code>applyStatus</code> currently sets a progress value, a style string, two labels
+                and a status message inline, and the seven states in §03 are implied by the order of
+                those statements rather than named anywhere. Make the state explicit: a pure function
+                from <code>Status</code> to an enum, in its own class, unit-tested — which fits
+                Modula's own convention that anything expressible as a function belongs outside the
+                UI with a test.
+              </p>
+              <p style="font-size:.875rem;color:var(--ink-dim)">
+                It is worth doing because the tricky cases are decisions, not drawing: STEREO must
+                report the transmitter and not the user's forced-mono checkbox; a fault must hold the
+                last frequency rather than blank it; seeking must dim the dial while
+                <code>droppedSamples &gt; 0</code> must not. Each of those is a line in a test and an
+                afternoon of confusion if it regresses.
+              </p>
+              <div class="files">
+                <span><code>ui/ReceiverState</code> — new; <code>enum</code> + <code>of(Status, boolean forcedMono)</code>, pure</span>
+                <span><code>test/ui/ReceiverStateTest</code> — new; one case per state and per trap above</span>
+                <span><code>ui/GlassPane</code> — applies a style class per state; no style strings</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:22px">
+          <b>What this kit deliberately does not add.</b> No demodulator picker, no bandwidth slider,
+          no gain or AGC panel, no FFT settings, no squelch control, no dB axis, no waterfall — and
+          no signal-strength squelch, which §04 shows would be measuring the wrong quantity. The
+          product test stands: a preset button, yes; a decimation-stages spinner, no.
+        </div>
+      </section>
+
+      <div class="foot">
+        Modula UI Kit · Night Dial v1 · IBM Plex Mono (OFL 1.1), subset and inlined ·
+        Values shown are those <span class="m">RadioEngine.Status</span> and
+        <span class="m">StationInfo</span> actually report
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    /* ── Rail: mark the section in view ─────────────────────────────────── */
+    var links = Array.prototype.slice.call(document.querySelectorAll("#toc a"));
+    var sections = links
+      .map(function (a) { return document.querySelector(a.getAttribute("href")); })
+      .filter(Boolean);
+
+    if ("IntersectionObserver" in window && sections.length) {
+      var seen = new Map();
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { seen.set(e.target.id, e.intersectionRatio); });
+        var best = null, bestRatio = 0;
+        seen.forEach(function (ratio, id) {
+          if (ratio > bestRatio) { bestRatio = ratio; best = id; }
+        });
+        links.forEach(function (a) {
+          a.classList.toggle("on", best !== null && a.getAttribute("href") === "#" + best);
+        });
+      }, { rootMargin: "-8% 0px -72% 0px", threshold: [0, 0.15, 0.4, 0.8, 1] });
+      sections.forEach(function (s) { io.observe(s); });
+    }
+
+    /* ── State switcher ─────────────────────────────────────────────────── */
+    var STATES = {
+      idle: {
+        freq: "101.5", dim: 1, dial: "faint", stereo: false, tp: false,
+        station: "", rtext: "", fill: 0, dbfs: "—", cursor: 68,
+        status: 'Start <span class="m">rtl_tcp -a 127.0.0.1</span>, then press Listen.', bad: false,
+        why: "<b>Nothing is lit.</b> The dial holds the frequency you will tune to but shows it in ink-faint, because it is a setting rather than a reading. The status line is the only thing with something to say, so it says it in plain language — a command to run, not an error."
+      },
+      starting: {
+        freq: "101.5", dial: "on", stereo: false, tp: false,
+        station: "", rtext: "receiving…", pending: true, fill: 0.62, dbfs: "−23 dBFS", cursor: 68,
+        status: "Listening.", bad: false,
+        why: "<b>The dial lights first.</b> Signal arrives within a block (~13.6 ms) but RDS takes a second or two and the pilot up to 100 ms, so there is a real window where the frequency and meter are live and the station is not. Radio text says <i>receiving…</i> rather than sitting empty, which would read as a station that sends none."
+      },
+      locked: {
+        freq: "101.5", dial: "on", stereo: true, tp: true,
+        station: 'BBC R4 <span class="pty">· Current Affairs</span>',
+        rtext: "The World at One — Sarah Montague with the day's news and analysis",
+        fill: 0.74, dbfs: "−16 dBFS", cursor: 68,
+        status: '−16 dBFS <span style="color:var(--line)">·</span> sync 98% <span style="color:var(--line)">·</span> 0 dropped', bad: false,
+        why: "<b>Everything it knows, at rest.</b> STEREO teal, the meter tip resolving toward teal, TP lit because this station carries traffic announcements. This is the state the app is in for hours, so it is the one that has to be calm — no motion anywhere except the meter."
+      },
+      mono: {
+        freq: "98.4", dial: "on", stereo: false, tp: false,
+        station: 'Jazz FM <span class="pty">· Jazz</span>',
+        rtext: "Miles Davis — So What",
+        fill: 0.58, dbfs: "−26 dBFS", cursor: 55,
+        status: '−26 dBFS <span style="color:var(--line)">·</span> sync 91% <span style="color:var(--line)">·</span> 0 dropped', bad: false,
+        why: "<b>STEREO unlit, meter amber end to end.</b> Note this looks identical whether the station sends no pilot or you forced mono with the checkbox — and that is wrong to \"fix\". The badge reports the transmitter. Your own setting is already visible in the footer, and lighting it from two different facts would make it mean neither."
+      },
+      weak: {
+        freq: "89.7", dial: "on", stereo: false, tp: false,
+        station: "", rtext: "", fill: 0.19, dbfs: "−49 dBFS", cursor: 22,
+        status: "−49 dBFS", bad: false,
+        why: "<b>Signal but no data.</b> Below about −45 dBFS the RDS bit error rate is high enough that nothing decodes, so station and radio text stay blank while the meter still shows a carrier. The status line drops the sync and dropped figures rather than reporting zeroes — there is nothing to report, which is different from reporting nothing."
+      },
+      seeking: {
+        freq: "103.2", dial: "seek", stereo: false, tp: false,
+        station: "", rtext: "", fill: 0.33, dbfs: "−38 dBFS", cursor: 77, sweep: true,
+        status: "Seeking…", bad: false,
+        why: "<b>The dial dims and the cursor takes over.</b> During a seek the frequency changes several times a second, so the number is motion rather than information. Dimming it to 55% and lighting the band cursor says \"in progress, don't read this\" with no spinner. The seek buttons relabel to Cancel, because pressing them again is what stops it."
+      },
+      fault: {
+        freq: "101.5", dial: "on", stereo: false, tp: false, fault: true,
+        station: 'BBC R4 <span class="pty">· Current Affairs</span>',
+        rtext: "The World at One — Sarah Montague with the day's news and analysis",
+        fill: 0.74, dbfs: "−16 dBFS", cursor: 68,
+        status: "Audio is falling behind — 1,248 samples dropped. Close other audio apps, or lower the volume.", bad: true,
+        why: "<b>The dial keeps its value.</b> A fault is about the path, not the tuning, so blanking the frequency throws away the one thing still true. The coral badge and status line carry it instead, and the message names the cause and a fix — <code>droppedSamples</code> is already counted in <code>Status</code> and shown nowhere useful today."
+      }
+    };
+
+    var el = {
+      glass: document.getElementById("d-glass"),
+      freq: document.getElementById("d-freq"),
+      stereo: document.getElementById("d-stereo"),
+      tp: document.getElementById("d-tp"),
+      station: document.getElementById("d-station"),
+      rtext: document.getElementById("d-rtext"),
+      meter: document.getElementById("d-meter"),
+      fill: document.getElementById("d-fill"),
+      dbfs: document.getElementById("d-dbfs"),
+      cursor: document.getElementById("d-cursor"),
+      status: document.getElementById("d-status"),
+      explain: document.getElementById("d-explain")
+    };
+
+    var current = "idle";
+
+    function apply(key) {
+      var s = STATES[key];
+      if (!s) { return; }
+      current = key;
+
+      el.freq.textContent = s.freq;
+      el.freq.style.color = s.dial === "faint" ? "var(--ink-faint)" : "var(--dial)";
+      el.freq.style.opacity = s.dial === "seek" ? "0.55" : "1";
+      el.freq.style.textShadow = s.dial === "on" ? "0 0 26px var(--dial-soft)" : "none";
+
+      el.stereo.className = "badge " + (s.stereo ? "lock" : "off");
+      el.tp.className = "badge " + (s.tp ? "lock" : "off");
+
+      el.station.innerHTML = s.station || "";
+      el.rtext.innerHTML = s.rtext || "";
+      el.rtext.className = "rtext" + (s.pending ? " pending" : "");
+
+      el.fill.style.width = (s.fill * 100) + "%";
+      el.meter.className = "meter" + (s.stereo ? "" : " weak");
+      el.dbfs.textContent = s.dbfs;
+
+      el.cursor.style.left = s.cursor + "%";
+      el.cursor.style.boxShadow = s.sweep ? "0 0 16px var(--dial)" : "0 0 10px var(--dial)";
+      el.cursor.style.width = s.sweep ? "3px" : "2px";
+
+      el.status.innerHTML = s.status;
+      el.status.className = "statusline" + (s.bad ? " bad" : "");
+
+      el.explain.innerHTML = s.why;
+
+      if (s.fault) {
+        el.tp.className = "badge fault";
+        el.tp.textContent = "DROP";
+      } else {
+        el.tp.textContent = "TP";
+      }
+    }
+
+    var buttons = Array.prototype.slice.call(document.querySelectorAll("#states button"));
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        buttons.forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); });
+        apply(b.getAttribute("data-s"));
+      });
+    });
+    apply("idle");
+
+    /* ── Ambient meter drift on the listening states only ───────────────── */
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce) {
+      setInterval(function () {
+        var s = STATES[current];
+        if (!s || !s.fill || current === "idle" || current === "starting") { return; }
+        var jitter = (Math.random() - 0.5) * 0.05;
+        var w = Math.max(0.04, Math.min(0.99, s.fill + jitter));
+        el.fill.style.width = (w * 100) + "%";
+      }, 900);
+    }
+
+    /* ── Spectrum strip specification drawing ───────────────────────────── */
+    var cv = document.getElementById("spec");
+    if (cv && cv.getContext) {
+      var draw = function () {
+        var css = getComputedStyle(document.documentElement);
+        var pick = function (n, f) { return (css.getPropertyValue(n) || f).trim() || f; };
+        var dial = pick("--dial", "#FFB454");
+        var ink = pick("--ink", "#F2EDE4");
+        var dim = pick("--ink-dim", "#9AA0AA");
+        var faint = pick("--ink-faint", "#5C6371");
+        var line = pick("--line", "#262A32");
+
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var W = cv.clientWidth || 1000;
+        var H = 150;
+        cv.width = Math.round(W * dpr);
+        cv.height = Math.round(H * dpr);
+        cv.style.height = H + "px";
+        var g = cv.getContext("2d");
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, W, H);
+
+        var padX = 10, baseY = H - 26, topY = 14;
+        var span = W - padX * 2;
+
+        /* Deterministic pseudo-noise floor plus six stations on the 100 kHz grid.
+           Seeded so the shape is stable — a spec should not jitter. */
+        var seed = 20260808;
+        var rnd = function () { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+
+        var N = 260;
+        var mags = new Array(N);
+        for (var i = 0; i < N; i++) { mags[i] = 0.06 + rnd() * 0.05; }
+
+        // centre channel plus neighbours at ±200 and ±400 kHz of a 1.2 MHz span
+        var peaks = [
+          { at: 0.5,  h: 0.92, w: 9 },
+          { at: 0.33, h: 0.44, w: 8 },
+          { at: 0.67, h: 0.58, w: 8 },
+          { at: 0.16, h: 0.22, w: 7 },
+          { at: 0.84, h: 0.31, w: 7 }
+        ];
+        peaks.forEach(function (p) {
+          var c = Math.round(p.at * (N - 1));
+          for (var k = -p.w * 3; k <= p.w * 3; k++) {
+            var idx = c + k;
+            if (idx < 0 || idx >= N) { continue; }
+            var v = p.h * Math.exp(-(k * k) / (2 * p.w * p.w));
+            mags[idx] = Math.max(mags[idx], v + (rnd() - 0.5) * 0.03);
+          }
+        });
+
+        var xOf = function (i) { return padX + (i / (N - 1)) * span; };
+        var yOf = function (m) { return baseY - m * (baseY - topY); };
+
+        /* Channel grid ticks on BandPlan points, not a kHz axis. */
+        g.strokeStyle = line;
+        g.lineWidth = 1;
+        for (var t = 0; t <= 12; t++) {
+          var x = Math.round(padX + (t / 12) * span) + 0.5;
+          var tall = t % 2 === 0;
+          g.beginPath();
+          g.moveTo(x, baseY);
+          g.lineTo(x, baseY + (tall ? 8 : 4));
+          g.stroke();
+        }
+
+        /* Filled area under a single hairline. */
+        var grad = g.createLinearGradient(0, topY, 0, baseY);
+        grad.addColorStop(0, dim);
+        grad.addColorStop(1, "transparent");
+        g.globalAlpha = 0.3;
+        g.fillStyle = grad;
+        g.beginPath();
+        g.moveTo(xOf(0), baseY);
+        for (var a = 0; a < N; a++) { g.lineTo(xOf(a), yOf(mags[a])); }
+        g.lineTo(xOf(N - 1), baseY);
+        g.closePath();
+        g.fill();
+
+        g.globalAlpha = 1;
+        g.strokeStyle = ink;
+        g.lineWidth = 1;
+        g.beginPath();
+        for (var b2 = 0; b2 < N; b2++) {
+          var px = xOf(b2), py = yOf(mags[b2]);
+          if (b2 === 0) { g.moveTo(px, py); } else { g.lineTo(px, py); }
+        }
+        g.stroke();
+
+        /* Baseline. */
+        g.strokeStyle = line;
+        g.beginPath();
+        g.moveTo(padX, baseY + 0.5);
+        g.lineTo(W - padX, baseY + 0.5);
+        g.stroke();
+
+        /* The tuned channel — the one amber mark. */
+        var cx = Math.round(padX + 0.5 * span) + 0.5;
+        g.strokeStyle = dial;
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(cx, topY - 6);
+        g.lineTo(cx, baseY);
+        g.stroke();
+
+        g.fillStyle = dial;
+        g.beginPath();
+        g.moveTo(cx - 5, topY - 10);
+        g.lineTo(cx + 5, topY - 10);
+        g.lineTo(cx, topY - 3);
+        g.closePath();
+        g.fill();
+
+        /* Labels: the tuned channel and its neighbours, as frequencies. */
+        g.font = '600 11px "Plex Mono Kit", ui-monospace, monospace';
+        g.textBaseline = "top";
+        g.textAlign = "center";
+        g.fillStyle = dial;
+        g.fillText("101.5", cx, baseY + 12);
+
+        g.fillStyle = faint;
+        [
+          { at: 0.16, t: "101.1" },
+          { at: 0.33, t: "101.3" },
+          { at: 0.67, t: "101.7" },
+          { at: 0.84, t: "101.9" }
+        ].forEach(function (l) {
+          g.fillText(l.t, padX + l.at * span, baseY + 12);
+        });
+
+        g.textAlign = "left";
+        g.fillStyle = faint;
+        g.fillText("−600 kHz", padX, topY - 12);
+        g.textAlign = "right";
+        g.fillText("+600 kHz", W - padX, topY - 12);
+      };
+
+      draw();
+      var raf = null;
+      window.addEventListener("resize", function () {
+        if (raf) { cancelAnimationFrame(raf); }
+        raf = requestAnimationFrame(draw);
+      });
+      if (window.matchMedia) {
+        var mq = window.matchMedia("(prefers-color-scheme: dark)");
+        if (mq.addEventListener) { mq.addEventListener("change", function () { setTimeout(draw, 60); }); }
+      }
+      new MutationObserver(function () { setTimeout(draw, 60); })
+        .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    }
+  })();
+</script>
