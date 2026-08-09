@@ -40,6 +40,18 @@ public final class Glyphs {
         return group(path);
     }
 
+    /**
+     * A filled disc, for record.
+     *
+     * <p>Drawn rather than typed for the same reason as the transport arrows: U+23FA is absent from
+     * most mono faces, and a fallback glyph would be a different size and weight from its neighbours.
+     */
+    public static Group record() {
+        double r = SIZE / 2;
+        // Two half-arcs, because SVG has no circle command and an arc cannot span 360 degrees.
+        return group(path("M0,%f A%f,%f 0 1 1 %f,%f A%f,%f 0 1 1 0,%f Z".formatted(r, r, r, SIZE, r, r, r, r)));
+    }
+
     private static SVGPath triangleRight(double offsetX) {
         double h = SIZE;
         double w = SIZE * 0.55;

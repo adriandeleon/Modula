@@ -432,3 +432,31 @@
     -fx-text-fill: -ink-faint;
     -fx-font-size: 11px;
 }
+
+/* Sized against the footer's combos rather than the transport row: it sits with what is set for a
+   session, not with what is pressed while listening. */
+.record-button {
+    -fx-background-color: -surface;
+    -fx-border-color: -line;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-padding: 6 10 6 10;
+}
+
+.record-button:hover {
+    -fx-border-color: -ink-faint;
+}
+
+/* Record is coral while it is running, not amber: amber is spent, and a recording that is under way
+   is closer to a fault than to a reading — it is the state you must be able to notice you left on. */
+.record-button .glyph {
+    -fx-fill: -ink-dim;
+}
+
+.record-button.recording .glyph {
+    -fx-fill: -fault;
+}
+
+.record-button.recording {
+    -fx-border-color: -fault;
+}

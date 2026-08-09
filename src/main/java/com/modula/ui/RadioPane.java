@@ -14,6 +14,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
@@ -59,6 +60,7 @@ public final class RadioPane extends StackPane {
 
     private final BorderPane shell = new BorderPane();
     private final CommandPalette palette = new CommandPalette(this::commands);
+    private final Button recordButton = new Button();
     private final GlassPane glass;
     private final PresetBar presetBar;
     private final Button powerButton = new Button("Listen");
@@ -266,11 +268,15 @@ public final class RadioPane extends StackPane {
         }
         if (r.isRecording()) {
             java.nio.file.Path file = r.stop();
+            recordButton.getStyleClass().remove("recording");
             setStatusText("Recorded " + file.getFileName(), false);
             return;
         }
         try {
             java.nio.file.Path file = r.start(settings.resolveRecordingDirectory(), recordingLabel());
+            if (!recordButton.getStyleClass().contains("recording")) {
+                recordButton.getStyleClass().add("recording");
+            }
             setStatusText("Recording to " + file.getFileName(), false);
         } catch (java.io.IOException e) {
             setStatusText("Could not record: " + describe(e), true);
@@ -282,6 +288,7 @@ public final class RadioPane extends StackPane {
         if (r != null) {
             r.stop();
         }
+        recordButton.getStyleClass().remove("recording");
     }
 
     /** Names the file after the station when RDS has told us one, else after the frequency. */
@@ -364,7 +371,12 @@ public final class RadioPane extends StackPane {
         bandCombo.setValue(band.name());
         bandCombo.valueProperty().addListener((o, old, value) -> setBand(value));
 
-        HBox box = new HBox(9, volumeLabel, volumeSlider, spacer, bandCombo, regionCombo, stereoCheck);
+        recordButton.setGraphic(Glyphs.record());
+        recordButton.getStyleClass().add("record-button");
+        recordButton.setOnAction(e -> toggleRecording());
+        Tooltip.install(recordButton, new Tooltip("Record what is playing to a file"));
+
+        HBox box = new HBox(9, volumeLabel, volumeSlider, spacer, recordButton, bandCombo, regionCombo, stereoCheck);
         box.getStyleClass().add("footer");
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
