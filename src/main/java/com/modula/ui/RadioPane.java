@@ -704,7 +704,15 @@ public final class RadioPane extends StackPane {
         if (!powerButton.getStyleClass().contains("running")) {
             powerButton.getStyleClass().add("running");
         }
-        setStatusText(source instanceof RtlSdrNativeSource ? "Listening — dongle." : "Listening — rtl_tcp.", false);
+        // A fallback used to report only that it happened. Saying why, and what to do, is the whole
+        // difference between a dead end and a fix — especially on Windows, where a missing driver and
+        // an unplugged dongle both present as no device at all.
+        if (source instanceof RtlSdrNativeSource) {
+            setStatusText("Listening — dongle.", false);
+        } else {
+            String reason = RtlSdrNativeSource.unavailableReason();
+            setStatusText(reason.isBlank() ? "Listening — rtl_tcp." : "Listening — rtl_tcp: " + reason, false);
+        }
     }
 
     private void seek(Scanner.Direction direction) {

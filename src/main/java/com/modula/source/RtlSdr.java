@@ -52,6 +52,9 @@ public final class RtlSdr {
 
     private static final Arena ARENA = Arena.ofAuto();
 
+    /** Whether a library was located at all, which separates "not installed" from "wrong version". */
+    private static boolean libraryFound;
+
     private static final Bindings BINDINGS = load();
 
     private RtlSdr() {}
@@ -63,7 +66,26 @@ public final class RtlSdr {
 
     /** Why the library is unavailable, for a status message. Empty when it loaded. */
     public static String unavailableReason() {
-        return BINDINGS == null ? "librtlsdr not found" : "";
+        return BINDINGS == null ? diagnose().message() : "";
+    }
+
+    /**
+     * What state the native path is in, and what the user should do about it.
+     *
+     * <p>Cheap: it reads a field and, when the library did load, asks it how many devices there are.
+     * No probing beyond that.
+     */
+    public static NativeDiagnosis.Diagnosis diagnose() {
+        NativeDiagnosis.Os os = NativeDiagnosis.Os.current();
+        if (BINDINGS == null) {
+            // The distinction matters: a library that loaded and then failed to bind is installed but
+            // wrong, and telling that user to install it sends them in a circle.
+            return NativeDiagnosis.of(
+                    libraryFound ? NativeDiagnosis.Status.LIBRARY_INCOMPLETE : NativeDiagnosis.Status.LIBRARY_MISSING,
+                    os);
+        }
+        return NativeDiagnosis.of(
+                deviceCount() > 0 ? NativeDiagnosis.Status.AVAILABLE : NativeDiagnosis.Status.NO_DEVICE, os);
     }
 
     public static int deviceCount() {
@@ -246,6 +268,12 @@ public final class RtlSdr {
     }
 
     private static Optional<SymbolLookup> findLibrary() {
+        Optional<SymbolLookup> found = locate();
+        libraryFound = found.isPresent();
+        return found;
+    }
+
+    private static Optional<SymbolLookup> locate() {
         for (String name : LIBRARY_NAMES) {
             try {
                 return Optional.of(SymbolLookup.libraryLookup(name, ARENA));
@@ -266,13 +294,28 @@ public final class RtlSdr {
         return Optional.empty();
     }
 
+    /**
+     * Places to look when the loader path does not know the library.
+     *
+     * <p>Per host: the list used to be every platform's paths on every platform, so a Mac stat'ed
+     * three Debian multiarch directories on the way to its own. Windows resolves a DLL through the
+     * process search path rather than absolute locations, so it contributes nothing here — its
+     * failure mode is the driver, not the file.
+     */
     private static List<Path> searchPaths() {
-        return List.of(
-                Path.of("/usr/lib/x86_64-linux-gnu/librtlsdr.so.0"),
-                Path.of("/usr/lib/aarch64-linux-gnu/librtlsdr.so.0"),
-                Path.of("/usr/lib64/librtlsdr.so.0"),
-                Path.of("/usr/local/lib/librtlsdr.dylib"),
-                Path.of("/opt/homebrew/lib/librtlsdr.dylib"));
+        return switch (NativeDiagnosis.Os.current()) {
+            case LINUX ->
+                List.of(
+                        Path.of("/usr/lib/x86_64-linux-gnu/librtlsdr.so.0"),
+                        Path.of("/usr/lib/aarch64-linux-gnu/librtlsdr.so.0"),
+                        Path.of("/usr/lib64/librtlsdr.so.0"),
+                        Path.of("/usr/local/lib/librtlsdr.so.0"));
+            case MAC ->
+                List.of(
+                        Path.of("/opt/homebrew/lib/librtlsdr.dylib"), // Apple silicon
+                        Path.of("/usr/local/lib/librtlsdr.dylib")); // Intel
+            case WINDOWS, OTHER -> List.of();
+        };
     }
 
     private static MethodHandle bind(Linker linker, SymbolLookup library, String symbol, FunctionDescriptor type) {

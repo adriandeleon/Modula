@@ -65,6 +65,15 @@ public final class AboutWindow {
             body.getChildren().addAll(header, gap(12));
         }
         body.getChildren().add(row("Hardware", describeHardware()));
+        String hint = hardwareHint();
+        if (!hint.isBlank()) {
+            Label advice = new Label(hint);
+            advice.getStyleClass().add("about-fine");
+            advice.setWrapText(true);
+            advice.setMaxWidth(330);
+            VBox.setMargin(advice, new Insets(1, 0, 4, 74));
+            body.getChildren().add(advice);
+        }
         body.getChildren().add(row("Settings", config.directory().toString()));
         body.getChildren()
                 .add(row("Presets", config.directory().resolve("presets.txt").toString()));
@@ -101,8 +110,14 @@ public final class AboutWindow {
             String device = RtlSdrNativeSource.describeDevice();
             return device.isBlank() ? "dongle found" : device;
         }
-        String reason = RtlSdrNativeSource.unavailableReason();
-        return reason.isBlank() ? "none" : reason + " — using rtl_tcp";
+        return RtlSdrNativeSource.diagnose().summary() + " — using rtl_tcp";
+    }
+
+    /** The fix, when there is one. About has the room the status line does not. */
+    private static String hardwareHint() {
+        return RtlSdrNativeSource.isAvailable()
+                ? ""
+                : RtlSdrNativeSource.diagnose().hint();
     }
 
     private static HBox row(String key, String value) {

@@ -348,6 +348,34 @@ exactly the builds most likely to be stale. A test pins it.
 **The feature is inert, not broken, until a release endpoint exists.** `AppInfo.RELEASES_API` is
 filtered in from the pom and is empty today, so the Settings checkbox disables itself and says why.
 
+## The native library across platforms
+
+The lookup is cross-platform already — versioned `.so`, `.dylib` and `.dll` names, plus per-host
+absolute fallbacks for the loader paths a package manager does not register. What differs is not the
+library but **who owns the device**:
+
+- **Linux** — the kernel's `dvb_usb_rtl28xxu` claims it. Blacklist the module.
+- **Windows** — the factory DVB-T driver claims it. The user must replace it with WinUSB via Zadig,
+  on *Interface 0*. **No application can do this**; it needs elevation and swaps a system driver.
+- **macOS** — nothing claims it. This is the easy one.
+
+Both of the first two present identically from inside the process: the library loads and reports
+**zero devices**, which is also exactly what an unplugged dongle looks like. That is why
+**`source/NativeDiagnosis`** exists — it is pure and unit-tested, so the advice for every platform
+can be verified from any platform, and `RtlSdr` only observes the state rather than phrasing it.
+`Os.of` matches **macOS before Windows and uses `startsWith`**, because `"darwin"` contains `"win"`
+and the loose test handed Mac users Zadig instructions (caught by a test, not by review).
+
+An unhelpful message here is not cosmetic: "fell back to rtl_tcp" covered four unrelated situations
+with four different fixes, and on Windows the two most likely ones are indistinguishable from the
+symptom alone.
+
+**Packaging caveat, not yet hit:** a signed, notarized macOS `.app` running under the hardened
+runtime will refuse to load a Homebrew dylib — that needs
+`com.apple.security.cs.disable-library-validation`, and `com.apple.security.device.usb` if sandboxed.
+It works in development and fails only in the signed build, so it is worth remembering before the
+jpackage work the `.icns` is already waiting for.
+
 ## Native bindings
 
 **Hand-written FFM, not `jextract`.** Eleven functions of a stable C API, against a generator that

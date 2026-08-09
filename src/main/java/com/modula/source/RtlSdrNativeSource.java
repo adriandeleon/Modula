@@ -52,10 +52,13 @@ public final class RtlSdrNativeSource implements IqSource {
 
     /** Why direct access is unavailable, phrased for a status line. Empty when it is available. */
     public static String unavailableReason() {
-        if (!RtlSdr.isAvailable()) {
-            return RtlSdr.unavailableReason();
-        }
-        return RtlSdr.deviceCount() == 0 ? "no RTL-SDR dongle attached" : "";
+        NativeDiagnosis.Diagnosis diagnosis = RtlSdr.diagnose();
+        return diagnosis.ok() ? "" : diagnosis.message();
+    }
+
+    /** The full diagnosis, for a surface with room to show the advice separately. */
+    public static NativeDiagnosis.Diagnosis diagnose() {
+        return RtlSdr.diagnose();
     }
 
     /** The first attached device's name, for the status line. */

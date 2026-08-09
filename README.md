@@ -79,6 +79,51 @@ comes back at the right frequency and amplitude.
 
 `./mvnw verify` additionally enforces formatting. Run `./mvnw spotless:apply` before committing.
 
+## Getting the dongle working
+
+Modula drives `librtlsdr` directly through the Java FFM API, and falls back to `rtl_tcp` over TCP
+when it cannot. Neither the library nor the fallback is bundled — both are the system's.
+
+**Linux**
+
+```bash
+sudo apt install librtlsdr0        # or your distribution's equivalent
+```
+
+If a dongle is plugged in and Modula still reports none, the kernel's TV tuner driver has claimed it:
+
+```bash
+echo 'blacklist dvb_usb_rtl28xxu' | sudo tee /etc/modprobe.d/modula.conf
+```
+
+You may also need the `rtl-sdr` udev rules to open it without root.
+
+**macOS**
+
+```bash
+brew install librtlsdr
+```
+
+Nothing else: macOS ships no TV tuner driver to compete with, so libusb claims the device directly.
+Modula looks in `/opt/homebrew/lib` (Apple silicon) and `/usr/local/lib` (Intel).
+
+**Windows**
+
+Two separate steps, and the library is the easy one.
+
+1. Put `rtlsdr.dll` and `libusb-1.0.dll` beside Modula or on `PATH`. Both are in the osmocom and
+   RTL-SDR Blog release zips.
+2. **Replace the dongle's driver.** It arrives bound to the factory DVB-T TV tuner driver, which will
+   not let a user-space program near it. Run [Zadig](https://zadig.akeo.ie/) and install **WinUSB**
+   over **"Bulk-In, Interface (Interface 0)"** — interface 0 is the one carrying baseband IQ, and
+   choosing interface 1 is the classic reason a dongle is never found afterwards.
+
+This step is not specific to Modula: SDR#, HDSDR and CubicSDR all require it, and no application can
+do it for you — it needs elevation and replaces a system driver.
+
+**If none of that is possible**, run `rtl_tcp` and Modula will connect to it over TCP instead. The
+status line always says which path it took, and why, when it fell back.
+
 ## AM will not work on a stock dongle
 
 Medium-wave AM broadcast is 530–1700 kHz. The R820T2/R828D tuner in a normal RTL-SDR bottoms out
