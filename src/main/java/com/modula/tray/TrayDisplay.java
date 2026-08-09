@@ -10,14 +10,23 @@ package com.modula.tray;
  * @param listening whether audio is playing
  * @param attention whether something has gone wrong and needs saying
  */
-public record TrayDisplay(String text, boolean listening, boolean attention) {
+public record TrayDisplay(String text, boolean listening, boolean attention, boolean recording) {
+
+    /** Back-compatible: not recording. */
+    public TrayDisplay(String text, boolean listening, boolean attention) {
+        this(text, listening, attention, false);
+    }
 
     public static TrayDisplay stopped() {
         return new TrayDisplay(null, false, false);
     }
 
     public static TrayDisplay listening(String frequency) {
-        return new TrayDisplay(frequency, true, false);
+        return listening(frequency, false);
+    }
+
+    public static TrayDisplay listening(String frequency, boolean recording) {
+        return new TrayDisplay(frequency, true, false, recording);
     }
 
     public static TrayDisplay fault(String frequency) {

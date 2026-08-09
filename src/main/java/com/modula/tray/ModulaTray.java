@@ -13,6 +13,9 @@ public interface ModulaTray {
     /** Sets what the menu's Listen/Stop item does. Called on the FX thread. */
     void setOnListen(Runnable action);
 
+    /** Sets what the menu's Record/Stop-recording item does. Called on the FX thread. */
+    void setOnRecord(Runnable action);
+
     /** Removes the icon; the instance is dead afterwards. */
     void dispose();
 }

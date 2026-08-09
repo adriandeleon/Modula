@@ -224,14 +224,21 @@ public final class RadioPane extends StackPane {
             return;
         }
         boolean running = engine != null && engine.isRunning();
+        boolean recording = isRecording();
         String frequency = Readouts.megahertz(frequencyHz);
         com.modula.tray.TrayDisplay display = faulted
                 ? com.modula.tray.TrayDisplay.fault(frequency)
-                : (running ? com.modula.tray.TrayDisplay.listening(frequency) : com.modula.tray.TrayDisplay.stopped());
+                : (running
+                        ? com.modula.tray.TrayDisplay.listening(frequency, recording)
+                        : com.modula.tray.TrayDisplay.stopped());
         RadioEngine.Status status = latestStatus.get();
         String station = status == null ? "" : status.station().programService();
         String tooltip = running
-                ? "Modula \u00b7 %s MHz%s".formatted(frequency, station.isBlank() ? "" : " \u00b7 " + station)
+                ? "Modula \u00b7 %s MHz%s%s"
+                        .formatted(
+                                frequency,
+                                station.isBlank() ? "" : " \u00b7 " + station,
+                                recording ? " \u00b7 recording" : "")
                 : "Modula \u00b7 not listening";
         sink.accept(display, tooltip);
     }
@@ -355,6 +362,7 @@ public final class RadioPane extends StackPane {
             java.nio.file.Path file = r.stop();
             recordButton.getStyleClass().remove("recording");
             setStatusText("Recorded " + file.getFileName(), false);
+            publishTray();
             return;
         }
         try {
@@ -363,6 +371,7 @@ public final class RadioPane extends StackPane {
                 recordButton.getStyleClass().add("recording");
             }
             setStatusText("Recording to " + file.getFileName(), false);
+            publishTray();
         } catch (java.io.IOException e) {
             setStatusText("Could not record: " + describe(e), true);
         }
@@ -374,6 +383,7 @@ public final class RadioPane extends StackPane {
             r.stop();
         }
         recordButton.getStyleClass().remove("recording");
+        publishTray();
     }
 
     /** Names the file after the station when RDS has told us one, else after the frequency. */

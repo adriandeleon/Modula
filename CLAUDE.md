@@ -319,6 +319,18 @@ covers a different set: `SniTray` speaks StatusNotifierItem over D-Bus where a w
 current Linux desktops), `AwtTray` uses `java.awt.SystemTray` elsewhere (Windows, macOS, older X11).
 `Trays.create` picks; a machine with neither returns empty and the app simply has no tray.
 
+**Recording is a badge, not a recolour.** Coral already means *fault* on this icon, so a coral mark
+and a coral-badged mark are two states while a coral mark and a coral mark are one. The badge is a
+small disc in the corner, ringed in the ground colour so it stays legible over the arcs it overlaps,
+and sized at 0.15 of the canvas — at 0.22 it swallowed the whole mark at 16px, which is the size that
+matters most in a panel.
+
+**The tray menu had a latent bug the recording work exposed:** every read of the item properties went
+through the two-argument `propsFor`, whose default is "not listening", so the Linux tray permanently
+read **Listen** even while playing — the real flag never reached the menu at all. The state now lives
+on `SniMenu.Impl` and bumps the revision, which is what makes the panel re-read the labels.
+`SniMenuModelTest` pins both labels, the disabled-until-listening rule, and that every id is distinct.
+
 **The icon is drawn, not shipped as a bitmap.** `TrayIconRenderer` paints it at the size asked for,
 so it is sharp on a HiDPI panel, and it carries state in colour — amber listening, grey stopped,
 coral faulted — because a tray icon that never changes tells the listener nothing.

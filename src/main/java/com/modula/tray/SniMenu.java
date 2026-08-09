@@ -61,6 +61,9 @@ public interface SniMenu extends DBusInterface {
         private final Runnable onOpen;
         private final Runnable onQuit;
         private volatile Runnable onListen = () -> {};
+        private volatile Runnable onRecord = () -> {};
+        private volatile boolean listening;
+        private volatile boolean recording;
         private final AtomicInteger revision = new AtomicInteger(1);
         private volatile String statusLine = "Not connected";
 
@@ -68,17 +71,29 @@ public interface SniMenu extends DBusInterface {
             this.onListen = onListen == null ? () -> {} : onListen;
         }
 
+        public void setOnRecord(Runnable onRecord) {
+            this.onRecord = onRecord == null ? () -> {} : onRecord;
+        }
+
         Impl(Runnable onOpen, Runnable onQuit) {
             this.onOpen = onOpen;
             this.onQuit = onQuit;
         }
 
-        /** Returns the new revision when the status line changed, else -1. */
-        int setStatusLine(String line) {
-            if (statusLine.equals(line)) {
+        /**
+         * Returns the new revision when anything the menu shows changed, else -1.
+         *
+         * <p>The listening and recording flags are part of that: they decide two of the labels, and
+         * they used never to reach here at all — every read called the two-argument {@code propsFor},
+         * whose default left the item permanently reading "Listen" even while playing.
+         */
+        int setState(String line, boolean nowListening, boolean nowRecording) {
+            if (statusLine.equals(line) && listening == nowListening && recording == nowRecording) {
                 return -1;
             }
             statusLine = line;
+            listening = nowListening;
+            recording = nowRecording;
             return revision.incrementAndGet();
         }
 
@@ -94,8 +109,8 @@ public interface SniMenu extends DBusInterface {
         @Override
         public MenuPair<UInt32, MenuLayout> GetLayout(int parentId, int recursionDepth, List<String> propertyNames) {
             MenuLayout layout = parentId == SniMenuModel.ROOT
-                    ? SniMenuModel.layout(statusLine)
-                    : SniMenuModel.item(parentId, statusLine);
+                    ? SniMenuModel.layout(statusLine, listening, recording)
+                    : SniMenuModel.item(parentId, statusLine, listening, recording);
             return new MenuPair<>(new UInt32(revision.get()), layout);
         }
 
@@ -103,13 +118,14 @@ public interface SniMenu extends DBusInterface {
         public List<MenuItemEntry> GetGroupProperties(List<Integer> ids, List<String> propertyNames) {
             List<Integer> wanted = ids == null || ids.isEmpty() ? SniMenuModel.ITEM_IDS : ids;
             return wanted.stream()
-                    .map(id -> new MenuItemEntry(id, SniMenuModel.propsFor(id, statusLine)))
+                    .map(id -> new MenuItemEntry(id, SniMenuModel.propsFor(id, statusLine, listening, recording)))
                     .toList();
         }
 
         @Override
         public Variant<?> GetProperty(int id, String name) {
-            Variant<?> value = SniMenuModel.propsFor(id, statusLine).get(name);
+            Variant<?> value =
+                    SniMenuModel.propsFor(id, statusLine, listening, recording).get(name);
             return value != null ? value : new Variant<>("");
         }
 
@@ -122,6 +138,8 @@ public interface SniMenu extends DBusInterface {
                 onOpen.run();
             } else if (id == SniMenuModel.LISTEN) {
                 onListen.run();
+            } else if (id == SniMenuModel.RECORD) {
+                onRecord.run();
             } else if (id == SniMenuModel.QUIT) {
                 onQuit.run();
             }

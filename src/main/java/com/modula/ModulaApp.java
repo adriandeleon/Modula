@@ -80,6 +80,7 @@ public final class ModulaApp extends Application {
                     .ifPresent(created -> javafx.application.Platform.runLater(() -> {
                         tray = created;
                         tray.setOnListen(() -> javafx.application.Platform.runLater(pane::togglePower));
+                        tray.setOnRecord(() -> javafx.application.Platform.runLater(pane::toggleRecording));
                         pane.setTraySink(this::updateTray);
                     }));
         });

@@ -27,6 +27,9 @@ public final class TrayIconRenderer {
     private static final Color STOPPED = new Color(0x9AA0AC);
     private static final Color FAULT = new Color(0xFF6B5A);
 
+    /** The cabin, for punching a hole behind the badge so it reads over the arcs. */
+    private static final Color GROUND = new Color(0x0B0C0E);
+
     /**
      * The mark's shape, shared with the application icon.
      *
@@ -79,8 +82,31 @@ public final class TrayIconRenderer {
                 g.draw(new Arc2D.Double(centre - r, centre - r, r * 2, r * 2, side - SPAN, SPAN * 2, Arc2D.OPEN));
             }
         }
+        if (display.recording()) {
+            drawRecordingBadge(g, size);
+        }
         g.dispose();
         return image;
+    }
+
+    /**
+     * A filled coral disc in the corner while recording.
+     *
+     * <p>A badge rather than recolouring the mark, because coral already means <em>fault</em> here: a
+     * coral mark and a coral-badged mark are two states, a coral mark and a coral mark are one. It is
+     * ringed in the ground colour so it stays legible over the arcs it overlaps.
+     */
+    private static void drawRecordingBadge(Graphics2D g, int size) {
+        // Small: it annotates the mark rather than replacing it. At 0.22 of the canvas the badge
+        // swallowed the whole icon at 16px, which is the size that matters most in a panel.
+        double r = Math.max(1.6, size * 0.15);
+        double ring = Math.max(0.75, size * 0.03);
+        double cx = size - r - ring;
+        double cy = size - r - ring;
+        g.setColor(GROUND);
+        g.fill(new Ellipse2D.Double(cx - r - ring, cy - r - ring, (r + ring) * 2, (r + ring) * 2));
+        g.setColor(FAULT);
+        g.fill(new Ellipse2D.Double(cx - r, cy - r, r * 2, r * 2));
     }
 
     private static Color colorFor(TrayDisplay display) {

@@ -24,7 +24,18 @@ public final class AwtTray implements ModulaTray {
     private final TrayIcon trayIcon;
     private final MenuItem statusItem;
     private final MenuItem listenItem;
+    private final MenuItem recordItem;
     private volatile Runnable onListen = () -> {};
+    private volatile Runnable onRecord = () -> {};
+
+    private Runnable onRecord() {
+        return onRecord;
+    }
+
+    @Override
+    public void setOnRecord(Runnable action) {
+        this.onRecord = action == null ? () -> {} : action;
+    }
 
     private Runnable onListen() {
         return onListen;
@@ -45,6 +56,9 @@ public final class AwtTray implements ModulaTray {
         statusItem.setEnabled(false);
         listenItem = new MenuItem("Listen");
         listenItem.addActionListener(e -> onListen().run());
+        recordItem = new MenuItem("Record");
+        recordItem.setEnabled(false); // nothing to record until the receiver is running
+        recordItem.addActionListener(e -> onRecord().run());
         MenuItem open = new MenuItem("Show Modula");
         open.addActionListener(e -> onActivate.run());
         MenuItem quit = new MenuItem("Quit");
@@ -53,6 +67,7 @@ public final class AwtTray implements ModulaTray {
         menu.add(statusItem);
         menu.addSeparator();
         menu.add(listenItem);
+        menu.add(recordItem);
         menu.add(open);
         menu.add(quit);
 
@@ -90,6 +105,8 @@ public final class AwtTray implements ModulaTray {
     @Override
     public void update(TrayDisplay display, String tooltip) {
         listenItem.setLabel(display.listening() ? "Stop" : "Listen");
+        recordItem.setLabel(display.recording() ? "Stop recording" : "Record");
+        recordItem.setEnabled(display.listening());
         BaseMultiResolutionImage image = multiRes(display);
         EventQueue.invokeLater(() -> {
             trayIcon.setImage(image);

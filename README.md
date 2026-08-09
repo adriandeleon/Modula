@@ -150,6 +150,9 @@ baking it in would make a recording made at a low listening level unrecoverable.
 If the disk fills, the recording stops and the radio keeps playing. A receiver that goes silent
 because a file could not be written is the wrong failure.
 
+While recording, the tray icon carries a red dot and its menu offers **Stop recording** — so a
+recording you started and then minimised is both visible and stoppable without reopening the window.
+
 ## Recording a raw capture
 
 A recorded IQ file makes every later DSP change verifiable without hardware attached:

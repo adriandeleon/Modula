@@ -74,6 +74,11 @@ public final class SniTray implements ModulaTray {
     }
 
     @Override
+    public void setOnRecord(Runnable action) {
+        menu.setOnRecord(action);
+    }
+
+    @Override
     public void update(TrayDisplay display, String tooltip) {
         SniPixmap[] pixmaps = new SniPixmap[ICON_SIZES.length];
         for (int i = 0; i < ICON_SIZES.length; i++) {
@@ -82,7 +87,7 @@ public final class SniTray implements ModulaTray {
         }
         String status = display.attention() ? "NeedsAttention" : "Active";
         boolean statusChanged = item.setState(List.of(pixmaps), tooltip, status);
-        int menuRevision = menu.setStatusLine(tooltip);
+        int menuRevision = menu.setState(tooltip, display.listening(), display.recording());
         try {
             conn.sendMessage(new StatusNotifierItem.NewIcon(PATH));
             conn.sendMessage(new StatusNotifierItem.NewToolTip(PATH));
