@@ -67,8 +67,10 @@
                 <version>3.5.2</version>
                 <configuration>
                     <!-- Tests run on the classpath as the unnamed module, so setAccessible is
-                         unrestricted and test classes need no module-info entries. -->
+                         unrestricted and test classes need no module-info entries. That also means
+                         the Panama bindings live in ALL-UNNAMED here rather than in com.modula. -->
                     <useModulePath>false</useModulePath>
+                    <argLine>--enable-native-access=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
 

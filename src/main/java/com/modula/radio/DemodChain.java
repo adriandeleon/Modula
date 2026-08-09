@@ -257,14 +257,15 @@ public final class DemodChain {
         if (!pilotLocked) {
             return "no pilot";
         }
-        if (!rdsReceiver.isSynced()) {
+        // Report what this station has yielded, not whether the synchroniser happens to be locked at
+        // this instant. Block sync drops and re-acquires routinely on a burst of interference, and a
+        // status that flickers to "no RDS" while the name is on screen reads as a fault.
+        long groups = rdsReceiver.groupsDecoded();
+        if (groups == 0) {
             return "pilot, no RDS";
         }
         return "RDS %d groups @ %.1f bps%s"
-                .formatted(
-                        rdsReceiver.groupsDecoded(),
-                        rdsReceiver.symbolRateHz(),
-                        rdsReceiver.isUsingQuadrature() ? " (Q)" : "");
+                .formatted(groups, rdsReceiver.symbolRateHz(), rdsReceiver.isUsingQuadrature() ? " (Q)" : "");
     }
 
     /**

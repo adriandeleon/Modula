@@ -10,15 +10,19 @@ channel separation is 33 dB, flat from 100 Hz to 10 kHz.
 
 ## Running it
 
-Start the server that talks to the dongle, then the app:
+```bash
+./mvnw javafx:run
+```
+
+That's it — Modula talks to the dongle directly through `librtlsdr`. If the library isn't installed,
+or the dongle lives on another machine, it falls back to `rtl_tcp`:
 
 ```bash
 rtl_tcp -a 127.0.0.1
 ```
 
-```bash
-./mvnw javafx:run
-```
+The status line says which it's using. Only one program can hold the dongle at a time, so stop
+`rtl_tcp` before using direct access (`usb_claim_interface error -6` means something else has it).
 
 Press **Listen**, then:
 
@@ -46,9 +50,8 @@ decoding problem.
 Frequency, region, volume and the stereo setting are remembered between runs, in `~/.modula/`.
 Presets live in `~/.modula/presets.txt`, one per line, and are meant to be hand-editable.
 
-`rtl_tcp` is used rather than direct USB on purpose: it needs no native code, no `jextract`
-bindings and no driver install, and it keeps working when the dongle lives on another machine.
-Direct hardware access is milestone 2 and slots in behind the same `IqSource` interface.
+Both paths sit behind the same `IqSource` interface, so nothing downstream knows which is in use —
+as does `FileReplaySource`, which replays a recorded capture for testing.
 
 ## Tests
 
@@ -107,7 +110,8 @@ Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md
 2. **Stereo** (19 kHz pilot PLL, 38 kHz difference channel) — done
 3. **Seek, presets, persistence** — done
 4. **RDS** (station name, radio text, programme type) — done
-5. Direct hardware via Panama/`librtlsdr`; spectrum strip
+5. **Direct hardware** via Panama/`librtlsdr` — done
+6. Spectrum strip; the Night Dial interface
 
 ## Licence
 

@@ -35,6 +35,7 @@ import com.modula.radio.Scanner;
 import com.modula.rds.ProgramType;
 import com.modula.rds.StationInfo;
 import com.modula.source.IqSource;
+import com.modula.source.RtlSdrNativeSource;
 import com.modula.source.RtlTcpSource;
 
 /**
@@ -121,7 +122,7 @@ public final class RadioPane extends VBox {
         refreshFrequency();
         refreshPresets();
         installKeyboardTuning();
-        setStatusText("Start `rtl_tcp -a 127.0.0.1`, then press Listen.");
+        setStatusText(describeAvailableSource());
     }
 
     /** Stops the receiver, releases the device and persists the session. */
@@ -304,10 +305,23 @@ public final class RadioPane extends VBox {
         start();
     }
 
+    /**
+     * Prefers the dongle directly, falling back to {@code rtl_tcp}.
+     *
+     * <p>The fallback is not a consolation prize: it is how the dongle lives on another machine, and
+     * how development works with no hardware attached.
+     */
+    private IqSource createSource() {
+        if (RtlSdrNativeSource.isAvailable()) {
+            return new RtlSdrNativeSource(0, DemodChain.BLOCK_PAIRS * DemodChain.CHANNELS);
+        }
+        return RtlTcpSource.localhost();
+    }
+
     private void start() {
-        IqSource source = RtlTcpSource.localhost();
+        IqSource source = createSource();
         if (!source.tunableRange().contains(frequencyHz)) {
-            setStatusText(describeOutOfRange());
+            setStatusText(describeOutOfRange(source));
             return;
         }
         JavaSoundSink audio = new JavaSoundSink(DemodChain.AUDIO_RATE, DemodChain.CHANNELS);
@@ -330,7 +344,7 @@ public final class RadioPane extends VBox {
         engine = e;
         sink = audio;
         powerButton.setText("Stop");
-        setStatusText("Listening.");
+        setStatusText(source instanceof RtlSdrNativeSource ? "Listening — dongle." : "Listening — rtl_tcp.");
     }
 
     private void seek(Scanner.Direction direction) {
@@ -489,8 +503,18 @@ public final class RadioPane extends VBox {
                         : "-fx-font-size: 11px; -fx-font-weight: bold; -fx-opacity: 0.25;");
     }
 
-    private String describeOutOfRange() {
-        IqSource.Range range = RtlTcpSource.localhost().tunableRange();
+    /** Says up front where the signal will come from, so a missing dongle is not a surprise on Listen. */
+    private String describeAvailableSource() {
+        if (RtlSdrNativeSource.isAvailable()) {
+            String name = RtlSdrNativeSource.describeDevice();
+            return name.isBlank() ? "Dongle found. Press Listen." : "Found %s. Press Listen.".formatted(name);
+        }
+        return "%s — start `rtl_tcp -a 127.0.0.1`, then press Listen."
+                .formatted(RtlSdrNativeSource.unavailableReason());
+    }
+
+    private String describeOutOfRange(IqSource source) {
+        IqSource.Range range = source.tunableRange();
         return "%.1f MHz is outside this dongle's tuner range (%.1f–%.0f MHz)."
                 .formatted(frequencyHz / MHZ, range.minHz() / MHZ, range.maxHz() / MHZ);
     }

@@ -5,7 +5,7 @@ module `com.modula`).
 
 ## Commands
 
-- Run the app: `./mvnw javafx:run` (needs `rtl_tcp -a 127.0.0.1` running)
+- Run the app: `./mvnw javafx:run` (uses the dongle directly; falls back to `rtl_tcp -a 127.0.0.1`)
 - Run tests: `./mvnw test`
 - Format: `./mvnw spotless:apply` — **run before committing**; `./mvnw verify` fails on unformatted code
 - Record a capture for testing: `rtl_sdr -f <a real local station> -s 1200000 -n 36000000 station.iq`
@@ -191,17 +191,41 @@ frequency — the classic centre spike.
 3. **Seek and presets** — done. Noise-squelch seek in both directions with band wrap, a preset bank
    in `~/.modula/presets.txt`, and session state (frequency, region, volume, stereo) remembered
    across runs. Arrow keys step a channel; shift+arrow seeks.
-4. **Direct hardware** — `RtlSdrNativeSource` via Panama/`jextract` over `librtlsdr`. Needs
-   `--enable-native-access=com.modula` (already in the pom) and per-platform native libs in the app
-   image; Windows additionally needs a one-time Zadig WinUSB driver install, so a first-run
-   "no device / wrong driver" check should say so in plain language. Plus a small spectrum strip —
-   a Canvas showing ±600 kHz, *not* a waterfall.
+4. **Direct hardware** — done. `RtlSdrNativeSource` drives `librtlsdr` through Panama, so `rtl_tcp`
+   is optional rather than required; `RadioPane.createSource` prefers the dongle and falls back.
+   Still to do: a small spectrum strip — a Canvas showing ±600 kHz, *not* a waterfall.
 5. **RDS** — done. Station name, radio text and programme type, decoded from the 57 kHz subcarrier.
 
 Deferred: RDS clock-time and alternative-frequency groups, the full RDS character repertoire (the
 default table is treated as ASCII, which covers all but a handful of broadcasts), recording to WAV,
 HD Radio (NRSC-5 — a different and much larger project), multiple simultaneous stations, a squelch
 control (`noiseDbfs` already provides the measurement).
+
+## Native bindings
+
+**Hand-written FFM, not `jextract`.** Eleven functions of a stable C API, against a generator that
+would need a build-time tool, the development headers (which the runtime package does not ship) and
+several thousand lines of bindings for a library we use a sliver of.
+
+**Loading must never be fatal.** `RtlSdr` resolves everything in a static initialiser, so a throw
+there would take the application down at class-load time on any machine without librtlsdr. A missing
+library, an unknown platform or a missing symbol all leave `isAvailable()` false and the caller falls
+back to `rtl_tcp` — which is not a consolation prize, since it is also how the dongle lives on
+another machine and how development works with nothing attached.
+
+**Look for versioned library names.** The bare `librtlsdr.so` symlink only exists with the
+*development* package installed; a runtime-only machine has just `librtlsdr.so.0`, so searching for
+the unversioned name alone finds nothing on a perfectly working system.
+
+**librtlsdr is not thread-safe and `RtlSdrNativeSource` does not make it so.** It does not need to:
+`RadioEngine` already confines reads, retunes and gain changes to its receive thread by construction,
+and calls `close` only after joining it. Buffers come from an `Arena.ofAuto()` so there is no
+close-while-reading hazard — a shared arena closed from the FX thread while the receive thread is
+inside `rtlsdr_read_sync` is exactly the crash this avoids.
+
+Reads are synchronous. The asynchronous API wants a callback on its own thread, while the engine's
+loop is already a thread that wants to block on a read; at 13.6 ms a block, `rtlsdr_read_sync`
+returns long before any timeout.
 
 ## RDS notes
 
