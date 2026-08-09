@@ -33,10 +33,10 @@
         <prism.pipeline>es2,sw</prism.pipeline>
 
         <!-- Stamped into build-info.properties, so AppInfo has one source rather than a constant to
-             forget. Both are empty until the project has a public home: an unconfigured update
-             endpoint makes the check inert rather than broken. -->
-        <modula.homepage></modula.homepage>
-        <modula.releases.api></modula.releases.api>
+             forget. Blanking either makes that half inert rather than broken — an unconfigured update
+             endpoint disables its own setting and says why. -->
+        <modula.homepage>https://github.com/adriandeleon/Modula</modula.homepage>
+        <modula.releases.api>https://api.github.com/repos/adriandeleon/Modula/releases/latest</modula.releases.api>
     </properties>
 
     <dependencies>
