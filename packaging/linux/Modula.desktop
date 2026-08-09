@@ -1,0 +1,15 @@
+[Desktop Entry]
+Name=APPLICATION_NAME
+Comment=APPLICATION_DESCRIPTION
+Exec=APPLICATION_LAUNCHER
+Icon=APPLICATION_ICON
+Terminal=false
+Type=Application
+# Literal rather than jpackage's DEPLOY_BUNDLE_CATEGORY token, because the flag that fills that in
+# (--linux-menu-group) is Linux-only and would fail the macOS and Windows builds outright.
+Categories=AudioVideo;Audio;HamRadio;
+# The running window's real class, read off a live window with xprop rather than assumed:
+# JavaFX derives it from the module main class, not from the application name. Without it a
+# desktop cannot match the open window to this launcher, so the dock shows a generic icon
+# beside a correctly-iconned menu entry.
+StartupWMClass=com.modula.ModulaApp

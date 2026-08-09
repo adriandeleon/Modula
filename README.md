@@ -10,6 +10,20 @@ filter-bandwidth slider, no gain or AGC controls, no FFT settings.
 hardware access. Measured channel separation is 33 dB flat from 100 Hz to 10 kHz; RDS is verified
 against an off-air recording.
 
+## Installing it
+
+```bash
+./mvnw -Pdist package            # a native installer for this platform
+./mvnw -Pdist package -DskipTests -Djpackage.type=app-image   # an unpackaged bundle, much faster
+```
+
+Output lands in `target/dist`: a `.deb` on Linux, a `.dmg` on macOS, an `.msi` on Windows. The
+runtime is jlinked, so the installed app needs no JDK — about 74 MB installed.
+
+The build needs JDK 25 to *run* Maven; it does **not** need the JDK's `jmods`, because JDK 25 can
+link a runtime from its own run-time image. A "No JDK Modules found" warning from jpackage is that
+path being taken and is not a failure.
+
 ## Running it
 
 ```bash

@@ -37,6 +37,16 @@
              endpoint disables its own setting and says why. -->
         <modula.homepage>https://github.com/adriandeleon/Modula</modula.homepage>
         <modula.releases.api>https://api.github.com/repos/adriandeleon/Modula/releases/latest</modula.releases.api>
+
+        <exec.plugin.version>3.5.0</exec.plugin.version>
+        <dependency.plugin.version>3.8.1</dependency.plugin.version>
+        <antrun.plugin.version>3.1.0</antrun.plugin.version>
+        <buildhelper.plugin.version>3.6.0</buildhelper.plugin.version>
+
+        <jpackage.vendor>Adrian De Leon</jpackage.vendor>
+        <!-- Overridable: -Djpackage.type=APP_IMAGE gives an unpackaged bundle, which is much faster
+             to iterate on than building a real installer. -->
+        <jpackage.type>${jpackage.defaultType}</jpackage.type>
     </properties>
 
     <dependencies>
@@ -180,6 +190,12 @@
             </activation>
             <properties>
                 <prism.pipeline>mtl,es2,sw</prism.pipeline>
+                <!-- Bundle metadata only: jpackage refuses a version whose first number is zero on
+                     macOS alone, so 0.1.0 ships as 1.1.0 in CFBundleVersion. -->
+                <jpackage.zeroMajorReplacement>1.</jpackage.zeroMajorReplacement>
+                <jpackage.defaultType>dmg</jpackage.defaultType>
+                <jpackage.icon>${project.basedir}/branding/modula.icns</jpackage.icon>
+                <jpackage.resourceDir>${project.basedir}/packaging/mac</jpackage.resourceDir>
             </properties>
         </profile>
         <profile>
@@ -189,6 +205,10 @@
             </activation>
             <properties>
                 <prism.pipeline>d3d,es2,sw</prism.pipeline>
+                <jpackage.zeroMajorReplacement>0.</jpackage.zeroMajorReplacement>
+                <jpackage.defaultType>msi</jpackage.defaultType>
+                <jpackage.icon>${project.basedir}/branding/modula.ico</jpackage.icon>
+                <jpackage.resourceDir>${project.basedir}/packaging/windows</jpackage.resourceDir>
             </properties>
         </profile>
         <profile>
@@ -198,7 +218,161 @@
             </activation>
             <properties>
                 <prism.pipeline>es2,sw</prism.pipeline>
+                <jpackage.zeroMajorReplacement>0.</jpackage.zeroMajorReplacement>
+                <jpackage.defaultType>deb</jpackage.defaultType>
+                <jpackage.icon>${project.basedir}/branding/modula-icon-512.png</jpackage.icon>
+                <jpackage.resourceDir>${project.basedir}/packaging/linux</jpackage.resourceDir>
             </properties>
         </profile>
+
+        <profile>
+            <id>dist</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>${buildhelper.plugin.version}</version>
+                        <executions>
+                            <!--
+                                jpackage rejects a non-numeric app version, so 0.1.0-SNAPSHOT fails
+                                outright, and macOS additionally rejects a leading zero. The delivered
+                                metadata therefore needs two numbers: the true one, and one jpackage
+                                will accept.
+                            -->
+                            <execution>
+                                <id>public-version</id>
+                                <phase>initialize</phase>
+                                <goals><goal>regex-property</goal></goals>
+                                <configuration>
+                                    <name>jpackage.publicVersion</name>
+                                    <value>${project.version}</value>
+                                    <regex>-SNAPSHOT$</regex>
+                                    <replacement/>
+                                    <failIfNoMatch>false</failIfNoMatch>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>app-version</id>
+                                <phase>initialize</phase>
+                                <goals><goal>regex-property</goal></goals>
+                                <configuration>
+                                    <name>jpackage.appVersion</name>
+                                    <value>${jpackage.publicVersion}</value>
+                                    <regex>^0\.</regex>
+                                    <replacement>${jpackage.zeroMajorReplacement}</replacement>
+                                    <failIfNoMatch>false</failIfNoMatch>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>${dependency.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>collect-modules</id>
+                                <phase>prepare-package</phase>
+                                <goals><goal>copy-dependencies</goal></goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/modules</outputDirectory>
+                                    <includeScope>runtime</includeScope>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>${antrun.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>drop-empty-javafx-jars</id>
+                                <phase>prepare-package</phase>
+                                <goals><goal>run</goal></goals>
+                                <configuration>
+                                    <target>
+                                        <!--
+                                            openjfx publishes each module twice: a classifier-less jar
+                                            that is genuinely EMPTY (measured: 2 entries, 70 bytes) and
+                                            the real one carrying module-info and the natives under a
+                                            platform classifier. Both are in the dependency tree, so
+                                            both get copied, and two jars claiming module javafx.graphics
+                                            on one module path is an error at best — at worst the empty
+                                            one wins and the image is missing its graphics stack.
+                                        -->
+                                        <delete verbose="true">
+                                            <fileset dir="${project.build.directory}/modules"
+                                                     includes="javafx-*-${javafx.version}.jar"/>
+                                        </delete>
+                                        <!-- jpackage refuses to overwrite its destination, so a
+                                             rebuild without a clean would fail on the second run. -->
+                                        <delete dir="${project.build.directory}/dist" quiet="true"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${exec.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>jpackage</id>
+                                <phase>package</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <executable>${java.home}/bin/jpackage</executable>
+                                    <arguments>
+                                        <argument>--type</argument>
+                                        <argument>${jpackage.type}</argument>
+                                        <argument>--name</argument>
+                                        <argument>Modula</argument>
+                                        <argument>--app-version</argument>
+                                        <argument>${jpackage.appVersion}</argument>
+                                        <argument>--vendor</argument>
+                                        <argument>${jpackage.vendor}</argument>
+                                        <argument>--copyright</argument>
+                                        <argument>Copyright (c) 2026 ${jpackage.vendor}</argument>
+                                        <argument>--description</argument>
+                                        <argument>A broadcast radio receiver for RTL-SDR dongles</argument>
+                                        <argument>--icon</argument>
+                                        <argument>${jpackage.icon}</argument>
+                                        <argument>--module-path</argument>
+                                        <argument>${project.build.directory}/modules${path.separator}${project.build.directory}/${project.build.finalName}.jar</argument>
+                                        <argument>--module</argument>
+                                        <argument>com.modula/com.modula.ModulaApp</argument>
+                                        <argument>--resource-dir</argument>
+                                        <argument>${jpackage.resourceDir}</argument>
+                                        <argument>--dest</argument>
+                                        <argument>${project.build.directory}/dist</argument>
+                                        <argument>--java-options</argument>
+                                        <argument>-Dprism.order=${prism.pipeline}</argument>
+                                        <!--
+                                            Modula reaches librtlsdr through the FFM API and JavaFX
+                                            loads its own natives, both of which the JDK now warns
+                                            about and intends to BLOCK by default. Declaring the two
+                                            modules that legitimately do it silences the warnings and
+                                            keeps the packaged app working when that day comes.
+                                        -->
+                                        <argument>--java-options</argument>
+                                        <argument>--enable-native-access=com.modula,javafx.graphics</argument>
+                                        <argument>--jlink-options</argument>
+                                        <argument>--strip-debug --no-man-pages --no-header-files --compress=zip-6</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
+
+
 </project>
