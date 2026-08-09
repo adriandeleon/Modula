@@ -38,6 +38,7 @@ Press **Listen**, then:
 | **Space** | listen / stop |
 | **+** | save the tuned station, then name it inline |
 | right-click a chip | rename or remove it (**Delete** also removes) |
+| **ctrl+shift+P** | the command palette — everything, searchable, with its shortcut beside it |
 
 The band across the middle of the glass is a ±600 kHz spectrum: the amber line is where you are
 tuned and the humps either side are the neighbours. During a seek the frequency dims and the strip
@@ -87,7 +88,20 @@ around **24 MHz**, so that band is unreachable — this is hardware, not softwar
 `IqSource.tunableRange()` exists for exactly this: the UI asks the source whether a band is reachable
 rather than tuning into silence.
 
-## Recording a capture
+## Recording what you are listening to
+
+Press **Record** (or run it from the palette). Audio goes to `~/Music/Modula` as a 16-bit WAV named
+after the station — RDS supplies the name when it is there, the frequency when it is not. Change the
+folder in Settings.
+
+The recording is a tee of what is playing, not a second signal path, so what is in the file is what
+you heard. The volume slider is **not** applied to it: that slider is a monitoring control, and
+baking it in would make a recording made at a low listening level unrecoverable.
+
+If the disk fills, the recording stops and the radio keeps playing. A receiver that goes silent
+because a file could not be written is the wrong failure.
+
+## Recording a raw capture
 
 A recorded IQ file makes every later DSP change verifiable without hardware attached:
 
@@ -105,13 +119,15 @@ Check the spectrum before trusting a capture — an empty channel looks exactly 
 | Package | |
 |---|---|
 | `dsp` | FIR design, decimating FIR, de-emphasis, delay line, PLL, power measurement. Pure. |
-| `demod` | FM discriminator, pilot tracking, stereo decoder. Pure. |
+| `demod` | FM discriminator, pilot tracking, stereo decoder, AM envelope detector. Pure. |
 | `rds` | The 57 kHz data channel: bits, block sync, CRC, group decoding. Pure. |
 | `band` | Band plans and channel grids. Pure. |
 | `source` | `IqSource` and its implementations — the entire hardware boundary. |
-| `audio` | Ring buffer and the `javax.sound.sampled` sink. |
+| `audio` | Ring buffer, the `javax.sound.sampled` sink, and WAV recording. |
 | `radio` | `DemodChain`, `RadioEngine` and seek — the only package that owns threads. |
 | `config` | Presets and session state. Only `ConfigStore` touches the disk. |
+| `update` | The release check. `UpdateCheck` is pure; only `UpdateService` opens a socket. |
+| `tray` | The system tray: StatusNotifierItem over D-Bus, or AWT. No JavaFX. |
 | `ui` | The only package that touches JavaFX. Implements the Night Dial kit. |
 
 Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md).
@@ -124,6 +140,8 @@ Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md
 4. **RDS** (station name, radio text, programme type) — done
 5. **Direct hardware** via Panama/`librtlsdr` — done
 6. **Spectrum strip and the Night Dial interface** — done
+7. **AM** (medium wave and aviation) — done
+8. **Recording, system tray, command palette, settings, about, update checks** — done
 
 ## Licence
 

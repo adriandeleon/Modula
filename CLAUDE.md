@@ -35,6 +35,11 @@ Layering, strictly enforced by what each package imports:
 - `source`, `audio` — the only packages that touch sockets, files or the sound card.
 - `radio` — the only package that owns threads. Deliberately free of JavaFX.
 - `config` — session and preset persistence; only `ConfigStore` touches the disk.
+- `rds` — pure. The 57 kHz subcarrier, from bi-phase symbols to a `StationInfo`.
+- `update` — the release check. `UpdateCheck` is pure (parse, compare, is-it-due); `UpdateService`
+  is the only part that opens a socket.
+- `tray` — the system tray, both backends. Free of JavaFX: it is handed callbacks, and the app
+  marshals them onto the FX thread.
 - `ui` — the only package that touches JavaFX.
 
 ### The interface
@@ -52,6 +57,20 @@ of three weights.
 **Every look lives in `modula.css`**, in two token blocks — night by default, daylight behind the
 `daylight` class on the root. There are no `setStyle` calls; a state is a style class, which is what
 makes `ReceiverState` expressible as a class swap rather than seven branches of string concatenation.
+
+**The command palette is an in-scene overlay, not a popup window.** A separate stage does not
+reliably take OS keyboard focus on Windows, which leaves focus orphaned between two scenes and the
+keyboard dead app-wide — the exact failure Editora hit and solved the same way. `CommandPalette` is
+a node over a dimmed backdrop inside the window that already has focus, and it owns every key while
+open so the arrows move its selection rather than reaching the tuner underneath. It is also the
+keyboard's discoverability surface: each row shows its shortcut, so the palette teaches the
+accelerators instead of replacing them.
+
+**Settings apply live.** Every control writes its field and calls back immediately; there is no
+OK/Cancel, because a preferences window that can be half-applied is a second state to reason about
+for no benefit. What belongs there is what a listener sets once and forgets — where recordings go,
+whether the tray is used, whether to look for updates. Not gain, bandwidth, squelch or FFT size:
+those are the panel this product is defined against.
 
 **The transport glyphs are drawn, not typed.** ◀◀ ▶ ★ are absent from most UI and mono faces, IBM
 Plex Mono included, so typed they render from whatever fallback each platform picks. `Glyphs` draws
@@ -222,10 +241,76 @@ frequency — the classic centre spike.
    of the same feedback: during a seek the dial dims and the strip is where the sweep is visible.
 5. **RDS** — done. Station name, radio text and programme type, decoded from the 57 kHz subcarrier.
 
+7. **AM** — done. Envelope detection with a DC-blocking high-pass, medium wave and aviation, chosen
+   by a band selector. `Modulation` gates what the chain builds: no pilot, no stereo, no RDS.
+8. **Recording, tray, palette, settings, about, update checks** — done. See below.
+
 Deferred: RDS clock-time and alternative-frequency groups, the full RDS character repertoire (the
-default table is treated as ASCII, which covers all but a handful of broadcasts), recording to WAV,
-HD Radio (NRSC-5 — a different and much larger project), multiple simultaneous stations, a squelch
-control (`noiseDbfs` already provides the measurement).
+default table is treated as ASCII, which covers all but a handful of broadcasts), HD Radio (NRSC-5 —
+a different and much larger project), multiple simultaneous stations, a squelch control (`noiseDbfs`
+already provides the measurement), scheduled recording, and MP3/FLAC output (WAV needs no encoder,
+and an encoder is a dependency plus a jlink entry).
+
+## Recording
+
+`RecordingSink` **decorates the sink the receiver already writes to** rather than re-deriving audio
+from the demodulator. What lands in the file is therefore exactly what was played, by construction,
+and there is no second signal path to keep in step.
+
+**The volume slider is deliberately not applied to the file.** It is a monitoring control; baking it
+in makes a recording made at a low listening level unrecoverable, while leaving it out costs nothing
+— the file is at unity and the listener adjusts on playback.
+
+**A recording failure never interrupts listening.** A full disk stops the recording, records the
+reason, and leaves the audio playing; the alternative — a receiver that goes silent because a file
+could not be written — is the wrong failure for a radio.
+
+`WavWriter` streams, because a recording runs until the listener stops it and `AudioSystem.write`
+wants the whole thing up front. A WAV header carries two byte counts that are unknown until the end,
+so it writes placeholders and patches them on close — and **the placeholders are the largest size a
+reader accepts, not zero**, so a file whose process was killed still plays to its end rather than
+decoding as silence.
+
+The file is named after the station when RDS has supplied one, else the frequency. That name comes
+from a stranger's transmitter, so `sanitise` strips anything that could steer a path: the label is
+joined onto a directory, and a station calling itself `../../x` must not get to choose where the
+recording lands.
+
+## The system tray
+
+Taken from Nux whole, **both backends**, because Modula runs on three platforms and each backend
+covers a different set: `SniTray` speaks StatusNotifierItem over D-Bus where a watcher exists (most
+current Linux desktops), `AwtTray` uses `java.awt.SystemTray` elsewhere (Windows, macOS, older X11).
+`Trays.create` picks; a machine with neither returns empty and the app simply has no tray.
+
+**The icon is drawn, not shipped as a bitmap.** `TrayIconRenderer` paints it at the size asked for,
+so it is sharp on a HiDPI panel, and it carries state in colour — amber listening, grey stopped,
+coral faulted — because a tray icon that never changes tells the listener nothing.
+
+**Closing the window only hides it when a tray actually appeared.** Hiding a window that leaves no
+icon behind is how an application becomes unreachable, so the behaviour is conditional on the real
+thing having registered rather than on the preference alone.
+
+Both backends leave non-daemon threads behind — the AWT event thread, D-Bus workers — so `stop()`
+ends with an explicit halt. An FX shutdown alone does not end the process.
+
+## Update checks
+
+Off the receive path, at most once a day, and **it sends nothing**: a plain HTTPS GET of a public
+releases endpoint, no identifiers, no telemetry, and the About window says so — a radio that phones
+home unannounced deserves the suspicion it would get.
+
+Every failure is silent. There is no state in which a listener wants a dialog because a version
+check could not reach the network. The attempt is stamped *before* it is made, so an endpoint that
+is down is retried tomorrow rather than on every launch.
+
+`isNewer` sorts a **pre-release below its release**, per semver: someone on `0.4.0-SNAPSHOT` is
+running something that precedes `0.4.0` and should be told it exists. Dropping the suffix instead —
+the obvious reading, since the numbers are equal — reads as correct and silences the check on
+exactly the builds most likely to be stale. A test pins it.
+
+**The feature is inert, not broken, until a release endpoint exists.** `AppInfo.RELEASES_API` is
+filtered in from the pom and is empty today, so the Settings checkbox disables itself and says why.
 
 ## Native bindings
 
