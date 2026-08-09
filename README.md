@@ -81,6 +81,16 @@ Presets live in `~/.modula/presets.txt`, one per line, and are meant to be hand-
 Both paths sit behind the same `IqSource` interface, so nothing downstream knows which is in use —
 as does `FileReplaySource`, which replays a recorded capture for testing.
 
+## CI
+
+`build.yml` tests and packages on Linux, macOS and Windows for every push and pull request. The FX
+tests use JavaFX 26's built-in headless platform, so there is no Xvfb and no display; the hardware
+test skips itself when no dongle is attached, which on a runner is always.
+
+`release.yml` runs on a `v*` tag: it builds an installer per target, refuses to proceed if the tag
+disagrees with the pom version, and opens a **draft** release with checksums for a human to publish.
+A manual dispatch builds everything and publishes nothing, which is the dry run.
+
 ## Tests
 
 ```bash
