@@ -88,6 +88,7 @@ public final class RadioPane extends StackPane {
     private List<Preset> presets;
 
     private java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
+    private javafx.application.HostServices links;
     private ContextMenu contextMenu;
     private com.modula.update.ReleaseInfo update;
     private com.modula.band.Region region;
@@ -333,7 +334,12 @@ public final class RadioPane extends StackPane {
     }
 
     private void showAbout() {
-        AboutWindow.show(getScene() == null ? null : getScene().getWindow(), config, update);
+        AboutWindow.show(getScene() == null ? null : getScene().getWindow(), config, update, links);
+    }
+
+    /** Set by the app so About can open the home page. Null in a test harness, which About tolerates. */
+    public void setHostServices(javafx.application.HostServices services) {
+        this.links = services;
     }
 
     /** Set by the app once an update check has finished; null until then and when up to date. */

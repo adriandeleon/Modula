@@ -1,6 +1,7 @@
 package com.modula;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -25,6 +26,47 @@ public final class AppInfo {
     public static final String RELEASES_API = load("releases.api", "");
 
     public static final String HOMEPAGE = load("homepage", "");
+
+    public static final String AUTHOR = "Adrian De Leon";
+
+    public static final String LICENSE = "MIT";
+
+    public static final String COPYRIGHT = "Copyright \u00a9 2026 " + AUTHOR;
+
+    /**
+     * What Modula is built on, for the About panel.
+     *
+     * <p>Versions are filtered in from {@code pom.xml} rather than written here, so the panel cannot
+     * claim a version that is not the one shipped. {@code artifactIds} is what
+     * {@code DependenciesTest} checks the pom against: an entry added to the build and forgotten here
+     * fails, so the list stays a statement of fact rather than of intent.
+     *
+     * @param version empty when the thing is not a Maven artifact
+     * @param note why it is here, when that is not obvious
+     */
+    public record Dependency(String name, String version, String license, String note, List<String> artifactIds) {}
+
+    private static final List<Dependency> DEPENDENCIES = List.of(
+            new Dependency(
+                    "JavaFX",
+                    load("javafx.version", ""),
+                    "GPLv2 + Classpath Exception",
+                    "",
+                    List.of("javafx-controls", "javafx-base", "javafx-graphics")),
+            new Dependency("AtlantaFX", load("atlantafx.version", ""), "MIT", "", List.of("atlantafx-base")),
+            new Dependency(
+                    "dbus-java",
+                    load("dbus.version", ""),
+                    "MIT",
+                    "Linux tray",
+                    List.of("dbus-java-core", "dbus-java-transport-native-unixsocket")),
+            new Dependency("SLF4J", load("slf4j.version", ""), "MIT", "", List.of("slf4j-jdk14")),
+            new Dependency("IBM Plex Mono", "", "SIL OFL 1.1", "bundled typeface", List.of()),
+            new Dependency("librtlsdr", "", "GPLv2", "the system's own, not bundled", List.of()));
+
+    public static List<Dependency> dependencies() {
+        return DEPENDENCIES;
+    }
 
     private AppInfo() {}
 

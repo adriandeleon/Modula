@@ -456,6 +456,23 @@
     -fx-font-size: 12px;
 }
 
+.about-heading {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 10px;
+    -fx-padding: 0 0 3 0;
+}
+
+.about-link {
+    -fx-text-fill: -lock;
+    -fx-font-size: 12px;
+    -fx-padding: 0;
+    -fx-border-color: transparent;
+}
+
+.about-link:hover {
+    -fx-underline: true;
+}
+
 .about-fine {
     -fx-text-fill: -ink-faint;
     -fx-font-size: 11px;

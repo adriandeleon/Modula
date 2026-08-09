@@ -287,6 +287,27 @@ a different and much larger project), multiple simultaneous stations, a squelch 
 already provides the measurement), scheduled recording, and MP3/FLAC output (WAV needs no encoder,
 and an encoder is a dependency plus a jlink entry).
 
+## About, and keeping it true
+
+The panel names the author, the licence, the home page and everything Modula is built on. Two rules
+keep that from decaying into a claim:
+
+- **Versions are filtered in from `pom.xml`** through `build-info.properties`, never written as
+  constants, so the panel cannot advertise a version that is not the one shipped.
+- **`DependenciesTest` reads `pom.xml` and fails both ways** — a shipped artifact missing from
+  `AppInfo.dependencies()`, and an entry left behind after a dependency was dropped. Test-scope
+  libraries must *not* appear, because they are not distributed. Each entry declares the artifactIds
+  it covers, which is what makes the check possible when one line ("dbus-java") stands for two
+  artifacts. The guard was verified by deleting an entry and watching it fail, because a drift check
+  that cannot fail is decoration.
+
+`librtlsdr` is listed as GPLv2 and explicitly **not bundled** — it is the system's own, reached
+through FFM at runtime. That line is the reason an MIT licence on this project is defensible, so it
+belongs where a user looks rather than only in NOTICE.
+
+The home page is a real hyperlink when `HostServices` is available and **plain text when it is not**:
+a link that looks like a link and does nothing is worse than text you can read and type.
+
 ## Recording
 
 `RecordingSink` **decorates the sink the receiver already writes to** rather than re-deriving audio

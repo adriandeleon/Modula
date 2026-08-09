@@ -220,7 +220,9 @@ Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). The About window lists the author, the licence, the home page and every
+dependency with its own licence; `DependenciesTest` checks that list against `pom.xml` in both
+directions, so it cannot quietly go stale.
 
 IBM Plex Mono is bundled under the SIL Open Font License 1.1 (© 2017 IBM Corp.); its licence travels
 with it in `src/main/resources/com/modula/fonts/OFL.txt`. Third-party attributions are in

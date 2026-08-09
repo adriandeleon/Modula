@@ -1,9 +1,11 @@
 package com.modula.ui;
 
+import javafx.application.HostServices;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -32,6 +34,11 @@ public final class AboutWindow {
 
     /** Shows the dialog, reusing the window if it is already open. */
     public static void show(Window owner, ConfigStore config, ReleaseInfo update) {
+        show(owner, config, update, null);
+    }
+
+    /** @param links opens the home page in a browser; null degrades the link to plain text */
+    public static void show(Window owner, ConfigStore config, ReleaseInfo update, HostServices links) {
         if (stage != null && stage.isShowing()) {
             stage.toFront();
             return;
@@ -64,6 +71,13 @@ public final class AboutWindow {
             header.setAlignment(Pos.CENTER_LEFT);
             body.getChildren().addAll(header, gap(12));
         }
+        // Identity first — who made it, under what terms, and where it lives — then whatever this
+        // particular machine happens to have.
+        body.getChildren().add(row("Author", AppInfo.AUTHOR));
+        body.getChildren().add(row("Licence", AppInfo.LICENSE));
+        body.getChildren().add(homeRow(links));
+        body.getChildren().add(gap(8));
+
         body.getChildren().add(row("Hardware", describeHardware()));
         String hint = hardwareHint();
         if (!hint.isBlank()) {
@@ -85,6 +99,11 @@ public final class AboutWindow {
             available.getStyleClass().add("about-update");
             body.getChildren().addAll(gap(8), available);
         }
+
+        body.getChildren().addAll(gap(10), dependencies());
+        Label copyright = new Label(AppInfo.COPYRIGHT + "  \u00b7  " + AppInfo.LICENSE + " licence");
+        copyright.getStyleClass().add("about-fine");
+        body.getChildren().addAll(gap(10), copyright);
 
         Button close = new Button("Close");
         close.setOnAction(e -> stage.close());
@@ -118,6 +137,48 @@ public final class AboutWindow {
         return RtlSdrNativeSource.isAvailable()
                 ? ""
                 : RtlSdrNativeSource.diagnose().hint();
+    }
+
+    /**
+     * The home page, clickable when there is something to click with.
+     *
+     * <p>Falls back to a plain label rather than a dead hyperlink: a link that looks like a link and
+     * does nothing is worse than text you can read and type.
+     */
+    private static HBox homeRow(HostServices links) {
+        if (links == null || AppInfo.HOMEPAGE.isBlank()) {
+            return row("Home", AppInfo.HOMEPAGE.isBlank() ? "not set for this build" : AppInfo.HOMEPAGE);
+        }
+        Label key = new Label("Home");
+        key.getStyleClass().add("about-key");
+        key.setMinWidth(74);
+        Hyperlink link = new Hyperlink(AppInfo.HOMEPAGE);
+        link.getStyleClass().add("about-link");
+        link.setOnAction(e -> links.showDocument(AppInfo.HOMEPAGE));
+        HBox box = new HBox(8, key, link);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
+    }
+
+    /** What Modula is built on. The list is checked against the pom by DependenciesTest. */
+    private static VBox dependencies() {
+        VBox box = new VBox(2);
+        Label heading = new Label("BUILT WITH");
+        heading.getStyleClass().add("about-heading");
+        box.getChildren().add(heading);
+        for (AppInfo.Dependency d : AppInfo.dependencies()) {
+            String name = d.version().isBlank() ? d.name() : d.name() + " " + d.version();
+            String right = d.note().isBlank() ? d.license() : d.license() + "  \u00b7  " + d.note();
+            Label left = new Label(name);
+            left.getStyleClass().add("about-line");
+            left.setMinWidth(150);
+            Label detail = new Label(right);
+            detail.getStyleClass().add("about-fine");
+            HBox line = new HBox(8, left, detail);
+            line.setAlignment(Pos.CENTER_LEFT);
+            box.getChildren().add(line);
+        }
+        return box;
     }
 
     private static HBox row(String key, String value) {

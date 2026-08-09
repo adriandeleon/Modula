@@ -42,6 +42,7 @@ public final class ModulaApp extends Application {
         ConfigStore config = ConfigStore.userDefault();
         Settings settings = config.loadSettings();
         pane = new RadioPane(config);
+        pane.setHostServices(getHostServices());
         Scene scene = new Scene(pane, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.getStylesheets().add(ModulaApp.class.getResource("modula.css").toExternalForm());
 
