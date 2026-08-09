@@ -39,7 +39,7 @@ jobs:
 
       - name: Publish test report
         if: always() # a failing build is exactly when the report matters
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: surefire-${{ matrix.os }}
           path: target/surefire-reports/
@@ -70,7 +70,7 @@ jobs:
         run: ./mvnw --batch-mode --no-transfer-progress -Pdist package -DskipTests
 
       - name: Upload it
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: modula-${{ matrix.os }}
           path: |

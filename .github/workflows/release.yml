@@ -71,7 +71,7 @@ jobs:
           [ "$found" = 1 ] || { echo "::error::no installer was produced"; exit 1; }
           ls -la staged
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer-${{ matrix.target }}
           path: staged/*
