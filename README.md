@@ -114,6 +114,16 @@ Replay it through `FileReplaySource`, which satisfies the same `IqSource` interf
 
 Check the spectrum before trusting a capture — an empty channel looks exactly like a broken decoder.
 
+## The icon
+
+`scripts/make-icon.py` generates `branding/modula-icon.svg` and every PNG size from one set of
+constants (needs Pillow). The mark is the tray glyph's, so the dock entry and the panel entry are the
+same thing; both drop the dim outer ring at small sizes rather than drawing it thinner.
+
+```bash
+python3 scripts/make-icon.py
+```
+
 ## Layout
 
 | Package | |

@@ -27,6 +27,35 @@ public final class TrayIconRenderer {
     private static final Color STOPPED = new Color(0x9AA0AC);
     private static final Color FAULT = new Color(0xFF6B5A);
 
+    /**
+     * The mark's shape, shared with the application icon.
+     *
+     * <p>These are the numbers in {@code scripts/make-icon.py}. The tray draws them at full canvas
+     * because it has no tile to sit inside; the dock icon insets them. If they drift, the panel entry
+     * and the dock entry stop being the same mark, which is the thing a window manager uses to tell a
+     * user that the running window and the launcher are one application.
+     */
+    private static final double SPAN = 44;
+
+    private static final double STROKE = 0.078;
+    private static final double DOT = 0.155;
+
+    /**
+     * Insets the mark so the outermost ring plus half its stroke fits the canvas.
+     *
+     * <p>At 1.0 the outer arcs run past the edge and are clipped flat, which reads as a drawing
+     * error at 16 pixels rather than as a signal falling off. The tiled application icon insets
+     * further still, because it also has a tile to sit inside.
+     */
+    private static final double FIT = 0.5 / (0.17 + 0.155 * 2 + 0.078 / 2);
+
+    /**
+     * Below this the second ring stops reading as a weaker signal and becomes mud, so the mark keeps
+     * one. The application icon simplifies at the same threshold — a mark that survives being small
+     * does it by dropping detail, not by drawing the same detail thinner.
+     */
+    private static final int TWO_RING_FLOOR = 24;
+
     private TrayIconRenderer() {}
 
     public static BufferedImage render(TrayDisplay display, int size) {
@@ -37,16 +66,17 @@ public final class TrayIconRenderer {
         g.setColor(colorFor(display));
 
         double centre = size / 2.0;
-        double dot = Math.max(2.0, size * 0.15);
+        double dot = Math.max(2.0, size * DOT * FIT);
         g.fill(new Ellipse2D.Double(centre - dot / 2, centre - dot / 2, dot, dot));
 
         // Two arcs either side, so the mark reads as radiating rather than as a target.
-        g.setStroke(
-                new BasicStroke((float) Math.max(1.2, size * 0.085), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        for (int ring = 1; ring <= 2; ring++) {
-            double r = size * (0.16 + 0.15 * ring);
+        g.setStroke(new BasicStroke(
+                (float) Math.max(1.2, size * STROKE * FIT), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        int rings = size >= TWO_RING_FLOOR ? 2 : 1;
+        for (int ring = 1; ring <= rings; ring++) {
+            double r = size * (0.17 + 0.155 * ring) * FIT;
             for (int side : new int[] {0, 180}) {
-                g.draw(new Arc2D.Double(centre - r, centre - r, r * 2, r * 2, side - 42, 84, Arc2D.OPEN));
+                g.draw(new Arc2D.Double(centre - r, centre - r, r * 2, r * 2, side - SPAN, SPAN * 2, Arc2D.OPEN));
             }
         }
         g.dispose();

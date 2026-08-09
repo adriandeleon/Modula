@@ -49,6 +49,7 @@ public final class ModulaApp extends Application {
         stage.setTitle("Modula");
         stage.setMinWidth(WINDOW_WIDTH);
         stage.setMinHeight(WINDOW_HEIGHT);
+        stage.getIcons().addAll(com.modula.ui.AppIcons.all());
         stage.show();
         pane.requestFocus(); // so the arrow keys tune straight away
 

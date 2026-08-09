@@ -72,6 +72,21 @@ for no benefit. What belongs there is what a listener sets once and forgets — 
 whether the tray is used, whether to look for updates. Not gain, bandwidth, squelch or FFT size:
 those are the panel this product is defined against.
 
+**The mark is generated, not drawn by hand.** `scripts/make-icon.py` holds the geometry once and
+emits both `branding/modula-icon.svg` and the PNG set — an SVG maintained beside PNGs rendered from
+different numbers is a design source of record that lies, which is worse than not having one. It is
+the kit's idea applied to a tile: the cabin is the cool near-black ground, and the mark is the only
+lit thing on it. Amber is the spend here rather than a budget item, because there is no frequency
+readout to compete with; the outer ring is the *same* amber mixed toward the ground, not a second
+colour, so the signal reads as radiating and falling off rather than as a target.
+
+**The tray icon and the application icon are one mark, and the shape constants say so.**
+`TrayIconRenderer` carries the same `SPAN`/`STROKE`/`DOT` and ring formula the generator does; it
+draws at full canvas because it has no tile to sit inside, inset by a `FIT` factor so the outermost
+ring plus half its stroke fits (without it the arcs clip flat, which at 16 pixels reads as a drawing
+error rather than a signal). **Both simplify at small sizes rather than drawing the same detail
+thinner** — below the two-ring floor the dim outer ring becomes mud, so the mark keeps one.
+
 **The transport glyphs are drawn, not typed.** ◀◀ ▶ ★ are absent from most UI and mono faces, IBM
 Plex Mono included, so typed they render from whatever fallback each platform picks. `Glyphs` draws
 them as `SVGPath` shapes, identical everywhere, taking the button's colour from the sheet.

@@ -47,7 +47,23 @@ public final class AboutWindow {
         Label description = new Label(AppInfo.DESCRIPTION);
         description.getStyleClass().add("about-line");
 
-        body.getChildren().addAll(name, version, description, gap(12));
+        // The mark beside the name, because About is where the application introduces itself and a
+        // wall of text does not. Degrades to no image rather than a broken node if the resource is
+        // missing — see AppIcons.
+        VBox titles = new VBox(3, name, version, description);
+        titles.setAlignment(Pos.CENTER_LEFT);
+        javafx.scene.image.Image mark = AppIcons.at(64);
+        if (mark == null) {
+            body.getChildren().addAll(titles, gap(12));
+        } else {
+            javafx.scene.image.ImageView view = new javafx.scene.image.ImageView(mark);
+            view.setFitWidth(58);
+            view.setFitHeight(58);
+            view.setSmooth(true);
+            HBox header = new HBox(16, view, titles);
+            header.setAlignment(Pos.CENTER_LEFT);
+            body.getChildren().addAll(header, gap(12));
+        }
         body.getChildren().add(row("Hardware", describeHardware()));
         body.getChildren().add(row("Settings", config.directory().toString()));
         body.getChildren()
