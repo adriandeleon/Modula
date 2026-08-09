@@ -39,7 +39,7 @@
         <modula.releases.api>https://api.github.com/repos/adriandeleon/Modula/releases/latest</modula.releases.api>
 
         <exec.plugin.version>3.5.0</exec.plugin.version>
-        <dependency.plugin.version>3.8.1</dependency.plugin.version>
+        <dependency.plugin.version>3.11.0</dependency.plugin.version>
         <antrun.plugin.version>3.1.0</antrun.plugin.version>
         <buildhelper.plugin.version>3.6.0</buildhelper.plugin.version>
 
