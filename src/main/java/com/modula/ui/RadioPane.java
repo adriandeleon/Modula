@@ -11,7 +11,10 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
@@ -61,6 +64,7 @@ public final class RadioPane extends StackPane {
     private final BorderPane shell = new BorderPane();
     private final CommandPalette palette = new CommandPalette(this::commands);
     private final Button recordButton = new Button();
+    private final Button settingsButton = new Button();
     private final GlassPane glass;
     private final PresetBar presetBar;
     private final Button powerButton = new Button("Listen");
@@ -117,6 +121,7 @@ public final class RadioPane extends StackPane {
         shell.setBottom(new VBox(buildFooter(), statusLine));
         getChildren().addAll(shell, palette);
         palette.setOnHidden(this::requestFocus);
+        installContextMenu();
 
         statusLine.getStyleClass().add("status-line");
         statusLine.setMaxWidth(Double.MAX_VALUE);
@@ -226,6 +231,59 @@ public final class RadioPane extends StackPane {
                 ? "Modula \u00b7 %s MHz%s".formatted(frequency, station.isBlank() ? "" : " \u00b7 " + station)
                 : "Modula \u00b7 not listening";
         sink.accept(display, tooltip);
+    }
+
+    /**
+     * The right-click menu.
+     *
+     * <p>It exists mostly so the keyboard is discoverable: every shortcut in the product was reachable
+     * only by already knowing it, and the command palette — which lists all of them — was itself
+     * behind an unadvertised chord. A menu that names the chord solves both.
+     *
+     * <p>Rebuilt on each request rather than kept, because half the labels depend on state: Listen
+     * becomes Stop, Record becomes Stop recording.
+     */
+    private void installContextMenu() {
+        setOnContextMenuRequested(e -> {
+            if (palette.isShowing()) {
+                return;
+            }
+            ContextMenu menu = new ContextMenu();
+            boolean running = engine != null && engine.isRunning();
+
+            menu.getItems()
+                    .addAll(
+                            item(running ? "Stop" : "Listen", "Space", this::togglePower),
+                            item(isRecording() ? "Stop recording" : "Record to a file", "", this::toggleRecording),
+                            item("Save this station", "+", this::savePreset),
+                            new SeparatorMenuItem(),
+                            item("Seek up", "shift+\u2192", () -> seek(Scanner.Direction.UP)),
+                            item("Seek down", "shift+\u2190", () -> seek(Scanner.Direction.DOWN)),
+                            new SeparatorMenuItem(),
+                            item("All commands\u2026", "ctrl+shift+P", palette::show),
+                            item("Settings\u2026", "", this::showSettings),
+                            item("About Modula", "", this::showAbout));
+
+            menu.show(this, e.getScreenX(), e.getScreenY());
+            e.consume();
+        });
+    }
+
+    /** A menu row whose shortcut is part of the label, so the menu teaches the keyboard. */
+    private static MenuItem item(String text, String shortcut, Runnable action) {
+        Label label = new Label(text);
+        label.getStyleClass().add("menu-label");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Label chord = new Label(shortcut);
+        chord.getStyleClass().add("menu-chord");
+        HBox row = new HBox(18, label, spacer, chord);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setMinWidth(232);
+        MenuItem menuItem = new MenuItem();
+        menuItem.setGraphic(row);
+        menuItem.setOnAction(e -> action.run());
+        return menuItem;
     }
 
     public void showPalette() {
@@ -339,13 +397,47 @@ public final class RadioPane extends StackPane {
         return box;
     }
 
-    /** Set once per session, so it does not sit at eye level. */
+    /** The closed combo: a short code, because the glass header already spells the region out. */
+    private static javafx.scene.control.ListCell<com.modula.band.Region> regionButtonCell() {
+        return regionCell(RadioPane::shortCode);
+    }
+
+    /** The open list: the full name, where there is room and the choice is being made. */
+    private static javafx.scene.control.ListCell<com.modula.band.Region> regionListCell() {
+        return regionCell(Enum::name);
+    }
+
+    private static javafx.scene.control.ListCell<com.modula.band.Region> regionCell(
+            java.util.function.Function<com.modula.band.Region, String> text) {
+        return new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(com.modula.band.Region region, boolean empty) {
+                super.updateItem(region, empty);
+                setText(empty || region == null ? null : text.apply(region));
+            }
+        };
+    }
+
+    private static String shortCode(com.modula.band.Region region) {
+        return switch (region) {
+            case AMERICAS -> "US";
+            case EUROPE -> "EU";
+        };
+    }
+
     private HBox buildFooter() {
         regionCombo.getItems().setAll(com.modula.band.Region.values());
         regionCombo.valueProperty().addListener((o, old, value) -> setRegion(value));
+        // The glass header already spells the region out. Repeating it here cost ~60px of a 520px
+        // footer — enough to push the last control off the end of the row.
+        regionCombo.setButtonCell(regionButtonCell());
+        regionCombo.setCellFactory(view -> regionListCell());
+        Tooltip.install(regionCombo, new Tooltip("Region — sets the channel grid and de-emphasis"));
 
         volumeSlider.getStyleClass().add("volume-slider");
         volumeSlider.setPrefWidth(120);
+        volumeSlider.setMinWidth(56);
+        HBox.setHgrow(volumeSlider, Priority.ALWAYS);
         volumeSlider.valueProperty().addListener((o, old, value) -> {
             JavaSoundSink s = sink;
             if (s != null) {
@@ -364,19 +456,37 @@ public final class RadioPane extends StackPane {
 
         Label volumeLabel = new Label("VOL");
         volumeLabel.getStyleClass().add("footer-label");
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Everything except the slider is pinned to its preferred width.
+        //
+        // An HBox over its width shrinks every child proportionally, so the row degraded by
+        // ellipsizing its labels — "Stereo" became "St..." — while the slider, the one control that
+        // loses nothing by being shorter, kept its full size. Pinning inverts that: the slider
+        // absorbs the slack and the words stay words.
+        for (javafx.scene.layout.Region fixed : new javafx.scene.layout.Region[] {
+            settingsButton, volumeLabel, recordButton, bandCombo, regionCombo, stereoCheck
+        }) {
+            fixed.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        }
 
         bandCombo.getItems().setAll("FM", "AM", "AIR");
         bandCombo.setValue(band.name());
         bandCombo.valueProperty().addListener((o, old, value) -> setBand(value));
+
+        settingsButton.setGraphic(Glyphs.settings());
+        settingsButton.getStyleClass().add("record-button"); // same footer chrome
+        settingsButton.setOnAction(e -> showSettings());
+        Tooltip.install(settingsButton, new Tooltip("Settings"));
 
         recordButton.setGraphic(Glyphs.record());
         recordButton.getStyleClass().add("record-button");
         recordButton.setOnAction(e -> toggleRecording());
         Tooltip.install(recordButton, new Tooltip("Record what is playing to a file"));
 
-        HBox box = new HBox(9, volumeLabel, volumeSlider, spacer, recordButton, bandCombo, regionCombo, stereoCheck);
+        // Settings sits at the far left: an HBox that runs out of width clips its right-hand end, and
+        // this row already did at the shipped 520px window.
+        HBox box = new HBox(
+                9, settingsButton, volumeLabel, volumeSlider, recordButton, bandCombo, regionCombo, stereoCheck);
         box.getStyleClass().add("footer");
         box.setAlignment(Pos.CENTER_LEFT);
         return box;

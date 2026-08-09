@@ -460,3 +460,64 @@
 .record-button.recording {
     -fx-border-color: -fault;
 }
+
+/* --- context menu ---------------------------------------------------------------------------
+   The menu is where the keyboard becomes discoverable, so the chord column is styled to read as a
+   chord — muted, monospace, and clearly not part of the label. */
+
+.context-menu {
+    -fx-background-color: -surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -line;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 5;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 20, 0.2, 0, 6);
+}
+
+.context-menu .menu-item {
+    -fx-background-radius: 5;
+    -fx-padding: 4 8 4 8;
+}
+
+.context-menu .menu-item:focused {
+    -fx-background-color: -glass;
+}
+
+.menu-label {
+    -fx-text-fill: -ink;
+    -fx-font-size: 12px;
+}
+
+.menu-chord {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 11px;
+}
+
+.context-menu .separator .line {
+    -fx-border-color: -line transparent transparent transparent;
+}
+
+/* The chips scroll and the add button does not, so the two need separating visually. */
+.preset-scroll,
+.preset-scroll .viewport {
+    -fx-background-color: transparent;
+}
+
+.preset-scroll .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+    -fx-pref-height: 6;
+}
+
+.preset-scroll .scroll-bar:horizontal .thumb {
+    -fx-background-color: -line;
+    -fx-background-radius: 3;
+}
+
+.preset-scroll .scroll-bar .increment-button,
+.preset-scroll .scroll-bar .decrement-button,
+.preset-scroll .scroll-bar .increment-arrow,
+.preset-scroll .scroll-bar .decrement-arrow {
+    -fx-padding: 0;
+    -fx-shape: null;
+}

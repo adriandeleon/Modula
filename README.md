@@ -39,6 +39,10 @@ Press **Listen**, then:
 | **+** | save the tuned station, then name it inline |
 | right-click a chip | rename or remove it (**Delete** also removes) |
 | **ctrl+shift+P** | the command palette — everything, searchable, with its shortcut beside it |
+| **right-click** anywhere | the same actions as a menu, each showing its shortcut |
+
+The gear at the bottom-left opens Settings; the dot beside the band selector records. Right-click
+anywhere for the rest — it is also where the command palette's shortcut is written down.
 
 The band across the middle of the glass is a ±600 kHz spectrum: the amber line is where you are
 tuned and the humps either side are the neighbours. During a seek the frequency dims and the strip

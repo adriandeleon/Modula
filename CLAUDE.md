@@ -66,6 +66,21 @@ open so the arrows move its selection rather than reaching the tuner underneath.
 keyboard's discoverability surface: each row shows its shortcut, so the palette teaches the
 accelerators instead of replacing them.
 
+**The right-click menu exists for discoverability, not for parity.** Every shortcut in the product
+was reachable only by already knowing it, and the palette — which lists all of them — sat behind an
+unadvertised chord, so the keyboard had no way in. Each row therefore carries its chord in a muted
+column: the menu teaches the keyboard rather than replacing it.
+
+**A footer control that must stay reachable cannot be at the right-hand end, and cannot be
+shrinkable.** Two bugs of one kind shipped here. The preset **+** was the last child inside the
+scrolling chip row, so a full bank pushed the only control that adds a station out of sight — it
+reads as a missing feature, not as a scrolled one; it is now pinned outside the scroller. Then the
+settings button, appended to the footer, fell off the end of the 520px window entirely. An `HBox`
+over its width also shrinks *every* child proportionally, so the row degraded by ellipsizing
+`Stereo` to `St...` while the volume slider — the one control that loses nothing by being shorter —
+kept its full size. The rule: **pin every fixed control to `USE_PREF_SIZE` and give the elastic one
+`HGrow`**, so slack is absorbed where it costs nothing. Same trap as Editora's status bar.
+
 **Settings apply live.** Every control writes its field and calls back immediately; there is no
 OK/Cancel, because a preferences window that can be half-applied is a second state to reason about
 for no benefit. What belongs there is what a listener sets once and forgets — where recordings go,

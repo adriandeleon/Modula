@@ -34,6 +34,30 @@ public final class Glyphs {
         return group(triangleLeft(0), triangleLeft(SIZE * 0.62));
     }
 
+    /**
+     * Sliders, for settings.
+     *
+     * <p>Sliders rather than a gear: this is a radio, the panel it opens is a row of controls, and a
+     * gear is the icon for a machine's innards. It is also three strokes and a dot at 11 pixels,
+     * which a gear's teeth are not.
+     */
+    public static Group settings() {
+        double w = SIZE;
+        double[] rows = {1.5, 5.5, 9.5};
+        double[] knobs = {0.68, 0.34, 0.58};
+        SVGPath[] parts = new SVGPath[rows.length * 2];
+        for (int i = 0; i < rows.length; i++) {
+            double y = rows[i];
+            parts[i * 2] = path("M0,%f H%f V%f H0 Z".formatted(y - 0.6, w, y + 0.6));
+            double cx = w * knobs[i];
+            double r = 1.7;
+            // Two half-arcs: SVG has no circle command and an arc cannot span a full turn.
+            parts[i * 2 + 1] = path("M%f,%f A%f,%f 0 1 1 %f,%f A%f,%f 0 1 1 %f,%f Z"
+                    .formatted(cx - r, y, r, r, cx + r, y, r, r, cx - r, y));
+        }
+        return group(parts);
+    }
+
     /** A plus, for adding the tuned station to the preset row. */
     public static Group add() {
         SVGPath path = path("M4.5,0 H6.5 V4.5 H11 V6.5 H6.5 V11 H4.5 V6.5 H0 V4.5 H4.5 Z");

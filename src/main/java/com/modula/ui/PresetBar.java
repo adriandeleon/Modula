@@ -14,6 +14,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 
 import com.modula.config.Preset;
@@ -38,9 +39,10 @@ import com.modula.config.Preset;
  * <p>The row scrolls horizontally and never wraps, so the window height is fixed however many
  * presets exist.
  */
-public final class PresetBar extends ScrollPane {
+public final class PresetBar extends HBox {
 
     private final HBox chips = new HBox(6);
+    private final ScrollPane scroller = new ScrollPane();
     private final Button addButton = new Button();
     private final Label empty = new Label("No stations saved — tune one in and press +");
 
@@ -62,13 +64,24 @@ public final class PresetBar extends ScrollPane {
         this.onRemove = onRemove;
         this.onRename = onRename;
 
+        // The chips scroll; the add button does not.
+        //
+        // It used to be the last child inside the scrolling row, which works until the bank fills the
+        // width — then the one control that adds a station is the first thing pushed out of sight,
+        // and the feature reads as missing rather than as scrolled away.
+        scroller.getStyleClass().add("preset-scroll");
+        scroller.setFitToHeight(true);
+        scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroller.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroller.setContent(chips);
+        HBox.setHgrow(scroller, Priority.ALWAYS);
+
         getStyleClass().add("preset-bar");
-        setFitToHeight(true);
-        setHbarPolicy(ScrollBarPolicy.AS_NEEDED);
-        setVbarPolicy(ScrollBarPolicy.NEVER);
-        setContent(chips);
         setMinHeight(38);
         setPrefHeight(38);
+        setAlignment(Pos.CENTER_LEFT);
+        setSpacing(6);
+        getChildren().addAll(scroller, addButton);
 
         chips.setAlignment(Pos.CENTER_LEFT);
         empty.getStyleClass().add("preset-empty");
@@ -112,7 +125,6 @@ public final class PresetBar extends ScrollPane {
         for (Preset preset : presets) {
             chips.getChildren().add(chipFor(preset));
         }
-        chips.getChildren().add(addButton);
     }
 
     private StackPane chipFor(Preset preset) {
