@@ -30,7 +30,7 @@ jobs:
             target: windows-x64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-java@v4
         with:
@@ -83,7 +83,7 @@ jobs:
     needs: installers
     if: startsWith(github.ref, 'refs/tags/v') # a manual run is a dry run and publishes nothing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/download-artifact@v4
         with:
