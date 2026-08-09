@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.LongConsumer;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
@@ -42,7 +43,17 @@ import com.modula.config.Preset;
 public final class PresetBar extends HBox {
 
     private final HBox chips = new HBox(6);
+    /** Breathing room between the chips and the scrollbar under them. */
+    private static final double CHIP_GAP = 5;
+
+    /** These mirror .preset-chip, .preset-bar and .preset-bar .scroll-bar:horizontal in the sheet. */
+    private static final double CHIP_HEIGHT = 28;
+
+    private static final double SCROLLBAR_HEIGHT = 6;
+    private static final double BAR_PADDING = 4;
+
     private final ScrollPane scroller = new ScrollPane();
+    private final StackPane addHolder = new StackPane();
     private final Button addButton = new Button();
     private final Label empty = new Label("No stations saved — tune one in and press +");
 
@@ -77,13 +88,38 @@ public final class PresetBar extends HBox {
         HBox.setHgrow(scroller, Priority.ALWAYS);
 
         getStyleClass().add("preset-bar");
-        setMinHeight(38);
-        setPrefHeight(38);
-        setAlignment(Pos.CENTER_LEFT);
+        // Tall enough that nothing overflows: a chip, the gap above the scrollbar, the scrollbar,
+        // and the bar's own padding. When the content does not fit, an HBox spills from the top and a
+        // StackPane spills from the centre — which is where the last pixel of misalignment came from,
+        // and no amount of aligning the two containers could have fixed it.
+        double needed = CHIP_HEIGHT + CHIP_GAP + SCROLLBAR_HEIGHT + BAR_PADDING * 2;
+        setMinHeight(needed);
+        setPrefHeight(needed);
         setSpacing(6);
-        getChildren().addAll(scroller, addButton);
+        // The add button is aligned with the chips STRUCTURALLY rather than by arithmetic.
+        //
+        // The horizontal scrollbar lives inside the scroller and takes layout height from it, so
+        // anything sitting beside the scroller centres lower than the chips do — measured at 3px,
+        // small enough to read as sloppy rather than broken. Compensating with a computed offset
+        // worked until the chips gained bottom padding, which changed the bar's height and silently
+        // invalidated the sum. So instead: both children start at the same top edge, the holder is
+        // bound to the viewport's height, and it carries the chips' own padding. The two then centre
+        // identically by construction, whatever the scrollbar and the padding happen to be.
+        addHolder.getChildren().add(addButton);
+        addHolder.setPadding(new Insets(0, 0, CHIP_GAP, 0));
+        addHolder.setAlignment(Pos.CENTER);
+        addHolder.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        addHolder.setMaxHeight(javafx.scene.layout.Region.USE_PREF_SIZE);
+        addHolder
+                .prefHeightProperty()
+                .bind(javafx.beans.binding.Bindings.createDoubleBinding(
+                        () -> scroller.getViewportBounds().getHeight(), scroller.viewportBoundsProperty()));
+
+        setAlignment(Pos.TOP_LEFT);
+        getChildren().addAll(scroller, addHolder);
 
         chips.setAlignment(Pos.CENTER_LEFT);
+        chips.setPadding(new Insets(0, 0, CHIP_GAP, 0));
         empty.getStyleClass().add("preset-empty");
 
         addButton.setGraphic(Glyphs.add());

@@ -256,17 +256,26 @@
 }
 
 .preset-add {
-    -fx-background-color: transparent;
-    -fx-text-fill: -ink-faint;
+    -fx-background-color: -surface;
+    -fx-text-fill: -ink-dim;
     -fx-border-color: -line;
     -fx-border-radius: 4;
     -fx-background-radius: 4;
     -fx-padding: 5 10 5 10;
 }
 
+/* The + is an SVGPath graphic, not text: -fx-text-fill never reached it, so it rendered in the
+   default black on a near-black ground and read as missing. Glyphs are filled, never text-filled. */
+.preset-add .glyph {
+    -fx-fill: -ink-dim;
+}
+
 .preset-add:hover {
-    -fx-text-fill: -dial;
     -fx-border-color: -dial;
+}
+
+.preset-add:hover .glyph {
+    -fx-fill: -dial;
 }
 
 .preset-empty {
@@ -316,8 +325,27 @@
     -fx-padding: 2 10 2 10;
 }
 
+/* Height alone left the track whatever colour the control theme picked, which on a near-black
+   ground was indistinguishable from it: the thumb appeared to float on nothing. */
+.footer-value {
+    -fx-text-fill: -ink-dim;
+    -fx-font-size: 11px;
+}
+
 .volume-slider .track {
-    -fx-pref-height: 3;
+    -fx-pref-height: 4;
+    -fx-background-color: -line;
+    -fx-background-radius: 2;
+    -fx-background-insets: 0;
+}
+
+.volume-slider .thumb {
+    -fx-background-color: -ink-dim;
+}
+
+.volume-slider:hover .thumb,
+.volume-slider .thumb:pressed {
+    -fx-background-color: -ink;
 }
 
 /* --- command palette -----------------------------------------------------------------------

@@ -65,6 +65,7 @@ public final class RadioPane extends StackPane {
     private final CommandPalette palette = new CommandPalette(this::commands);
     private final Button recordButton = new Button();
     private final Button settingsButton = new Button();
+    private final Label volumeValue = new Label();
     private final GlassPane glass;
     private final PresetBar presetBar;
     private final Button powerButton = new Button("Listen");
@@ -87,6 +88,7 @@ public final class RadioPane extends StackPane {
     private List<Preset> presets;
 
     private java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
+    private ContextMenu contextMenu;
     private com.modula.update.ReleaseInfo update;
     private com.modula.band.Region region;
     private BandPlan band;
@@ -129,6 +131,7 @@ public final class RadioPane extends StackPane {
         volumeSlider.setValue(settings.volume());
         stereoCheck.setSelected(settings.stereo());
         regionCombo.setValue(region);
+        showVolume(volumeSlider.getValue());
         setDaylight(settings.daylight());
 
         glass.setFrequency(frequencyHz);
@@ -244,11 +247,26 @@ public final class RadioPane extends StackPane {
      * becomes Stop, Record becomes Stop recording.
      */
     private void installContextMenu() {
+        // Anything that is not the menu dismisses it: a press on the radio, and the palette opening.
+        // A fresh ContextMenu per request also has to replace the previous one rather than join it,
+        // or right-clicking twice leaves two menus on screen, only one of which is dismissible.
+        addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, e -> {
+            // Not the secondary button: the platform decides whether CONTEXT_MENU_REQUESTED arrives
+            // before or after MOUSE_PRESSED, and on one where it comes first this filter would close
+            // the menu in the same gesture that opened it.
+            if (e.getButton() != javafx.scene.input.MouseButton.SECONDARY) {
+                hideContextMenu();
+            }
+        });
         setOnContextMenuRequested(e -> {
+            hideContextMenu();
             if (palette.isShowing()) {
                 return;
             }
             ContextMenu menu = new ContextMenu();
+            contextMenu = menu;
+            menu.setAutoHide(true);
+            menu.setHideOnEscape(true);
             boolean running = engine != null && engine.isRunning();
 
             menu.getItems()
@@ -269,6 +287,14 @@ public final class RadioPane extends StackPane {
         });
     }
 
+    private void hideContextMenu() {
+        ContextMenu open = contextMenu;
+        if (open != null && open.isShowing()) {
+            open.hide();
+        }
+        contextMenu = null;
+    }
+
     /** A menu row whose shortcut is part of the label, so the menu teaches the keyboard. */
     private static MenuItem item(String text, String shortcut, Runnable action) {
         Label label = new Label(text);
@@ -287,6 +313,7 @@ public final class RadioPane extends StackPane {
     }
 
     public void showPalette() {
+        hideContextMenu();
         palette.show();
     }
 
@@ -425,6 +452,17 @@ public final class RadioPane extends StackPane {
         };
     }
 
+    /** Keeps the readout and the tooltip in step with the slider, and reports both units on a change. */
+    private void showVolume(double gain) {
+        volumeValue.setText(Readouts.volumePercent(gain));
+        String both = Readouts.volumePercent(gain) + "  \u00b7  " + Readouts.volumeDecibels(gain);
+        Tooltip.install(volumeSlider, new Tooltip("Volume — " + both));
+        Tooltip.install(volumeValue, new Tooltip("Volume — " + both));
+        if (volumeSlider.isValueChanging() || volumeSlider.isFocused()) {
+            setStatusText("Volume " + both, false);
+        }
+    }
+
     private HBox buildFooter() {
         regionCombo.getItems().setAll(com.modula.band.Region.values());
         regionCombo.valueProperty().addListener((o, old, value) -> setRegion(value));
@@ -443,7 +481,17 @@ public final class RadioPane extends StackPane {
             if (s != null) {
                 s.setVolume(value.doubleValue());
             }
+            showVolume(value.doubleValue());
         });
+
+        // The percentage is what the control is; the decibels are what it does to the signal. Only
+        // the percentage is permanent, because the footer has no room for both and because the status
+        // line already carries a dBFS figure for the received signal — two decibel readings a few
+        // pixels apart, meaning different things, is worse than showing one.
+        volumeValue.getStyleClass().add("footer-value");
+        volumeValue.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        volumeValue.setPrefWidth(34); // wide enough for "100%" so the slider does not resize as you drag
+        volumeValue.setAlignment(Pos.CENTER_RIGHT);
 
         // Forcing mono is a real radio's button: stereo raises the noise floor by roughly 20 dB, so a
         // weak station is often more listenable without it.
@@ -486,7 +534,15 @@ public final class RadioPane extends StackPane {
         // Settings sits at the far left: an HBox that runs out of width clips its right-hand end, and
         // this row already did at the shipped 520px window.
         HBox box = new HBox(
-                9, settingsButton, volumeLabel, volumeSlider, recordButton, bandCombo, regionCombo, stereoCheck);
+                9,
+                settingsButton,
+                volumeLabel,
+                volumeSlider,
+                volumeValue,
+                recordButton,
+                bandCombo,
+                regionCombo,
+                stereoCheck);
         box.getStyleClass().add("footer");
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
