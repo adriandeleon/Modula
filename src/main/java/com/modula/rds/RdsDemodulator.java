@@ -120,10 +120,22 @@ public final class RdsDemodulator {
         lowPassQuadrature.filter(mixedQuadrature, count, basebandQuadrature);
 
         chooseBranch(baseband);
+        processBaseband(useQuadrature ? basebandQuadrature : basebandInphase, baseband);
+    }
 
-        float[] data = useQuadrature ? basebandQuadrature : basebandInphase;
-        for (int n = 0; n < baseband; n++) {
-            advance(data[n]);
+    /**
+     * Recovers symbols from an already-demodulated baseband, skipping the 57 kHz mix.
+     *
+     * <p>The two halves are genuinely different jobs — carrier recovery and symbol recovery — and
+     * separating them lets a recorded baseband be replayed through the real symbol detector, which is
+     * how the off-air golden-file test works without committing megabytes of multiplex.
+     *
+     * <p>Scale-independent: the detector takes the sign of the half-symbol difference and the timing
+     * loop is bang-bang, so a normalised recording behaves exactly as the live signal does.
+     */
+    public void processBaseband(float[] samples, int count) {
+        for (int n = 0; n < count; n++) {
+            advance(samples[n]);
         }
     }
 

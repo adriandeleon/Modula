@@ -33,6 +33,7 @@ public final class RdsText {
     private final int terminator;
 
     private String completed = "";
+    private int nextExpected;
 
     public RdsText(int length, int segmentSize) {
         this(length, segmentSize, false, NO_TERMINATOR);
@@ -69,8 +70,20 @@ public final class RdsText {
             throw new IllegalArgumentException(
                     "expected %d characters, got %d".formatted(segmentSize, characters.length));
         }
-        if (cyclic && segment == 0) {
-            Arrays.fill(seen, false);
+        if (cyclic) {
+            // A cyclic field must be assembled from segments arriving consecutively from zero.
+            // Restarting only at segment zero is not enough: if segment zero is lost to a CRC error,
+            // the next frame's remaining segments land on the previous frame's first one and complete
+            // a splice — which is how "ESCUCHAS" and " D99" produced "ES99". Losing a frame outright
+            // costs nothing, since the field repeats about once a second.
+            if (segment == 0) {
+                Arrays.fill(seen, false);
+            } else if (segment != nextExpected) {
+                Arrays.fill(seen, false);
+                nextExpected = 0;
+                return;
+            }
+            nextExpected = segment + 1;
         }
         System.arraycopy(characters, 0, buffer, segment * segmentSize, segmentSize);
         seen[segment] = true;
@@ -125,5 +138,6 @@ public final class RdsText {
         Arrays.fill(buffer, ' ');
         Arrays.fill(seen, false);
         completed = "";
+        nextExpected = 0;
     }
 }

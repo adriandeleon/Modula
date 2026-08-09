@@ -8,7 +8,11 @@ module `com.modula`).
 - Run the app: `./mvnw javafx:run` (needs `rtl_tcp -a 127.0.0.1` running)
 - Run tests: `./mvnw test`
 - Format: `./mvnw spotless:apply` — **run before committing**; `./mvnw verify` fails on unformatted code
-- Record a capture for testing: `rtl_sdr -f 101500000 -s 1200000 -n 12000000 station.iq`
+- Record a capture for testing: `rtl_sdr -f <a real local station> -s 1200000 -n 36000000 station.iq`
+  (check the spectrum before trusting a capture — an empty channel looks exactly like a broken
+  decoder, and once cost a full debugging round)
+- Regenerate the RDS golden fixture:
+  `java -cp target/classes scripts/MakeRdsFixture.java station.iq 6.0 src/test/resources/com/modula/rds/rds-989-baseband.s16`
 
 ## The product decision
 
@@ -159,8 +163,14 @@ frequency — the classic centre spike.
 - **Pure first.** Anything expressible as a function over arrays belongs in `dsp`/`demod`/`band`
   with a unit test, not inline in the chain or the UI. This is what makes the receiver testable.
 - **Test with synthesis, not hardware.** `DemodChainTest` modulates a known tone and asserts on the
-  recovered frequency, amplitude and spectral purity. Once a real `.iq` capture exists,
-  `FileReplaySource` turns it into a golden-file regression.
+  recovered frequency, amplitude and spectral purity.
+- **But keep one test against real off-air data.** `RdsGoldenFileTest` decodes six seconds of a real
+  broadcast from a 281 KB fixture, and exists because synthesis provably could not catch the three
+  bugs that shipped. The fixture is the demodulated baseband rather than raw IQ purely for size, so
+  it covers symbol timing downward — every layer that has ever broken. **Regenerate it with
+  `scripts/MakeRdsFixture.java`, whose front end must stay identical to `RdsDemodulator`'s**: a
+  fixture distilled through a wider baseband filter had a perfect spectrum and decoded at 3.6% under
+  a fixed clock, yet the real demodulator could not lock to it at all.
 - **Test the decision and the wiring separately.** `ScannerTest` drives the seek state machine with
   a list of numbers; `RadioEngineSeekTest` drives the real engine against a fake dongle that carries
   a station on one frequency. "The logic is right" and "the engine actually calls it" are different
@@ -222,8 +232,17 @@ cost a field-debugging cycle each, and both are pinned by tests now:
   received — observed on a station sending 101 radio-text groups, none of which displayed.
 - *The station name is often scrolled*, cycling several eight-character frames to spell out a longer
   message. Merging segments across frames splices them: a station alternating "ESCUCHAS" and "D99"
-  displayed as "ES99  AS". `RdsText`'s `cyclic` flag restarts assembly at segment zero, and it holds
-  the last complete frame rather than blanking between them.
+  displayed as "ES99  AS". `RdsText`'s `cyclic` flag requires the segments to arrive **consecutively
+  from zero** and holds the last complete frame rather than blanking between them. Restarting at
+  segment zero alone is not enough — when segment zero is lost to a CRC error the next frame's
+  remaining segments complete a splice on the previous frame's first one.
+
+**The RDS timing detector is noise-sensitive, and that constrains the baseband filter.** It is
+bang-bang on a *single* sample at the mid-symbol crossing, so widening the 2.4 kHz baseband filter —
+which looks like an improvement, since it passes the data band flat instead of at 0.88 gain —
+admits 1.7x the noise and stops the loop locking on a real station at ~5 dB subcarrier SNR. If the
+filter is ever widened, the detector must be averaged over the symbol first, and both must be
+re-validated against the capture together.
 
 **Field debugging beats reading the code.** The path that worked, in order: measure the multiplex
 spectrum against a noise reference at a comparable frequency (FM noise rises as f², so 57 kHz is
