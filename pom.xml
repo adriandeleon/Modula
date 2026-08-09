@@ -16,11 +16,19 @@
         <javafx.version>26.0.1</javafx.version>
         <javafx.plugin.version>0.0.8</javafx.plugin.version>
         <atlantafx.version>2.1.0</atlantafx.version>
+        <dbus.version>5.1.1</dbus.version>
+        <slf4j.version>2.0.17</slf4j.version>
         <junit.version>5.11.4</junit.version>
         <spotless.version>2.44.5</spotless.version>
         <palantir.version>2.72.0</palantir.version>
         <!-- Prism pipeline order, per-OS. Overridden in the os-* profiles below. -->
         <prism.pipeline>es2,sw</prism.pipeline>
+
+        <!-- Stamped into build-info.properties, so AppInfo has one source rather than a constant to
+             forget. Both are empty until the project has a public home: an unconfigured update
+             endpoint makes the check inert rather than broken. -->
+        <modula.homepage></modula.homepage>
+        <modula.releases.api></modula.releases.api>
     </properties>
 
     <dependencies>
@@ -38,6 +46,26 @@
             <version>${atlantafx.version}</version>
         </dependency>
 
+        <!-- The Linux tray. GNOME dropped the legacy AWT tray in 3.26, so a modern desktop needs
+             the StatusNotifierItem D-Bus protocol; Windows and macOS still use the AWT backend. -->
+        <dependency>
+            <groupId>com.github.hypfvieh</groupId>
+            <artifactId>dbus-java-core</artifactId>
+            <version>${dbus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.hypfvieh</groupId>
+            <artifactId>dbus-java-transport-native-unixsocket</artifactId>
+            <version>${dbus.version}</version>
+        </dependency>
+        <!-- dbus-java logs through slf4j; route it into the JDK's logging rather than leaving the
+             no-op binding to swallow a tray failure silently. -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -47,6 +75,24 @@
     </dependencies>
 
     <build>
+        <resources>
+            <!-- Only the one file is filtered. A blanket filter would rewrite anything that happens
+                 to contain ${...} and corrupt any binary resource added later. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>com/modula/build-info.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>com/modula/build-info.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

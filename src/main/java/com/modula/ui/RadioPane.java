@@ -20,10 +20,12 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
 import com.modula.audio.JavaSoundSink;
+import com.modula.audio.RecordingSink;
 import com.modula.band.BandPlan;
 import com.modula.config.ConfigStore;
 import com.modula.config.Preset;
@@ -48,13 +50,15 @@ import com.modula.source.RtlTcpSource;
  * controls, no FFT settings, no squelch. Gain belongs to the dongle's AGC and the bandwidth is fixed
  * by {@link DemodChain}.
  */
-public final class RadioPane extends BorderPane {
+public final class RadioPane extends StackPane {
 
     private static final double MHZ = 1_000_000.0;
 
     /** Style class selecting the daylight token block; the sheet carries both grounds. */
     private static final String DAYLIGHT = "daylight";
 
+    private final BorderPane shell = new BorderPane();
+    private final CommandPalette palette = new CommandPalette(this::commands);
     private final GlassPane glass;
     private final PresetBar presetBar;
     private final Button powerButton = new Button("Listen");
@@ -76,6 +80,8 @@ public final class RadioPane extends BorderPane {
     private final ConfigStore config;
     private List<Preset> presets;
 
+    private java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
+    private com.modula.update.ReleaseInfo update;
     private com.modula.band.Region region;
     private BandPlan band;
     private long frequencyHz;
@@ -83,13 +89,15 @@ public final class RadioPane extends BorderPane {
 
     private RadioEngine engine;
     private JavaSoundSink sink;
+    private RecordingSink recorder;
+    private Settings settings;
 
     public RadioPane(ConfigStore config) {
         this.config = config;
 
-        Settings settings = config.loadSettings();
+        this.settings = config.loadSettings();
         this.region = settings.region();
-        this.band = BandPlan.fm(region);
+        this.band = bandNamed(settings.band());
         this.frequencyHz = band.snap(settings.frequencyHz());
         this.presets = new ArrayList<>(config.loadPresets());
 
@@ -103,8 +111,10 @@ public final class RadioPane extends BorderPane {
         VBox.setVgrow(glass, Priority.ALWAYS);
         VBox.setVgrow(presetBar, Priority.NEVER);
 
-        setCenter(body);
-        setBottom(new VBox(buildFooter(), statusLine));
+        shell.setCenter(body);
+        shell.setBottom(new VBox(buildFooter(), statusLine));
+        getChildren().addAll(shell, palette);
+        palette.setOnHidden(this::requestFocus);
 
         statusLine.getStyleClass().add("status-line");
         statusLine.setMaxWidth(Double.MAX_VALUE);
@@ -112,6 +122,7 @@ public final class RadioPane extends BorderPane {
         volumeSlider.setValue(settings.volume());
         stereoCheck.setSelected(settings.stereo());
         regionCombo.setValue(region);
+        setDaylight(settings.daylight());
 
         glass.setFrequency(frequencyHz);
         presetBar.setPresets(presets, frequencyHz);
@@ -128,7 +139,156 @@ public final class RadioPane extends BorderPane {
         if (e != null) {
             e.stop();
         }
-        config.saveSettings(new Settings(frequencyHz, region, volumeSlider.getValue(), stereoCheck.isSelected()));
+        stopRecording();
+        config.saveSettings(currentSettings());
+    }
+
+    /** The live settings, so every save carries the whole record rather than four of its fields. */
+    private Settings currentSettings() {
+        return new Settings(
+                frequencyHz,
+                region,
+                band.name(),
+                volumeSlider.getValue(),
+                stereoCheck.isSelected(),
+                getStyleClass().contains(DAYLIGHT),
+                settings.tray(),
+                settings.closeToTray(),
+                settings.updateCheck(),
+                settings.lastUpdateCheck(),
+                settings.recordingDirectory());
+    }
+
+    private static BandPlan bandNamed(String name) {
+        return switch (name) {
+            case "AM" -> BandPlan.mediumWave(com.modula.band.Region.AMERICAS);
+            case "AIR" -> BandPlan.airband();
+            default -> BandPlan.fm(com.modula.band.Region.AMERICAS);
+        };
+    }
+
+    // --- commands -------------------------------------------------------------------------------
+
+    /**
+     * Everything the radio can do, for the palette.
+     *
+     * <p>Rebuilt per invocation rather than cached, because half of these have a label that depends
+     * on state — Listen becomes Stop, Record becomes Stop recording — and a cached list would show
+     * the wrong verb.
+     */
+    private List<Command> commands() {
+        boolean running = engine != null && engine.isRunning();
+        List<Command> list = new ArrayList<>();
+        list.add(Command.of("listen", running ? "Stop" : "Listen", "Space", this::togglePower));
+        list.add(Command.of("seek.up", "Seek up", "shift+\u2192", () -> seek(Scanner.Direction.UP)));
+        list.add(Command.of("seek.down", "Seek down", "shift+\u2190", () -> seek(Scanner.Direction.DOWN)));
+        list.add(Command.of("tune.up", "Next channel", "\u2192", () -> tuneTo(band.next(frequencyHz))));
+        list.add(Command.of("tune.down", "Previous channel", "\u2190", () -> tuneTo(band.previous(frequencyHz))));
+        list.add(Command.of("preset.save", "Save this station", "+", this::savePreset));
+        list.add(
+                Command.of("record", isRecording() ? "Stop recording" : "Record to a file", "", this::toggleRecording));
+        for (String name : new String[] {"FM", "AM", "AIR"}) {
+            list.add(Command.of("band." + name.toLowerCase(java.util.Locale.ROOT), "Band: " + name, "", () -> {
+                bandCombo.setValue(name);
+            }));
+        }
+        list.add(Command.of(
+                "theme",
+                "Toggle daylight",
+                "",
+                () -> setDaylight(!getStyleClass().contains(DAYLIGHT))));
+        list.add(Command.of("settings", "Settings\u2026", "", this::showSettings));
+        list.add(Command.of("about", "About Modula", "", this::showAbout));
+        return list;
+    }
+
+    /** Receives what the tray should show. Set once the tray exists; null until then. */
+    public void setTraySink(java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> sink) {
+        this.traySink = sink;
+        publishTray();
+    }
+
+    private void publishTray() {
+        var sink = traySink;
+        if (sink == null) {
+            return;
+        }
+        boolean running = engine != null && engine.isRunning();
+        String frequency = Readouts.megahertz(frequencyHz);
+        com.modula.tray.TrayDisplay display = faulted
+                ? com.modula.tray.TrayDisplay.fault(frequency)
+                : (running ? com.modula.tray.TrayDisplay.listening(frequency) : com.modula.tray.TrayDisplay.stopped());
+        RadioEngine.Status status = latestStatus.get();
+        String station = status == null ? "" : status.station().programService();
+        String tooltip = running
+                ? "Modula \u00b7 %s MHz%s".formatted(frequency, station.isBlank() ? "" : " \u00b7 " + station)
+                : "Modula \u00b7 not listening";
+        sink.accept(display, tooltip);
+    }
+
+    public void showPalette() {
+        palette.show();
+    }
+
+    private void showSettings() {
+        SettingsWindow.show(getScene() == null ? null : getScene().getWindow(), currentSettings(), applied -> {
+            settings = applied;
+            setDaylight(applied.daylight());
+            config.saveSettings(applied);
+        });
+    }
+
+    private void showAbout() {
+        AboutWindow.show(getScene() == null ? null : getScene().getWindow(), config, update);
+    }
+
+    /** Set by the app once an update check has finished; null until then and when up to date. */
+    public void setAvailableUpdate(com.modula.update.ReleaseInfo release) {
+        this.update = release;
+        if (release != null) {
+            setStatusText("Modula %s is available.".formatted(release.version()), false);
+        }
+    }
+
+    // --- recording ------------------------------------------------------------------------------
+
+    public boolean isRecording() {
+        RecordingSink r = recorder;
+        return r != null && r.isRecording();
+    }
+
+    /** Starts or stops recording what is playing. Needs the receiver running, since it tees the audio. */
+    public void toggleRecording() {
+        RecordingSink r = recorder;
+        if (r == null) {
+            setStatusText("Press Listen before recording.", false);
+            return;
+        }
+        if (r.isRecording()) {
+            java.nio.file.Path file = r.stop();
+            setStatusText("Recorded " + file.getFileName(), false);
+            return;
+        }
+        try {
+            java.nio.file.Path file = r.start(settings.resolveRecordingDirectory(), recordingLabel());
+            setStatusText("Recording to " + file.getFileName(), false);
+        } catch (java.io.IOException e) {
+            setStatusText("Could not record: " + describe(e), true);
+        }
+    }
+
+    private void stopRecording() {
+        RecordingSink r = recorder;
+        if (r != null) {
+            r.stop();
+        }
+    }
+
+    /** Names the file after the station when RDS has told us one, else after the frequency. */
+    private String recordingLabel() {
+        RadioEngine.Status status = latestStatus.get();
+        String name = status == null ? "" : status.station().programService();
+        return name.isBlank() ? Readouts.megahertz(frequencyHz) + "MHz" : name;
     }
 
     // --- layout --------------------------------------------------------------------------------
@@ -256,7 +416,12 @@ public final class RadioPane extends BorderPane {
 
     private void installKeyboard() {
         addEventHandler(KeyEvent.KEY_PRESSED, e -> {
-            if (e.getTarget() instanceof TextField) {
+            if (e.getCode() == KeyCode.P && e.isControlDown() && e.isShiftDown()) {
+                palette.show();
+                e.consume();
+                return;
+            }
+            if (palette.isShowing() || e.getTarget() instanceof TextField) {
                 return; // the inline tune entry or a preset rename owns the keys
             }
             switch (e.getCode()) {
@@ -350,7 +515,7 @@ public final class RadioPane extends BorderPane {
 
     // --- actions -------------------------------------------------------------------------------
 
-    private void togglePower() {
+    public void togglePower() {
         if (engine != null && engine.isRunning()) {
             dispose();
             powerButton.setText("Listen");
@@ -358,6 +523,7 @@ public final class RadioPane extends BorderPane {
             faulted = false;
             glass.apply(ReceiverState.NOT_LISTENING, null, frequencyHz);
             setStatusText("Stopped.", false);
+            publishTray();
             return;
         }
         start();
@@ -390,7 +556,8 @@ public final class RadioPane extends BorderPane {
         }
         JavaSoundSink audio = new JavaSoundSink(DemodChain.AUDIO_RATE, DemodChain.CHANNELS);
         audio.setVolume(volumeSlider.getValue());
-        RadioEngine e = new RadioEngine(source, audio, region, band);
+        RecordingSink recording = new RecordingSink(audio, DemodChain.AUDIO_RATE, DemodChain.CHANNELS);
+        RadioEngine e = new RadioEngine(source, recording, region, band);
         e.setStereoEnabled(stereoCheck.isSelected());
         e.setListener(this::onStatus);
         e.setErrorListener(error -> Platform.runLater(() -> {
@@ -409,6 +576,7 @@ public final class RadioPane extends BorderPane {
         }
         engine = e;
         sink = audio;
+        recorder = recording;
         faulted = false;
         powerButton.setText("Stop");
         if (!powerButton.getStyleClass().contains("running")) {
@@ -550,6 +718,7 @@ public final class RadioPane extends BorderPane {
 
         ReceiverState state = ReceiverState.of(status, faulted);
         glass.apply(state, status, frequencyHz);
+        publishTray();
 
         if (!status.seeking()) {
             setSeekLabels(false);

@@ -319,3 +319,116 @@
 .volume-slider .track {
     -fx-pref-height: 3;
 }
+
+/* --- command palette -----------------------------------------------------------------------
+   An overlay, so the backdrop dims the radio rather than replacing it: the listener can still see
+   what is playing while they pick what to do to it. */
+
+.palette-backdrop {
+    -fx-background-color: rgba(4, 5, 7, 0.62);
+}
+
+.palette-card {
+    -fx-background-color: -surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -line;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-padding: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 24, 0.2, 0, 8);
+}
+
+.palette-input {
+    -fx-background-color: -glass;
+    -fx-background-radius: 7;
+    -fx-border-color: transparent;
+    -fx-text-fill: -ink;
+    -fx-prompt-text-fill: -ink-faint;
+    -fx-font-size: 14px;
+    -fx-padding: 8 10 8 10;
+}
+
+/* Not amber. Amber is the frequency, the tune controls, the centre marker and a traffic flag —
+   spending it on a text field's focus ring would make a fifth thing compete with the reading. */
+.palette-input:focused {
+    -fx-border-color: -line;
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+}
+
+.palette-results,
+.palette-results .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 3 6 3 6;
+}
+
+/* The scrollbar sat over the shortcut column and ate the glyph it was there to teach. */
+.palette-results .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8;
+}
+
+.palette-results .scroll-bar:vertical .thumb {
+    -fx-background-color: -line;
+    -fx-background-radius: 4;
+}
+
+.palette-results .scroll-bar .increment-button,
+.palette-results .scroll-bar .decrement-button,
+.palette-results .scroll-bar .increment-arrow,
+.palette-results .scroll-bar .decrement-arrow {
+    -fx-padding: 0;
+    -fx-shape: null;
+}
+
+.palette-results .list-cell:filled:selected {
+    -fx-background-color: -glass;
+    -fx-background-radius: 6;
+}
+
+.palette-title {
+    -fx-text-fill: -ink;
+    -fx-font-size: 13px;
+}
+
+.palette-detail {
+    -fx-text-fill: -ink-faint;
+    -fx-font-family: "IBM Plex Mono", monospace;
+    -fx-font-size: 11px;
+}
+
+/* --- settings and about ------------------------------------------------------------------- */
+
+.settings-heading {
+    -fx-text-fill: -ink-dim;
+    -fx-font-size: 10px;
+    -fx-letter-spacing: 1.4;
+    -fx-padding: 0 0 6 0;
+}
+
+.settings-note {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 11px;
+    -fx-padding: 4 0 0 0;
+}
+
+.about-name {
+    -fx-text-fill: -ink;
+    -fx-font-size: 21px;
+}
+
+.about-version {
+    -fx-text-fill: -dial;
+    -fx-font-family: "IBM Plex Mono", monospace;
+    -fx-font-size: 12px;
+}
+
+.about-line {
+    -fx-text-fill: -ink-dim;
+    -fx-font-size: 12px;
+}
+
+.about-fine {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 11px;
+}
