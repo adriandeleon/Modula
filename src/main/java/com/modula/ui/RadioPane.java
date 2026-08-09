@@ -135,10 +135,12 @@ public final class RadioPane extends StackPane {
         statusLine.getStyleClass().add("status-line");
         statusLine.setMaxWidth(Double.MAX_VALUE);
 
-        volumeSlider.setValue(settings.volume());
+        // The setting stores gain, so a configuration written before the taper existed loads to the
+        // same loudness rather than jumping.
+        volumeSlider.setValue(com.modula.audio.VolumeTaper.position(settings.volume()));
         stereoCheck.setSelected(settings.stereo());
         regionCombo.setValue(region);
-        showVolume(volumeSlider.getValue());
+        showVolume(volumeSlider.getValue(), com.modula.audio.VolumeTaper.gain(volumeSlider.getValue()));
         setDaylight(settings.daylight());
 
         glass.setFrequency(frequencyHz);
@@ -169,7 +171,7 @@ public final class RadioPane extends StackPane {
                 frequencyHz,
                 region,
                 band.name(),
-                volumeSlider.getValue(),
+                com.modula.audio.VolumeTaper.gain(volumeSlider.getValue()),
                 stereoCheck.isSelected(),
                 getStyleClass().contains(DAYLIGHT),
                 settings.tray(),
@@ -465,11 +467,15 @@ public final class RadioPane extends StackPane {
     }
 
     private void showSettings() {
-        SettingsWindow.show(getScene() == null ? null : getScene().getWindow(), currentSettings(), applied -> {
-            settings = applied;
-            setDaylight(applied.daylight());
-            config.saveSettings(applied);
-        });
+        SettingsWindow.show(
+                getScene() == null ? null : getScene().getWindow(),
+                currentSettings(),
+                applied -> {
+                    settings = applied;
+                    setDaylight(applied.daylight());
+                    config.saveSettings(applied);
+                },
+                trayAvailable);
     }
 
     private void showAbout() {
@@ -616,10 +622,16 @@ public final class RadioPane extends StackPane {
         };
     }
 
-    /** Keeps the readout and the tooltip in step with the slider, and reports both units on a change. */
-    private void showVolume(double gain) {
-        volumeValue.setText(Readouts.volumePercent(gain));
-        String both = Readouts.volumePercent(gain) + "  \u00b7  " + Readouts.volumeDecibels(gain);
+    /**
+     * Keeps the readout in step with the slider.
+     *
+     * <p>The percentage is how far along the travel the control is; the decibels are what that does
+     * to the signal. Since the taper, those are different numbers — halfway is 50% and about −12 dB —
+     * and showing the gain as a percentage would make the slider look like it was lying about itself.
+     */
+    private void showVolume(double position, double gain) {
+        volumeValue.setText(Readouts.volumePercent(position));
+        String both = Readouts.volumePercent(position) + "  \u00b7  " + Readouts.volumeDecibels(gain);
         Tooltip.install(volumeSlider, new Tooltip("Volume — " + both));
         Tooltip.install(volumeValue, new Tooltip("Volume — " + both));
         if (volumeSlider.isValueChanging() || volumeSlider.isFocused()) {
@@ -641,11 +653,12 @@ public final class RadioPane extends StackPane {
         volumeSlider.setMinWidth(56);
         HBox.setHgrow(volumeSlider, Priority.ALWAYS);
         volumeSlider.valueProperty().addListener((o, old, value) -> {
+            double gain = com.modula.audio.VolumeTaper.gain(value.doubleValue());
             JavaSoundSink s = sink;
             if (s != null) {
-                s.setVolume(value.doubleValue());
+                s.setVolume(gain);
             }
-            showVolume(value.doubleValue());
+            showVolume(value.doubleValue(), gain);
         });
 
         // The percentage is what the control is; the decibels are what it does to the signal. Only
@@ -876,6 +889,32 @@ public final class RadioPane extends StackPane {
      * prize: it is how the dongle lives on another machine and how development works with nothing
      * attached.
      */
+    /** What to try when the dongle itself would not open, or null when it was rtl_tcp already. */
+    private IqSource fallbackFor(IqSource failed) {
+        return failed instanceof RtlSdrNativeSource ? RtlTcpSource.localhost() : null;
+    }
+
+    /** Rebuilds the engine on another source, keeping the audio path. Null when that fails too. */
+    private RadioEngine restartOn(IqSource source, JavaSoundSink audio, RecordingSink recording, RadioEngine failed) {
+        failed.stop();
+        RadioEngine retry = new RadioEngine(source, recording, region, band);
+        retry.setStereoEnabled(stereoCheck.isSelected());
+        retry.setListener(this::onStatus);
+        retry.setErrorListener(error -> Platform.runLater(() -> {
+            faulted = true;
+            powerButton.setText("Listen");
+            powerButton.getStyleClass().remove("running");
+            glass.apply(ReceiverState.FAULT, latestStatus.get(), frequencyHz);
+            setStatusText("Stopped: " + describe(error), true);
+        }));
+        try {
+            retry.start(frequencyHz);
+            return retry;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
     private IqSource createSource() {
         if (RtlSdrNativeSource.isAvailable()) {
             return new RtlSdrNativeSource(0, DemodChain.BLOCK_PAIRS * DemodChain.CHANNELS);
@@ -897,7 +936,7 @@ public final class RadioPane extends StackPane {
             return;
         }
         JavaSoundSink audio = new JavaSoundSink(DemodChain.AUDIO_RATE, DemodChain.CHANNELS);
-        audio.setVolume(volumeSlider.getValue());
+        audio.setVolume(com.modula.audio.VolumeTaper.gain(volumeSlider.getValue()));
         RecordingSink recording = new RecordingSink(audio, DemodChain.AUDIO_RATE, DemodChain.CHANNELS);
         RadioEngine e = new RadioEngine(source, recording, region, band);
         e.setStereoEnabled(stereoCheck.isSelected());
@@ -912,9 +951,22 @@ public final class RadioPane extends StackPane {
         try {
             e.start(frequencyHz);
         } catch (Exception ex) {
-            faulted = true;
-            setStatusText("Could not start: " + describe(ex), true);
-            return;
+            // A dongle that will not open is usually one another program is already holding — very
+            // often rtl_tcp itself. Falling back to it turns the most common failure into a working
+            // radio instead of an error, and any other cause still reports itself below.
+            IqSource fallback = fallbackFor(source);
+            if (fallback == null) {
+                faulted = true;
+                setStatusText("Could not start: " + describe(ex), true);
+                return;
+            }
+            e = restartOn(fallback, audio, recording, e);
+            if (e == null) {
+                faulted = true;
+                setStatusText("Could not start: " + describe(ex), true);
+                return;
+            }
+            setStatusText("%s Using rtl_tcp instead.".formatted(describe(ex)), false);
         }
         engine = e;
         sink = audio;

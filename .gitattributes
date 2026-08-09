@@ -1,0 +1,23 @@
+# Normalise line endings in the repository, so the Windows CI leg cannot commit a whole file back
+# with CRLF and present it as a rewrite.
+* text=auto
+
+*.java   text diff=java
+*.md     text
+*.xml    text
+*.yml    text
+*.css    text
+*.json   text
+*.txt    text
+mvnw     text eol=lf
+*.sh     text eol=lf
+mvnw.cmd text eol=crlf
+
+# Binary: never touched, never diffed as text. The .s16 is a real off-air RDS capture and the fonts
+# are the shipped typeface — a line-ending "fix" applied to either would corrupt it silently.
+*.s16    binary
+*.ttf    binary
+*.png    binary
+*.icns   binary
+*.ico    binary
+*.iq     binary

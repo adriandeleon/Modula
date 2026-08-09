@@ -1,0 +1,24 @@
+version: 2
+
+updates:
+  # The dependencies themselves. CI builds and tests on all three platforms for every pull request,
+  # so a bump that breaks something says so before it is merged rather than after.
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # JavaFX modules move in lockstep; separate PRs for each would never build.
+      javafx:
+        patterns:
+          - "org.openjfx:*"
+      test:
+        patterns:
+          - "org.junit*"
+
+  # The workflows pin action versions, which rot the same way and are as easy to forget.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

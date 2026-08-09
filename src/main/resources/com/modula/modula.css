@@ -440,6 +440,19 @@
     -fx-padding: 0 0 6 0;
 }
 
+/* Detection results: ffmpeg found or not, a tray present or not.
+   These class names were used from Java but never defined here, so both rendered at whatever the
+   parent inherited — measured at #03080A on a #0B0C0E ground, which is to say invisible. */
+.settings-git-found {
+    -fx-text-fill: -lock;
+    -fx-font-size: 11px;
+}
+
+.settings-git-missing {
+    -fx-text-fill: -fault;
+    -fx-font-size: 11px;
+}
+
 .settings-note {
     -fx-text-fill: -ink-faint;
     -fx-font-size: 11px;

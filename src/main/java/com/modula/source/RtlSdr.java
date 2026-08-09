@@ -55,6 +55,14 @@ public final class RtlSdr {
     /** Whether a library was located at all, which separates "not installed" from "wrong version". */
     private static boolean libraryFound;
 
+    /**
+     * Whether the last attempt to open a device failed.
+     *
+     * <p>Without this the diagnosis cannot tell "a dongle is here and ready" from "a dongle is here
+     * and something else is holding it" — both report a device count of one.
+     */
+    private static volatile boolean openFailed;
+
     private static final Bindings BINDINGS = load();
 
     private RtlSdr() {}
@@ -84,8 +92,11 @@ public final class RtlSdr {
                     libraryFound ? NativeDiagnosis.Status.LIBRARY_INCOMPLETE : NativeDiagnosis.Status.LIBRARY_MISSING,
                     os);
         }
+        if (deviceCount() == 0) {
+            return NativeDiagnosis.of(NativeDiagnosis.Status.NO_DEVICE, os);
+        }
         return NativeDiagnosis.of(
-                deviceCount() > 0 ? NativeDiagnosis.Status.AVAILABLE : NativeDiagnosis.Status.NO_DEVICE, os);
+                openFailed ? NativeDiagnosis.Status.DEVICE_UNAVAILABLE : NativeDiagnosis.Status.AVAILABLE, os);
     }
 
     public static int deviceCount() {
@@ -126,8 +137,10 @@ public final class RtlSdr {
         MemorySegment slot = ARENA.allocate(ValueLayout.ADDRESS);
         int result = call(BINDINGS.open, slot, index);
         if (result != 0) {
+            openFailed = true;
             throw new java.io.IOException(describeOpenFailure(result));
         }
+        openFailed = false;
         MemorySegment device = slot.get(ValueLayout.ADDRESS, 0);
         if (device.equals(MemorySegment.NULL)) {
             throw new java.io.IOException("rtlsdr_open returned no device");

@@ -333,6 +333,18 @@ from a stranger's transmitter, so `sanitise` strips anything that could steer a 
 joined onto a directory, and a station calling itself `../../x` must not get to choose where the
 recording lands.
 
+## The volume control
+
+**Squared, not linear.** A slider wired straight to amplitude puts half travel at −6 dB — barely
+quieter — and crams everything useful into the bottom tenth; loudness is perceived roughly
+logarithmically, so the control has to be too. `audio/VolumeTaper` is pure and exactly invertible,
+which is what lets `Settings.volume` keep meaning **gain**: a configuration written before the taper
+loads at the same loudness rather than jumping.
+
+The readout shows the **position** as a percentage and the **gain** in decibels, because since the
+taper those are different numbers — showing the gain as a percentage would make the slider look like
+it was lying about itself.
+
 ## Recording formats and schedules
 
 **ffmpeg only, and WAV is the floor.** 48 kHz stereo 16-bit is 691 MB an hour, which is the whole

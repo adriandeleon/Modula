@@ -47,6 +47,18 @@ delta; the first tag will close this section.
 - **Native installers** — `.deb`, `.dmg`, `.msi` — with a jlinked runtime, about 74 MB installed.
 - **CI** on Linux, macOS and Windows: tests and installers on every push, releases from a `v*` tag.
 
+### Fixed late
+
+- The volume slider was linear in amplitude, so half travel was only −6 dB and everything useful was
+  crammed into the bottom tenth. It is squared now: half travel is about −12 dB, close to the −10 dB
+  usually described as half as loud. The stored setting still means gain, so an existing
+  configuration loads at the same loudness.
+- A dongle that will not open — almost always one another program is holding — now falls back to
+  `rtl_tcp` rather than failing, which in the commonest case means falling back to the very program
+  holding it.
+- `settings-git-found` and `settings-git-missing` were used from Java but never defined in the
+  stylesheet, so the ffmpeg and tray detection results rendered at #03080A on a #0B0C0E ground.
+
 ### Known issues
 
 - The macOS bundle reports version `1.x.y` for a `0.x.y` build. jpackage refuses a leading zero on

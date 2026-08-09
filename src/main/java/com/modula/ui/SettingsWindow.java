@@ -41,6 +41,15 @@ public final class SettingsWindow {
 
     /** Shows the window, reusing it if already open. {@code onApply} receives each change. */
     public static void show(Window owner, Settings current, Consumer<Settings> onApply) {
+        show(owner, current, onApply, true);
+    }
+
+    /**
+     * @param trayAvailable whether a tray icon actually appeared; when it did not, the tray options
+     *     are shown disabled with the reason, because ticking a box that cannot do anything and then
+     *     watching the window close the application is the confusing case this page exists to avoid
+     */
+    public static void show(Window owner, Settings current, Consumer<Settings> onApply, boolean trayAvailable) {
         if (stage != null && stage.isShowing()) {
             stage.toFront();
             return;
@@ -127,6 +136,10 @@ public final class SettingsWindow {
         encoder.setPromptText("ffmpeg (leave blank to find it on PATH)");
         HBox.setHgrow(encoder, Priority.ALWAYS);
         Label encoderStatus = new Label();
+        encoderStatus.setWrapText(true);
+        encoderStatus.setPrefWidth(360);
+        encoderStatus.setMaxWidth(360);
+        encoderStatus.setMinHeight(Region.USE_PREF_SIZE);
         Runnable refreshEncoder = () -> {
             boolean found = com.modula.audio.Encoders.isAvailable(encoder.getText());
             encoderStatus.setText(found ? "ffmpeg found" : "ffmpeg not found — only WAV can be written");
@@ -152,7 +165,13 @@ public final class SettingsWindow {
         tray.setSelected(current.tray());
         CheckBox closeToTray = new CheckBox("Closing the window keeps playing in the tray");
         closeToTray.setSelected(current.closeToTray());
-        closeToTray.disableProperty().bind(tray.selectedProperty().not());
+        // Bound, or set — never both. setDisable on a bound property throws, and doing that here
+        // would have crashed Settings for exactly the people with no tray.
+        if (trayAvailable) {
+            closeToTray.disableProperty().bind(tray.selectedProperty().not());
+        } else {
+            closeToTray.setDisable(true);
+        }
         tray.selectedProperty()
                 .addListener((o, was, now) -> holder.update(s -> new Settings(
                         s.frequencyHz(),
@@ -180,7 +199,14 @@ public final class SettingsWindow {
                         s.updateCheck(),
                         s.lastUpdateCheck(),
                         s.recordingDirectory())));
-        Label trayNote = note("A tray change takes effect next launch.");
+        Label trayNote = note(
+                trayAvailable
+                        ? "A tray change takes effect next launch."
+                        : "No system tray on this desktop, so closing the window will quit Modula. "
+                                + "GNOME needs the AppIndicator extension; KDE has one built in.");
+        if (!trayAvailable) {
+            trayNote.getStyleClass().setAll("settings-git-missing");
+        }
         body.getChildren().addAll(tray, closeToTray, trayNote, gap());
 
         body.getChildren().add(heading("Updates"));
@@ -223,6 +249,7 @@ public final class SettingsWindow {
         Windows.styleLike(owner, scene);
         stage.setScene(scene);
         stage.show();
+        stage.sizeToScene();
     }
 
     /** Threads the current settings through each control so they compose rather than clobber. */
@@ -247,11 +274,23 @@ public final class SettingsWindow {
         return label;
     }
 
+    /**
+     * A wrapped explanatory line.
+     *
+     * <p>The minimum height must follow the preferred one. A VBox hands a wrapping label the height
+     * it reports for a single line, so a note that wraps to three lines draws over whatever sits
+     * beneath it — which is what the no-tray warning did to the checkbox above it.
+     */
     private static Label note(String text) {
         Label label = new Label(text);
         label.getStyleClass().add("settings-note");
         label.setWrapText(true);
+        // A DEFINITE width, not just a maximum. A wrapping label cannot report the height it needs
+        // until it knows how wide it is, so with only a maxWidth it reports one line's worth, the
+        // scene sizes itself to that, and the wrapped text draws over whatever follows.
+        label.setPrefWidth(360);
         label.setMaxWidth(360);
+        label.setMinHeight(Region.USE_PREF_SIZE);
         return label;
     }
 
