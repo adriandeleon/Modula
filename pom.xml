@@ -26,7 +26,7 @@
         <atlantafx.version>2.1.0</atlantafx.version>
         <dbus.version>5.2.0</dbus.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <junit.version>5.11.4</junit.version>
+        <junit.version>6.1.2</junit.version>
         <spotless.version>2.44.5</spotless.version>
         <palantir.version>2.72.0</palantir.version>
         <!-- Prism pipeline order, per-OS. Overridden in the os-* profiles below. -->
