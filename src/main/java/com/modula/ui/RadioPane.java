@@ -88,6 +88,7 @@ public final class RadioPane extends StackPane {
     private List<Preset> presets;
 
     private java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
+    private boolean trayAvailable;
     private javafx.application.HostServices links;
     private java.util.List<com.modula.schedule.Recording> schedules = java.util.List.of();
     private String activeScheduleId;
@@ -292,9 +293,34 @@ public final class RadioPane extends StackPane {
                 false);
     }
 
+    /**
+     * Reports that no tray icon could be created.
+     *
+     * <p>Said out loud because the consequence is invisible otherwise: with no icon there is nowhere
+     * to hide to, so closing the window has to quit however the setting is set, and a listener whose
+     * "keep playing in the tray" box is ticked would reasonably call that a bug.
+     */
+    public void reportNoTray() {
+        trayAvailable = false;
+        if (settings.tray()) {
+            setStatusText("No system tray on this desktop — closing the window will quit Modula.", false);
+        }
+    }
+
+    /** Whether a tray icon actually appeared. False until one does. */
+    public boolean isTrayAvailable() {
+        return trayAvailable;
+    }
+
+    /** Whether closing the window should hide it rather than quit. Read live, not captured. */
+    public boolean closeToTray() {
+        return settings.closeToTray();
+    }
+
     /** Receives what the tray should show. Set once the tray exists; null until then. */
     public void setTraySink(java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> sink) {
         this.traySink = sink;
+        this.trayAvailable = true;
         publishTray();
     }
 

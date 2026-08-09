@@ -379,6 +379,17 @@ on `SniMenu.Impl` and bumps the revision, which is what makes the panel re-read 
 so it is sharp on a HiDPI panel, and it carries state in colour — amber listening, grey stopped,
 coral faulted — because a tray icon that never changes tells the listener nothing.
 
+**`Platform.setImplicitExit(false)` is what makes closing to the tray possible at all.** Without it,
+hiding the last window ends the JavaFX runtime, which calls `stop()`, which ends the process — so the
+close handler could consume the event and hide the window perfectly, and the application would quit
+anyway. It is set only once a tray really exists, because a hidden window with no icon is an
+unreachable process.
+
+**When no tray appears, say so.** A desktop with no StatusNotifierWatcher (GNOME without the
+AppIndicator extension) and no AWT tray has nowhere to put an icon, so closing has to quit however
+the setting is set — and a listener whose "keep playing in the tray" box is ticked will reasonably
+call that a bug. `RadioPane.reportNoTray` puts it in the status line.
+
 **Closing the window only hides it when a tray actually appeared.** Hiding a window that leaves no
 icon behind is how an application becomes unreachable, so the behaviour is conditional on the real
 thing having registered rather than on the preference alone.

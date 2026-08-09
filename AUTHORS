@@ -1,0 +1,20 @@
+# Authors
+
+Modula is written and maintained by:
+
+  Adrian De Leon  <https://github.com/adriandeleon>
+
+Contributions are welcome. Add yourself here in the same form when you send one.
+
+
+# Third-party work
+
+Modula bundles or depends on work by others; NOTICE names each with its licence.
+Two deserve mention here because they shape what Modula is:
+
+  librtlsdr and the Osmocom project — the RTL-SDR driver Modula talks to. It is
+  the system's own library, reached at runtime, and is not bundled.
+
+  IBM  — IBM Plex Mono, the typeface, under the SIL Open Font License. Every
+  number in the interface is set in it, and its tabular digits are the reason
+  the readouts do not shift as they change.

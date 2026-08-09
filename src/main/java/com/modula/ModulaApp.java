@@ -55,7 +55,7 @@ public final class ModulaApp extends Application {
         pane.requestFocus(); // so the arrow keys tune straight away
 
         installTray(stage, settings);
-        installCloseBehaviour(stage, settings);
+        installCloseBehaviour(stage);
         checkForUpdates(config, settings);
     }
 
@@ -76,14 +76,27 @@ public final class ModulaApp extends Application {
                             }),
                             () -> javafx.application.Platform.runLater(() -> {
                                 pane.dispose();
-                                javafx.application.Platform.exit();
+                                quit();
                             }))
-                    .ifPresent(created -> javafx.application.Platform.runLater(() -> {
-                        tray = created;
-                        tray.setOnListen(() -> javafx.application.Platform.runLater(pane::togglePower));
-                        tray.setOnRecord(() -> javafx.application.Platform.runLater(pane::toggleRecording));
-                        pane.setTraySink(this::updateTray);
-                    }));
+                    .ifPresentOrElse(
+                            created -> javafx.application.Platform.runLater(() -> {
+                                tray = created;
+                                // Without this, hiding the last window ends the JavaFX runtime, which calls
+                                // stop(), which halts the process — so closing to the tray quit the app no
+                                // matter what the close handler did. It is set only once a tray really
+                                // exists: with no icon to click, a hidden window would be unreachable and
+                                // the process a zombie.
+                                javafx.application.Platform.setImplicitExit(false);
+                                tray.setOnListen(() -> javafx.application.Platform.runLater(pane::togglePower));
+                                tray.setOnRecord(() -> javafx.application.Platform.runLater(pane::toggleRecording));
+                                pane.setTraySink(this::updateTray);
+                            }),
+                            // Silence here is the bug the user actually hits: the setting is on, the
+                            // checkbox says so, and closing still quits — because no tray ever
+                            // appeared. A desktop without a StatusNotifierWatcher (GNOME without the
+                            // AppIndicator extension) has nowhere to put the icon, and the
+                            // application is the only thing that knows.
+                            () -> javafx.application.Platform.runLater(pane::reportNoTray));
         });
     }
 
@@ -100,14 +113,18 @@ public final class ModulaApp extends Application {
      * <p>Hiding a window that leaves no icon behind is how an application becomes unreachable, so the
      * behaviour is conditional on a tray actually having appeared.
      */
-    private void installCloseBehaviour(Stage stage, Settings settings) {
+    private void installCloseBehaviour(Stage stage) {
         stage.setOnCloseRequest(e -> {
-            if (tray != null && settings.closeToTray()) {
+            // The live setting, not the one captured at startup: this is a checkbox a user can
+            // change while the window is open, and it would otherwise need a restart to take effect.
+            if (tray != null && pane.closeToTray()) {
                 e.consume();
                 stage.hide();
                 return;
             }
-            pane.dispose();
+            // Teardown belongs in stop(), which JavaFX calls next. Doing it here as well meant
+            // disposing everything twice.
+            quit();
         });
     }
 
@@ -147,8 +164,51 @@ public final class ModulaApp extends Application {
         }
     }
 
+    /**
+     * Ends the application, promptly.
+     *
+     * <p>The watchdog is armed <em>here</em> rather than inside {@code stop()}. Measured: closing the
+     * window took 15–30 seconds to end the process even with a two-second watchdog in stop(), so
+     * whatever holds it up happens before or around that callback. This runs from the FX thread at
+     * the moment the decision is made, which is a context proven to execute, and it makes the delay
+     * a bounded property of quitting rather than of the teardown's slowest step.
+     */
+    private void quit() {
+        Thread.ofPlatform().daemon().name("modula-quit-watchdog").start(() -> {
+            try {
+                Thread.sleep(SHUTDOWN_GRACE_MILLIS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            Runtime.getRuntime().halt(0);
+        });
+        javafx.application.Platform.exit();
+    }
+
+    /**
+     * Quitting must be prompt.
+     *
+     * <p>Measured: closing the window took roughly 25 seconds to end the process, because tearing a
+     * D-Bus connection down can block for as long as it likes. Teardown is best-effort — releasing
+     * the dongle and the tray icon tidily is worth a moment, but not worth a process that appears to
+     * hang — so a watchdog ends it regardless.
+     */
+    private static final long SHUTDOWN_GRACE_MILLIS = 2_000;
+
     @Override
     public void stop() {
+        Thread.ofPlatform().daemon().name("modula-shutdown-watchdog").start(() -> {
+            try {
+                Thread.sleep(SHUTDOWN_GRACE_MILLIS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            Runtime.getRuntime().halt(0);
+        });
+        shutdown();
+    }
+
+    private void shutdown() {
         if (pane != null) {
             pane.dispose();
         }
@@ -158,9 +218,10 @@ public final class ModulaApp extends Application {
         if (updates != null) {
             updates.shutdown();
         }
-        // Both tray backends leave non-daemon threads behind (the AWT EDT, D-Bus workers), so a
-        // clean FX shutdown is not enough on its own to end the process.
-        javafx.application.Platform.exit();
+        // No Platform.exit() here: stop() runs *during* the toolkit's own shutdown, so calling it
+        // again from inside is re-entrant. Both tray backends also leave non-daemon threads behind
+        // (the AWT event thread, D-Bus workers), so returning normally would not end the process
+        // either — halt is what actually ends it.
         Runtime.getRuntime().halt(0);
     }
 

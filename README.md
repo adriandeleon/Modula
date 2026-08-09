@@ -1,4 +1,16 @@
+<img src="branding/modula-icon-256.png" alt="" width="96" align="left" hspace="14" vspace="4">
+
 # Modula
+
+**A broadcast radio receiver for RTL-SDR dongles.** Tune commercial AM and FM, in stereo, with RDS.
+
+[![build](https://github.com/adriandeleon/Modula/actions/workflows/build.yml/badge.svg)](https://github.com/adriandeleon/Modula/actions/workflows/build.yml)
+[![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+[![JDK 25](https://img.shields.io/badge/JDK-25-orange.svg)](https://openjdk.org/projects/jdk/25/)
+[![JavaFX 26](https://img.shields.io/badge/JavaFX-26-blue.svg)](https://openjfx.io/)
+[![platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#installing-it)
+
+<br clear="left">
 
 Listen to broadcast radio with an RTL-SDR dongle. Java 25 + JavaFX 26.
 
@@ -261,6 +273,10 @@ Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md
 6. **Spectrum strip and the Night Dial interface** — done
 7. **AM** (medium wave and aviation) — done
 8. **Recording, system tray, command palette, settings, about, update checks** — done
+
+## Changelog
+
+[CHANGELOG.md](CHANGELOG.md). Authors are in [AUTHORS](AUTHORS).
 
 ## Licence
 
