@@ -35,6 +35,9 @@ public final class RdsDecoder {
     private int programType;
     private boolean trafficProgram;
     private boolean trafficAnnouncement;
+    private java.time.LocalDateTime clockTime;
+
+    private final AlternativeFrequencies alternatives = new AlternativeFrequencies();
     private boolean radioTextFlag;
     private boolean radioTextFlagSeen;
     private boolean lastWasVersionB;
@@ -48,15 +51,17 @@ public final class RdsDecoder {
         switch (group.type()) {
             case 0 -> acceptBasicTuning(group);
             case 2 -> acceptRadioText(group);
+            case 4 -> acceptClockTime(group);
             default -> {
                 // Clock, alternative frequencies, open data — legitimate, just not shown here.
             }
         }
     }
 
-    /** Group 0A/0B: the station name, plus the traffic-announcement flag. */
+    /** Group 0A/0B: the station name, the traffic-announcement flag, and the frequency list. */
     private void acceptBasicTuning(RdsGroup group) {
         trafficAnnouncement = (group.payloadBits() & 0x10) != 0;
+        alternatives.accept(group); // 0A only; the parser ignores 0B itself
 
         int segment = group.payloadBits() & 0x03;
         int d = group.d();
@@ -89,6 +94,19 @@ public final class RdsDecoder {
         }
     }
 
+    /**
+     * Group 4A: clock-time and date.
+     *
+     * <p>Kept only when it decodes to something believable — a stopped or badly offset clock is a
+     * common transmitter fault, and showing 1858 as the time is worse than showing nothing.
+     */
+    private void acceptClockTime(RdsGroup group) {
+        java.time.LocalDateTime decoded = RdsClockTime.decode(group);
+        if (decoded != null) {
+            clockTime = decoded;
+        }
+    }
+
     public StationInfo stationInfo() {
         String text = lastWasVersionB ? radioTextB.value() : radioTextA.value();
         return new StationInfo(
@@ -97,7 +115,9 @@ public final class RdsDecoder {
                 trimAtCarriageReturn(text),
                 programType,
                 trafficProgram,
-                trafficAnnouncement);
+                trafficAnnouncement,
+                clockTime,
+                alternatives.frequencies());
     }
 
     /** Wipes everything. Call on retune — none of it belongs to the new station. */
@@ -112,21 +132,18 @@ public final class RdsDecoder {
         radioTextFlag = false;
         radioTextFlagSeen = false;
         lastWasVersionB = false;
+        clockTime = null;
+        alternatives.clear();
     }
 
     /**
-     * Maps one RDS character to Java.
+     * Maps one RDS character to Java through the G0 table.
      *
-     * <p>RDS has its own repertoire rather than using ASCII. Its default table agrees with ASCII
-     * across the printable range, which covers all but a handful of real broadcasts, so anything
-     * outside that becomes a space rather than mojibake on the display.
+     * <p>This used to blank everything above 0x7E, which is where the accented characters live — so a
+     * station named {@code MÚSICA} arrived as {@code M SICA}. See {@link RdsCharset}.
      */
     private static char decode(int value) {
-        int c = value & 0xFF;
-        if (c == END_OF_TEXT) {
-            return (char) END_OF_TEXT; // meaningful: it terminates a radio-text message
-        }
-        return c >= 0x20 && c < 0x7F ? (char) c : ' ';
+        return RdsCharset.decode(value);
     }
 
     /** Everything from the terminator onward is padding the station did not mean to send. */

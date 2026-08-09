@@ -2,6 +2,7 @@ package com.modula.ui;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -34,9 +35,24 @@ public final class GlassPane extends VBox {
     private static final int PS_WIDTH = 8;
 
     private final Label bandLabel = new Label();
+
+    /**
+     * The station's own clock, and how many alternative transmitters it lists.
+     *
+     * <p>Both are ink, never amber: the frequency stays the brightest mark, and neither of these is
+     * something a listener acts on.
+     */
+    private final Label clockLabel = new Label();
+
+    private final Label afLabel = new Label();
     private final Label stereoBadge = badge("STEREO", "stereo");
     private final Label trafficBadge = badge("TP", "traffic-programme");
     private final Label announcementBadge = badge("TA", "traffic-announcement");
+
+    private static final java.time.format.DateTimeFormatter CLOCK =
+            java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+
+    private static final int MAX_AF_SHOWN = 16;
 
     private final Label dial = new Label("—");
     private final Label stationLabel = new Label();
@@ -88,7 +104,13 @@ public final class GlassPane extends VBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox box = new HBox(6, title, spacer, bandLabel, stereoBadge, trafficBadge, announcementBadge);
+        clockLabel.getStyleClass().add("glass-meta");
+        afLabel.getStyleClass().add("glass-meta");
+        clockLabel.setVisible(false);
+        afLabel.setVisible(false);
+
+        HBox box = new HBox(
+                6, title, clockLabel, afLabel, spacer, bandLabel, stereoBadge, trafficBadge, announcementBadge);
         box.getStyleClass().add("glass-header");
         box.setAlignment(Pos.CENTER_LEFT);
         return box;
@@ -152,6 +174,45 @@ public final class GlassPane extends VBox {
     }
 
     /** Applies one snapshot. The state drives the styling; this method only supplies values. */
+    /**
+     * Shows the clock and the alternative-frequency count when a station has sent them.
+     *
+     * <p>Hidden rather than blank when absent: both arrive slowly — clock-time once a minute — and an
+     * empty slot that sometimes fills reads as a broken readout.
+     */
+    private void applyStationMeta(StationInfo station, boolean receiving) {
+        boolean showClock = receiving && station.hasClockTime();
+        clockLabel.setVisible(showClock);
+        clockLabel.setManaged(showClock);
+        if (showClock) {
+            clockLabel.setText(CLOCK.format(station.clockTime()));
+            Tooltip.install(clockLabel, new Tooltip("The station's own clock, from RDS"));
+        }
+
+        int count = station.alternativeFrequencies().size();
+        boolean showAf = receiving && count > 0;
+        afLabel.setVisible(showAf);
+        afLabel.setManaged(showAf);
+        if (showAf) {
+            afLabel.setText("AF " + count);
+            Tooltip.install(afLabel, new Tooltip("Other frequencies carrying this station:\n" + afList(station)));
+        }
+    }
+
+    /** The list, at most a screenful — some stations advertise dozens. */
+    private static String afList(StationInfo station) {
+        java.util.List<Long> all = station.alternativeFrequencies();
+        StringBuilder text = new StringBuilder();
+        int shown = Math.min(all.size(), MAX_AF_SHOWN);
+        for (int i = 0; i < shown; i++) {
+            text.append(i > 0 ? (i % 4 == 0 ? "\n" : "   ") : "").append(Readouts.megahertz(all.get(i)));
+        }
+        if (all.size() > shown) {
+            text.append("\n\u2026 and ").append(all.size() - shown).append(" more");
+        }
+        return text.toString();
+    }
+
     public void apply(ReceiverState newState, RadioEngine.Status status, long frequencyHz) {
         if (newState != state) {
             getStyleClass().remove(state.styleClass());
@@ -162,6 +223,8 @@ public final class GlassPane extends VBox {
 
         boolean pilot = status != null && status.pilotLocked();
         StationInfo station = status == null ? StationInfo.NONE : status.station();
+
+        applyStationMeta(station, newState.isReceiving());
 
         // STEREO reports the transmitter, never the listener's forced-mono setting.
         setLit(stereoBadge, pilot && newState.isReceiving());

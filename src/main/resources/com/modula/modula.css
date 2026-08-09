@@ -75,6 +75,12 @@
     -fx-font-weight: bold;
 }
 
+/* Station metadata in the glass header: ink, never amber — the frequency stays the brightest mark. */
+.glass-meta {
+    -fx-text-fill: -ink-faint;
+    -fx-font-size: 10px;
+}
+
 .band-label {
     -fx-text-fill: -ink-dim;
 }

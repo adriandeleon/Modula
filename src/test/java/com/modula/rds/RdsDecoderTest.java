@@ -130,13 +130,31 @@ class RdsDecoderTest {
         assertEquals("KEEP ME", decoder.stationInfo().programService(), "unknown groups must not disturb the display");
     }
 
+    /**
+     * This test used to assert that 0xFF became a space.
+     *
+     * <p>That was the bug, not the contract: 0xFF is not an unprintable code in RDS, it is the letter
+     * ŧ. The decoder blanked the whole range above 0x7E, which is exactly where the accented
+     * characters live, so every station with one in its name showed a hole instead.
+     */
     @Test
-    void replacesCharactersOutsideThePrintableRange() {
-        decoder.accept(basicTuning(0x1234, 0, (char) 0x00, (char) 0xFF));
+    void decodesTheRdsRepertoireRatherThanAssumingAscii() {
+        decoder.accept(basicTuning(0x1234, 0, (char) 0x80, (char) 0x9A));
         decoder.accept(basicTuning(0x1234, 1, 'O', 'K'));
         decoder.accept(basicTuning(0x1234, 2, ' ', ' '));
         decoder.accept(basicTuning(0x1234, 3, ' ', ' '));
-        assertEquals("  OK", decoder.stationInfo().programService(), "unprintable codes become spaces, not mojibake");
+        assertEquals("áñOK", decoder.stationInfo().programService());
+    }
+
+    /** A genuine control code still has to vanish rather than print. */
+    @Test
+    void controlCodesDoNotReachTheDisplay() {
+        decoder.accept(basicTuning(0x1234, 0, (char) 0x00, 'X'));
+        decoder.accept(basicTuning(0x1234, 1, 'O', 'K'));
+        decoder.accept(basicTuning(0x1234, 2, ' ', ' '));
+        decoder.accept(basicTuning(0x1234, 3, ' ', ' '));
+        String name = decoder.stationInfo().programService();
+        assertEquals("XOK", name.strip().replace("\u0000", ""), "a NUL must not render as a glyph");
     }
 
     @Test
