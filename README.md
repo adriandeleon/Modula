@@ -145,4 +145,11 @@ Signal flow and the invariants that keep it correct are in [CLAUDE.md](CLAUDE.md
 
 ## Licence
 
-TBD.
+MIT — see [LICENSE](LICENSE).
+
+IBM Plex Mono is bundled under the SIL Open Font License 1.1 (© 2017 IBM Corp.); its licence travels
+with it in `src/main/resources/com/modula/fonts/OFL.txt`. Third-party attributions are in
+[NOTICE](NOTICE).
+
+`librtlsdr` is GPLv2 and is **not** bundled: Modula calls the system's own shared library through the
+Java FFM API at runtime, so nothing of it is included or linked here.

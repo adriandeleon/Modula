@@ -1,0 +1,52 @@
+Modula
+Copyright (c) 2026 Adrian De Leon
+
+This product is licensed under the MIT License; see LICENSE.
+
+It bundles or depends on the following third-party works.
+
+
+BUNDLED IN THE DISTRIBUTION
+---------------------------
+
+IBM Plex Mono (src/main/resources/com/modula/fonts/)
+    Copyright (c) 2017 IBM Corp.
+    SIL Open Font License, Version 1.1 — see fonts/OFL.txt
+    https://github.com/IBM/plex
+
+    The typeface is redistributed under the OFL, which permits bundling with
+    software provided this notice and the licence travel with it. The font
+    files are unmodified and are not sold on their own.
+
+
+DEPENDENCIES
+------------
+
+OpenJFX (JavaFX)
+    GPLv2 with the Classpath Exception
+    https://openjdk.org/projects/openjfx/
+
+AtlantaFX (io.github.mkpaz:atlantafx-base)
+    MIT License
+    https://github.com/mkpaz/atlantafx
+
+dbus-java (com.github.hypfvieh:dbus-java-core, dbus-java-transport-native-unixsocket)
+    MIT License
+    https://github.com/hypfvieh/dbus-java
+
+SLF4J (org.slf4j:slf4j-jdk14)
+    MIT License
+    https://www.slf4j.org/
+
+JUnit 5 (test scope only, not distributed)
+    Eclipse Public License 2.0
+    https://junit.org/junit5/
+
+
+EXTERNAL, NOT BUNDLED
+---------------------
+
+librtlsdr
+    GPLv2. Modula calls it through the Java FFM API at runtime against the
+    system's own shared library. It is neither bundled nor linked at build
+    time, and no librtlsdr source is included here.
