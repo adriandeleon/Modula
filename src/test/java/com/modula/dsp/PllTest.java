@@ -119,13 +119,70 @@ class PllTest {
         assertEquals(PILOT_HZ, pll.frequencyHz(), 1e-6);
     }
 
+    /**
+     * The flicker bug, pinned.
+     *
+     * <p>A single threshold made this detector alternate whenever the level sat near it, and because
+     * {@code DemodChain} switches the audio between the stereo matrix and a mono copy on the result,
+     * the alternation was audible as spottiness and reported in the status line as <i>"no pilot"</i> —
+     * i.e. as the station cutting out. The amplitude here is chosen to land the detector squarely
+     * between the acquire and release levels, which is the state a marginal signal actually sits in.
+     */
+    @Test
+    void aMarginalPilotSettlesOnAnAnswerRatherThanAlternating() {
+        Pll pll = newPll();
+        int n = driveFrom(pll, PILOT_HZ, PILOT_AMPLITUDE, 0, SETTLE_SAMPLES);
+        assertTrue(pll.isLocked(), "precondition: it should be locked before the signal degrades");
+
+        // Detector settles to about half the amplitude, so this parks it inside the hysteresis band.
+        double marginal = 0.014;
+        n = driveFrom(pll, PILOT_HZ, marginal, n, SETTLE_SAMPLES);
+        assertTrue(
+                pll.lockLevel() > 0.004 && pll.lockLevel() < 0.01,
+                "the test is only meaningful if the level is between the two thresholds, was " + pll.lockLevel());
+
+        int transitions = 0;
+        boolean previous = pll.isLocked();
+        for (int block = 0; block < 200; block++) {
+            n = driveFrom(pll, PILOT_HZ, marginal, n, 3_277); // one IF block
+            if (pll.isLocked() != previous) {
+                transitions++;
+                previous = pll.isLocked();
+            }
+        }
+
+        assertEquals(0, transitions, "a level inside the hysteresis band must not change the answer");
+        assertTrue(pll.isLocked(), "and having acquired, it should hold rather than give up");
+    }
+
+    /** Hysteresis must not become stickiness: a pilot that has really gone still has to unlock. */
+    @Test
+    void aPilotThatActuallyDisappearsStillUnlocks() {
+        Pll pll = newPll();
+        int n = driveFrom(pll, PILOT_HZ, PILOT_AMPLITUDE, 0, SETTLE_SAMPLES);
+        assertTrue(pll.isLocked());
+
+        driveFrom(pll, PILOT_HZ, 0.002, n, SETTLE_SAMPLES);
+        assertFalse(pll.isLocked(), "well below the release level, detector read " + pll.lockLevel());
+    }
+
     private static Pll newPll() {
         return new Pll(IF_RATE, PILOT_HZ, LOOP_BANDWIDTH_HZ, 100.0);
     }
 
     private static void drive(Pll pll, double hz, double amplitude, int count) {
-        for (int n = 0; n < count; n++) {
+        driveFrom(pll, hz, amplitude, 0, count);
+    }
+
+    /**
+     * Drives from a given sample index and returns the next one, so consecutive segments are
+     * phase-continuous. Restarting the index would step the input's phase, which the loop correctly
+     * reads as a transient and which would make a level test measure the wrong thing.
+     */
+    private static int driveFrom(Pll pll, double hz, double amplitude, int from, int count) {
+        for (int n = from; n < from + count; n++) {
             pll.advance(amplitude * Math.cos(2.0 * Math.PI * hz * n / IF_RATE));
         }
+        return from + count;
     }
 }

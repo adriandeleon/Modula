@@ -24,7 +24,24 @@ public final class Pll {
      * A locked 19 kHz pilot at the standard 10% injection produces a detector level near 0.05. This
      * sits well below that and well above what programme leakage or noise sustains.
      */
-    private static final double LOCK_THRESHOLD = 0.01;
+    private static final double LOCK_ACQUIRE = 0.01;
+
+    /**
+     * ...and the level it must fall back below before the loop is declared unlocked again.
+     *
+     * <p><b>The single threshold this replaced was the reason the stereo indicator flickered.</b> A
+     * detector level parked anywhere near the threshold crosses it repeatedly, and because
+     * {@code DemodChain} switches the audio between the stereo matrix and a mono copy on this flag,
+     * the flapping was not cosmetic — it was the audio path changing several times a second, which is
+     * heard as spottiness rather than seen as an indicator. The status line reported it as
+     * <i>"no pilot"</i>, which reads as the station cutting out and sends you to the antenna.
+     *
+     * <p>2.5:1 against the acquire level. Acquisition is unchanged, so the pull-in time that this
+     * receiver treats as a product constraint is untouched; only the decision to give up is slower.
+     * The same reasoning, and roughly the same ratio, already guards the RDS subcarrier's
+     * in-phase-versus-quadrature choice for exactly this reason.
+     */
+    private static final double LOCK_RELEASE = 0.004;
 
     private final double sampleRate;
     private final double centreFrequency;
@@ -37,6 +54,7 @@ public final class Pll {
     private double phase;
     private double frequency;
     private double lockLevel;
+    private boolean locked;
     private double cosOut = 1.0;
     private double sinOut;
 
@@ -91,6 +109,15 @@ public final class Pll {
 
         // In-phase product: near zero while hunting, near half the pilot amplitude once locked.
         lockLevel += lockSmoothing * (sample * cos - lockLevel);
+        // Two thresholds, not one: see LOCK_RELEASE. Two comparisons a sample, against the atan2 and
+        // the trigonometry already in this loop, is not measurable.
+        if (locked) {
+            if (lockLevel < LOCK_RELEASE) {
+                locked = false;
+            }
+        } else if (lockLevel > LOCK_ACQUIRE) {
+            locked = true;
+        }
 
         frequency = Math.clamp(frequency + beta * error, minFrequency, maxFrequency);
         phase = wrap(phaseNow + frequency + alpha * error);
@@ -119,9 +146,15 @@ public final class Pll {
         return 2.0 * cosOut * cosOut - 1.0;
     }
 
-    /** Whether the loop is tracking a real signal rather than hunting. */
+    /**
+     * Whether the loop is tracking a real signal rather than hunting.
+     *
+     * <p>Hysteretic: it takes {@link #LOCK_ACQUIRE} to say yes and a fall below {@link #LOCK_RELEASE}
+     * to go back to no, so a detector level hovering at the boundary settles on an answer instead of
+     * alternating. Read this rather than comparing {@link #lockLevel()} yourself.
+     */
     public boolean isLocked() {
-        return lockLevel > LOCK_THRESHOLD;
+        return locked;
     }
 
     /** The lock detector's current level; roughly half the input amplitude once locked. */
@@ -138,6 +171,7 @@ public final class Pll {
         phase = 0.0;
         frequency = centreFrequency;
         lockLevel = 0.0;
+        locked = false;
         cosOut = 1.0;
         sinOut = 0.0;
     }
