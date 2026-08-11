@@ -88,7 +88,7 @@ class RtlSdrNativeSourceTest {
         }
         try {
             source.setSampleRate(DemodChain.INPUT_RATE);
-            source.setGainAuto();
+            source.applyDefaultGain();
             source.setFrequency(98_900_000L);
 
             byte[] buffer = new byte[DemodChain.BLOCK_PAIRS * 2];

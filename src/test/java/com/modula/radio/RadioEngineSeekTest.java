@@ -140,7 +140,7 @@ class RadioEngineSeekTest {
         public void setSampleRate(int samplesPerSecond) {}
 
         @Override
-        public void setGainAuto() {}
+        public void applyDefaultGain() {}
 
         @Override
         public int read(byte[] into) {

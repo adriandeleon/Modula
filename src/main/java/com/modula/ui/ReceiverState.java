@@ -19,6 +19,10 @@ import com.modula.radio.RadioEngine;
  *       and is not information; the band cursor is what is worth watching.
  *   <li><b>Dropped samples are a fault, but a running receiver is not weak just because it is quiet
  *       between blocks.</b> Weakness is measured, not inferred.
+ *   <li><b>The fault is judged on recent loss, not on the running total.</b> The counters are
+ *       cumulative, so testing them for "greater than zero" meant a single overrun at any point in
+ *       the session pinned the receiver coral for as long as it ran — and a state that can never
+ *       clear reports the past rather than the present.
  * </ul>
  *
  * <p>Pure, so it is testable without a toolkit — which is the same rule the DSP follows.
@@ -45,7 +49,34 @@ public enum ReceiverState {
     /** Something is wrong and the listener needs to know what. */
     FAULT;
 
-    /** Below this, the station is too weak for RDS and usually for stereo. */
+    /**
+     * Below this much quieting, the station is too weak for RDS and usually for stereo.
+     *
+     * <p>14 dB is where seek stops finding a channel worth listening to, on the calibration in
+     * {@code DemodChain} — a barely usable station is about 8 and a solid one 24 or more. Reusing that
+     * number rather than inventing a second one keeps "worth stopping on" and "worth calling strong"
+     * the same judgement.
+     */
+    public static final double WEAK_QUIETING_DB = 14.0;
+
+    /**
+     * Below this, there is no quieting measurement to judge by and {@link #WEAK_DBFS} is used instead.
+     *
+     * <p>Covers two cases with one test. AM leaves multiplex noise at zero, since envelope detection has
+     * no discriminator to measure — and an empty FM channel has genuinely quieted nothing. Neither can be
+     * judged on quieting, and both are correctly served by falling back to raw power.
+     */
+    private static final double MEASURABLE_QUIETING_DB = 1.0;
+
+    /**
+     * Below this power, the station is weak — the fallback when quieting is unavailable.
+     *
+     * <p><b>This was the only test, and for most of this receiver's life it could never fire.</b> With an
+     * AGC running, channel power reports the AGC's target and not the station: measured, −9.85 dBFS on an
+     * empty channel against −9.75 for a weak one. Nothing ever came near −45, so WEAK was unreachable and
+     * the receiver had no way to tell a listener their signal was poor. It means something again now the
+     * front-end gain is fixed, but quieting is still the better measure where there is one.
+     */
     public static final double WEAK_DBFS = -45.0;
 
     /**
@@ -62,7 +93,7 @@ public enum ReceiverState {
         if (status == null) {
             return NOT_LISTENING;
         }
-        if (faulted || status.droppedSamples() > 0) {
+        if (faulted || status.losses().recent()) {
             return FAULT;
         }
         if (!status.running()) {
@@ -74,10 +105,24 @@ public enum ReceiverState {
         if (status.signalDbfs() <= com.modula.dsp.PowerMeter.FLOOR_DBFS) {
             return STARTING; // running, but nothing measured yet
         }
-        if (status.signalDbfs() < WEAK_DBFS) {
+        if (isWeak(status)) {
             return WEAK;
         }
         return status.pilotLocked() ? STEREO : MONO;
+    }
+
+    /**
+     * Whether this signal is too poor to promise stereo or RDS.
+     *
+     * <p>Judged on quieting where there is any, because that measures the station; power is the fallback
+     * for AM and for an empty channel, where there is no multiplex noise to have suppressed.
+     */
+    private static boolean isWeak(RadioEngine.Status status) {
+        double quieting = com.modula.radio.DemodChain.quietingDb(status.noiseDbfs());
+        if (quieting >= MEASURABLE_QUIETING_DB) {
+            return quieting < WEAK_QUIETING_DB;
+        }
+        return status.signalDbfs() < WEAK_DBFS;
     }
 
     /** Whether the receiver is running at all, whatever it is managing to hear. */

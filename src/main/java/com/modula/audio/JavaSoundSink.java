@@ -65,10 +65,12 @@ public final class JavaSoundSink implements AudioSink {
         volume = (float) Math.clamp(v, 0.0, 1.0);
     }
 
+    @Override
     public long droppedSamples() {
         return ring.droppedSamples();
     }
 
+    @Override
     public long underrunSamples() {
         return ring.underrunSamples();
     }

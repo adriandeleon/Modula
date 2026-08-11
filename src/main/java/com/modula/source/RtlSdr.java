@@ -185,6 +185,38 @@ public final class RtlSdr {
         return call(BINDINGS.setAgcMode, device, on ? 1 : 0);
     }
 
+    /** Front-end gain in tenths of a decibel. Only honoured once the tuner is in manual mode. */
+    static int setTunerGain(MemorySegment device, int tenthsOfDb) {
+        return call(BINDINGS.setTunerGain, device, tenthsOfDb);
+    }
+
+    /**
+     * The gains this tuner actually supports, in tenths of a decibel.
+     *
+     * <p>Two calls by design: librtlsdr returns the count when handed a null pointer and fills the
+     * array on the second pass. Empty when it cannot say, which the caller must read as "leave the
+     * gain alone" rather than as "this tuner has no gain".
+     */
+    static int[] tunerGains(MemorySegment device) {
+        try {
+            int count = (int) BINDINGS.getTunerGains.invokeExact(device, MemorySegment.NULL);
+            if (count <= 0) {
+                return new int[0];
+            }
+            MemorySegment out = ARENA.allocate(ValueLayout.JAVA_INT, count);
+            int written = (int) BINDINGS.getTunerGains.invokeExact(device, out);
+            int n = Math.clamp(written, 0, count);
+            int[] gains = new int[n];
+            for (int k = 0; k < n; k++) {
+                gains[k] = out.getAtIndex(ValueLayout.JAVA_INT, k);
+            }
+            return gains;
+        } catch (Throwable t) {
+            LOG.log(Level.FINE, "rtlsdr_get_tuner_gains failed", t);
+            return new int[0];
+        }
+    }
+
     /** Mode 2 selects the Q branch, the only way an RTL-SDR Blog V3 reaches HF and medium wave. */
     static int setDirectSampling(MemorySegment device, int mode) {
         return call(BINDINGS.setDirectSampling, device, mode);
@@ -245,6 +277,8 @@ public final class RtlSdr {
             MethodHandle setCenterFreq,
             MethodHandle setSampleRate,
             MethodHandle setTunerGainMode,
+            MethodHandle setTunerGain,
+            MethodHandle getTunerGains,
             MethodHandle setAgcMode,
             MethodHandle setDirectSampling,
             MethodHandle resetBuffer,
@@ -270,6 +304,8 @@ public final class RtlSdr {
                     bind(linker, library, "rtlsdr_set_center_freq", FunctionDescriptor.of(i32, ptr, i32)),
                     bind(linker, library, "rtlsdr_set_sample_rate", FunctionDescriptor.of(i32, ptr, i32)),
                     bind(linker, library, "rtlsdr_set_tuner_gain_mode", FunctionDescriptor.of(i32, ptr, i32)),
+                    bind(linker, library, "rtlsdr_set_tuner_gain", FunctionDescriptor.of(i32, ptr, i32)),
+                    bind(linker, library, "rtlsdr_get_tuner_gains", FunctionDescriptor.of(i32, ptr, ptr)),
                     bind(linker, library, "rtlsdr_set_agc_mode", FunctionDescriptor.of(i32, ptr, i32)),
                     bind(linker, library, "rtlsdr_set_direct_sampling", FunctionDescriptor.of(i32, ptr, i32)),
                     bind(linker, library, "rtlsdr_reset_buffer", FunctionDescriptor.of(i32, ptr)),

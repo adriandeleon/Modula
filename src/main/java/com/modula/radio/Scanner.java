@@ -36,7 +36,14 @@ public final class Scanner {
     private final BandPlan band;
     private final SeekPolicy policy;
 
-    private boolean scanning;
+    /**
+     * Volatile because the state machine runs on the DSP thread while {@code isScanning} is read from
+     * the FX thread to dim the dial and from tests to wait for a seek to finish. Every write is on the
+     * one thread — {@code RadioEngine} parks a cancel request rather than calling in from the caller's
+     * thread — so this is the only field that crosses, and it crosses often enough to matter.
+     */
+    private volatile boolean scanning;
+
     private boolean firstMovePending;
     private Direction direction = Direction.UP;
     private long startHz;

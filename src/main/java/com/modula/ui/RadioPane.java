@@ -1130,12 +1130,41 @@ public final class RadioPane extends StackPane {
         }
         if (state == ReceiverState.SEEKING) {
             setStatusText("Seeking…", false);
-        } else if (state == ReceiverState.FAULT) {
-            setStatusText(
-                    "Dropped %d samples — the audio device is not keeping up".formatted(status.droppedSamples()), true);
         } else {
-            setStatusText("%s  ·  %s".formatted(Readouts.dbfs(status.signalDbfs()), status.rdsDiagnostic()), false);
+            // Quieting is the honest signal-quality figure; the blend and the offset appear only when
+            // they have something to say. A fault is *appended* rather than substituted: replacing the
+            // line took these away at exactly the moment they were being consulted, and while a stuck
+            // counter held the fault on they could not be read at all.
+            String signal = join(
+                    Readouts.dbfs(status.signalDbfs()),
+                    Readouts.quieting(DemodChain.quietingDb(status.noiseDbfs())),
+                    Readouts.stereoBlend(status.stereoBlend()),
+                    status.rdsDiagnostic(),
+                    Readouts.carrierOffset(status.carrierOffsetHz(), status.frequencyHz()));
+            boolean fault = state == ReceiverState.FAULT;
+            setStatusText(fault ? join(signal, status.losses().describe()) : signal, fault);
         }
+    }
+
+    /**
+     * Joins the status line's parts, dropping the ones with nothing to say.
+     *
+     * <p>Several of them are conditional — quieting is absent on AM, the carrier offset only appears
+     * when it is large — and concatenating around that inline produced either stray separators or a
+     * nest of ternaries.
+     */
+    private static String join(String... parts) {
+        StringBuilder text = new StringBuilder();
+        for (String part : parts) {
+            if (part == null || part.isBlank()) {
+                continue;
+            }
+            if (!text.isEmpty()) {
+                text.append("  ·  ");
+            }
+            text.append(part);
+        }
+        return text.toString();
     }
 
     private String describeAvailableSource() {

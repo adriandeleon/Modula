@@ -24,6 +24,7 @@ public final class RtlTcpSource implements IqSource {
     private static final int CMD_SET_FREQUENCY = 0x01;
     private static final int CMD_SET_SAMPLE_RATE = 0x02;
     private static final int CMD_SET_GAIN_MODE = 0x03;
+    private static final int CMD_SET_GAIN = 0x04;
     private static final int CMD_SET_AGC_MODE = 0x08;
     private static final int CMD_SET_DIRECT_SAMPLING = 0x09;
 
@@ -80,8 +81,9 @@ public final class RtlTcpSource implements IqSource {
         this.in = raw;
         this.out = new DataOutputStream(s.getOutputStream());
 
-        // Let the dongle manage its own gain; Modula has no gain UI by design.
-        command(CMD_SET_AGC_MODE, 1);
+        // No digital AGC, matching the native source — the two delivery paths behaving differently is
+        // precisely what made a front-end problem look like an operating-system one.
+        command(CMD_SET_AGC_MODE, 0);
     }
 
     @Override
@@ -94,9 +96,18 @@ public final class RtlTcpSource implements IqSource {
         command(CMD_SET_SAMPLE_RATE, samplesPerSecond);
     }
 
+    /**
+     * Sets the same fixed gain the native source uses.
+     *
+     * <p>The protocol carries a gain <i>count</i> in its header but not the values, so there is nothing
+     * to enumerate here — the target goes over as-is and the server's own librtlsdr maps it onto a
+     * supported step. That is why {@link TunerGain#nearest} returns the target unchanged for an empty
+     * list rather than refusing.
+     */
     @Override
-    public void setGainAuto() throws IOException {
-        command(CMD_SET_GAIN_MODE, 0);
+    public void applyDefaultGain() throws IOException {
+        command(CMD_SET_GAIN_MODE, 1); // manual
+        command(CMD_SET_GAIN, TunerGain.choose(new int[0]));
     }
 
     /** Enables the direct-sampling Q branch, the only way to reach HF and medium wave. */

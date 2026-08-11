@@ -6,6 +6,7 @@ import com.modula.band.Region;
 import com.modula.demod.AmDemodulator;
 import com.modula.demod.FmDiscriminator;
 import com.modula.demod.PilotTracker;
+import com.modula.demod.StereoBlend;
 import com.modula.demod.StereoDecoder;
 import com.modula.dsp.Deemphasis;
 import com.modula.dsp.Delay;
@@ -67,6 +68,15 @@ public final class DemodChain {
     /** Quietest level the spectrum reports, so an empty band has a floor to draw against. */
     public static final double SPECTRUM_FLOOR_DBFS = -90.0;
 
+    /**
+     * Multiplex noise on an empty channel, in dBFS — the zero point for {@link #quietingDb}.
+     *
+     * <p>From the same calibration as {@code SeekPolicy}: empty reads about −6, a barely usable station
+     * −14, a solid one −30 or below. <b>Measured against synthesised signals</b>, so it is the number to
+     * re-derive against a real band.
+     */
+    public static final double EMPTY_CHANNEL_NOISE_DBFS = -6.0;
+
     /** Complex samples per processed block; ~13.6 ms of audio at {@link #INPUT_RATE}. */
     public static final int BLOCK_PAIRS = 16_384;
 
@@ -122,6 +132,7 @@ public final class DemodChain {
 
     private final FmDiscriminator discriminator;
     private final PilotTracker pilotTracker;
+    private final StereoBlend stereoBlend;
     private final StereoDecoder stereoDecoder;
     private final RdsReceiver rdsReceiver;
     private final Deemphasis deemphasisLeft;
@@ -131,11 +142,28 @@ public final class DemodChain {
     private final float[] spectrumIm = new float[SPECTRUM_BINS];
     private final float[] spectrumWindow = new float[SPECTRUM_BINS];
 
+    /**
+     * How fast the carrier-offset estimate follows, per block.
+     *
+     * <p>Over a single 13.6 ms block programme content has plenty of energy low enough to move the raw
+     * mean by kilohertz. What is being measured — the dongle's crystal error plus the transmitter's own
+     * — does not move at all, so about seven tenths of a second of averaging costs nothing and turns a
+     * useless number into a stable one.
+     */
+    private static final double OFFSET_SMOOTHING = 0.02;
+
+    /** Blocks before the smoothed estimate is worth reporting; below this it is still settling. */
+    private static final int OFFSET_SETTLE_BLOCKS = 40;
+
     private int lastPairs;
+    private double offsetEstimate;
+    private int offsetBlocks;
     private volatile double signalDbfs = PowerMeter.FLOOR_DBFS;
     private volatile double noiseDbfs = 0.0;
+    private volatile double carrierOffsetHz = Double.NaN;
     private volatile boolean pilotLocked;
     private volatile boolean stereoEnabled = true;
+    private volatile double stereoBlendFactor;
 
     public DemodChain(Region region) {
         this(region, BandPlan.fm(region), BLOCK_PAIRS);
@@ -171,6 +199,7 @@ public final class DemodChain {
         int audioCapacity = sumLowPass.outputCapacity(ifCapacity);
 
         this.pilotTracker = new PilotTracker(IF_RATE, ifCapacity);
+        this.stereoBlend = new StereoBlend((double) INPUT_RATE / maxPairs);
         this.stereoDecoder = new StereoDecoder(IF_RATE, AUDIO_RATE, AUDIO_CUTOFF_HZ, ifCapacity);
         this.rdsReceiver = new RdsReceiver(IF_RATE, ifCapacity);
 
@@ -238,6 +267,7 @@ public final class DemodChain {
 
         noiseHighPass.filter(mpx, ifCount, noise);
         noiseDbfs = PowerMeter.rmsDbfs(noise, ifCount);
+        measureCarrierOffset(ifCount);
 
         sumAlignment.process(mpx, ifCount, mpxAligned);
         int frames = sumLowPass.filter(mpxAligned, ifCount, sum);
@@ -251,10 +281,16 @@ public final class DemodChain {
         boolean locked = pilotTracker.isLocked();
         pilotLocked = locked;
 
-        if (locked && stereoEnabled) {
+        // Scaled rather than switched: see StereoBlend. A marginal station narrows its image and gets
+        // the difference channel's noise attenuated with it, instead of being handed all of that noise
+        // or none of the separation by a threshold decision.
+        float blend = (float) stereoBlend.update(quietingDb(noiseDbfs), locked, stereoEnabled);
+        stereoBlendFactor = blend;
+        if (blend > 0.0f) {
             for (int n = 0; n < frames; n++) {
-                left[n] = sum[n] + difference[n];
-                right[n] = sum[n] - difference[n];
+                float side = blend * difference[n];
+                left[n] = sum[n] + side;
+                right[n] = sum[n] - side;
             }
         } else {
             System.arraycopy(sum, 0, left, 0, frames);
@@ -272,6 +308,51 @@ public final class DemodChain {
     }
 
     /**
+     * Estimates how far the carrier sits from where we tuned, from the multiplex's own DC level.
+     *
+     * <p>An FM discriminator reports instantaneous frequency, and this one is scaled so full deviation
+     * is ±1.0 — so the mean of its output, times the peak deviation, <b>is</b> the offset in hertz.
+     * Programme content carries no DC, which is what makes the measurement possible without a
+     * reference: whatever is left when the audio averages out is the carrier in the wrong place.
+     *
+     * <p>Worth having because a frequency error damages <b>stereo and RDS before it damages mono</b>.
+     * The offset slides the multiplex within the channel filter, and the 38 kHz difference channel and
+     * 57 kHz RDS subcarrier sit at the top of that band, so they reach the edge first while the mono
+     * sum below 15 kHz still sounds perfectly clean. That is a confusing symptom to diagnose by ear and
+     * an obvious one to read off a number.
+     *
+     * <p>One pass over the block, which against the channel filter's 266 M multiply-accumulates a
+     * second does not register.
+     */
+    private void measureCarrierOffset(int ifCount) {
+        if (ifCount <= 0) {
+            return;
+        }
+        double sum = 0.0;
+        for (int n = 0; n < ifCount; n++) {
+            sum += mpx[n];
+        }
+        double blockMean = sum / ifCount * FmDiscriminator.BROADCAST_DEVIATION_HZ;
+        // Seed from the first block rather than from zero, or the estimate spends its whole settling
+        // time climbing out of a value we know to be wrong.
+        offsetEstimate =
+                offsetBlocks == 0 ? blockMean : offsetEstimate + OFFSET_SMOOTHING * (blockMean - offsetEstimate);
+        offsetBlocks++;
+        carrierOffsetHz = offsetBlocks >= OFFSET_SETTLE_BLOCKS ? offsetEstimate : Double.NaN;
+    }
+
+    /**
+     * How far the carrier is from the tuned frequency, in hertz, or {@code NaN} until measured.
+     *
+     * <p>Mostly the dongle's crystal error, which scales with frequency: divide by the tuned frequency
+     * for the parts per million to blame the hardware rather than the station. AM does not report it —
+     * envelope detection has no frequency discriminator to read it from.
+     */
+    public double carrierOffsetHz() {
+        return carrierOffsetHz;
+    }
+
+    /**
      * The AM path: narrow to the channel, take the envelope, and put the same audio on both channels.
      *
      * <p>Deliberately short. AM has no pilot, no difference channel, no RDS and no de-emphasis, so
@@ -285,6 +366,8 @@ public final class DemodChain {
 
         pilotLocked = false;
         noiseDbfs = 0.0;
+        stereoBlendFactor = 0.0; // AM is mono by construction, not by a blend decision
+        carrierOffsetHz = Double.NaN; // envelope detection has no discriminator to read an offset from
 
         for (int n = 0, b = 0; n < frames; n++, b += CHANNELS) {
             short pcm = toPcm(left[n]);
@@ -343,6 +426,28 @@ public final class DemodChain {
     /** Whether the station is broadcasting a stereo pilot, regardless of {@link #setStereoEnabled}. */
     public boolean isPilotLocked() {
         return pilotLocked;
+    }
+
+    /**
+     * How wide the stereo image currently is: 1.0 full, 0.0 mono, in between blended.
+     *
+     * <p>Distinct from {@link #isPilotLocked}, which reports what the <i>station</i> is transmitting.
+     * This reports what the listener is being given, which on a marginal signal is deliberately less.
+     */
+    public double stereoBlend() {
+        return stereoBlendFactor;
+    }
+
+    /**
+     * How far the carrier has quieted the discriminator, in dB — <b>higher is stronger</b>.
+     *
+     * <p>The same measurement as {@link #noiseDbfs()} with its sense turned round and its zero point
+     * moved to {@link #EMPTY_CHANNEL_NOISE_DBFS}, because everything that consumes it — the stereo
+     * blend, the status line, the weak-signal decision — wants "how good is this" rather than "how much
+     * noise is left", and a quantity whose better direction is downward gets misread.
+     */
+    public static double quietingDb(double noiseDbfs) {
+        return EMPTY_CHANNEL_NOISE_DBFS - noiseDbfs;
     }
 
     /** What RDS has revealed about this station: name, radio text, programme type. */
@@ -404,6 +509,8 @@ public final class DemodChain {
         amChannelQ.reset();
         amDemodulator.reset();
         pilotTracker.reset();
+        stereoBlend.reset();
+        stereoBlendFactor = 0.0;
         stereoDecoder.reset();
         rdsReceiver.reset();
         deemphasisLeft.reset();
@@ -411,6 +518,10 @@ public final class DemodChain {
         signalDbfs = PowerMeter.FLOOR_DBFS;
         noiseDbfs = 0.0;
         pilotLocked = false;
+        // The offset belongs to the station we were on, so it has to be re-measured for the next one.
+        carrierOffsetHz = Double.NaN;
+        offsetEstimate = 0.0;
+        offsetBlocks = 0;
     }
 
     private static short toPcm(float sample) {
