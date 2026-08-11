@@ -3,6 +3,8 @@ package com.modula.source;
 import java.io.IOException;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * An {@link IqSource} talking to the dongle directly through {@code librtlsdr}, with no
@@ -16,11 +18,17 @@ import java.lang.foreign.ValueLayout;
  * reads, retunes and gain changes all happen there, by construction. The one exception is
  * {@link #close}, which the engine calls only after joining that thread.
  *
- * <p>Reads are synchronous. librtlsdr also offers an asynchronous API, but it wants a callback on its
- * own thread, and the engine's loop is already a thread that wants to block on a read — the
- * synchronous call fits it exactly, and at 13.6 ms a block it returns long before any timeout.
+ * <p><b>Reads are synchronous, which only works because the caller does nothing else between them.</b>
+ * {@code rtlsdr_read_sync} keeps exactly one USB transfer outstanding and submits the next only when
+ * called again, so any work the caller does in between is a window with nothing in flight — and the
+ * dongle keeps producing regardless. {@link com.modula.radio.RadioEngine} therefore reads on a thread
+ * whose entire job is reading, handing blocks to the DSP through a {@link ByteRing}; putting the chain
+ * back in this loop would silently start dropping samples again. librtlsdr's asynchronous API keeps
+ * about fifteen transfers queued and would remove the window altogether, at the cost of an FFM upcall.
  */
 public final class RtlSdrNativeSource implements IqSource {
+
+    private static final Logger LOG = Logger.getLogger(RtlSdrNativeSource.class.getName());
 
     /** Tuner range of the common R820T2/R828D. Medium wave sits far below it — see {@link #tunableRange}. */
     private static final Range R820T_RANGE = new Range(24_000_000L, 1_766_000_000L);
@@ -39,6 +47,7 @@ public final class RtlSdrNativeSource implements IqSource {
     private MemorySegment readSlot;
     private volatile boolean open;
     private volatile boolean directSampling;
+    private volatile int gainTenths;
 
     public RtlSdrNativeSource(int deviceIndex, int bufferBytes) {
         this.deviceIndex = deviceIndex;
@@ -76,9 +85,11 @@ public final class RtlSdrNativeSource implements IqSource {
         readSlot = RtlSdr.allocateInt();
         open = true;
 
-        // Let the dongle manage its own gain; Modula has no gain UI by design.
-        RtlSdr.setTunerGainMode(device, false);
-        RtlSdr.setAgcMode(device, true);
+        // No AGC at all: not the tuner's, and not the RTL2832U's digital one. Two loops used to be
+        // enabled at once, hunting the same signal; see TunerGain for why even one is the wrong answer
+        // for broadcast FM. The gain itself is set by the engine's own applyDefaultGain call, once the
+        // sample rate is settled — doing it here as well only logged the decision twice.
+        RtlSdr.setAgcMode(device, false);
     }
 
     @Override
@@ -99,10 +110,38 @@ public final class RtlSdrNativeSource implements IqSource {
         RtlSdr.resetBuffer(device);
     }
 
+    /**
+     * Sets a fixed front-end gain, chosen from what this tuner actually offers.
+     *
+     * <p>Falls back to the tuner's AGC when the gain list cannot be read. That is a real possibility on
+     * an unusual tuner, and a receiver with the gain stuck at whatever the chip booted with would be a
+     * worse outcome than one with an AGC we would rather not use.
+     */
     @Override
-    public void setGainAuto() throws IOException {
+    public void applyDefaultGain() throws IOException {
         checkOpen();
-        RtlSdr.setTunerGainMode(device, false);
+        int[] supported = RtlSdr.tunerGains(device);
+        if (supported.length == 0) {
+            LOG.log(Level.INFO, "tuner gains unavailable; leaving the front end on its own AGC");
+            RtlSdr.setTunerGainMode(device, false);
+            gainTenths = 0;
+            return;
+        }
+        int chosen = TunerGain.choose(supported);
+        RtlSdr.setTunerGainMode(device, true);
+        if (RtlSdr.setTunerGain(device, chosen) != 0) {
+            LOG.log(Level.WARNING, "tuner rejected a gain of {0}; falling back to its AGC", TunerGain.describe(chosen));
+            RtlSdr.setTunerGainMode(device, false);
+            gainTenths = 0;
+            return;
+        }
+        gainTenths = chosen;
+        LOG.log(Level.INFO, "front-end gain fixed at {0}", TunerGain.describe(chosen));
+    }
+
+    /** The fixed gain in tenths of a dB, or 0 when the front end was left on its AGC. */
+    public int gainTenths() {
+        return gainTenths;
     }
 
     /**

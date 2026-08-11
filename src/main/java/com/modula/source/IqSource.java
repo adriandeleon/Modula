@@ -19,8 +19,17 @@ public interface IqSource extends AutoCloseable {
 
     void setSampleRate(int samplesPerSecond) throws IOException;
 
-    /** Hands gain control to the device's own AGC. Modula deliberately does not expose manual gain. */
-    void setGainAuto() throws IOException;
+    /**
+     * Applies this source's gain policy, whatever that is.
+     *
+     * <p>Named for the decision rather than the mechanism, because the decision changed. It used to be
+     * {@code setGainAuto} and handed the front end to the tuner's AGC; the RTL-SDR sources now set a
+     * fixed gain instead, for the reasons documented on {@link TunerGain}. Modula still exposes no gain
+     * control — the point is that there is one right answer per source, not that there is none.
+     *
+     * <p>A source with nothing to set — a file replay, a test fake — may do nothing.
+     */
+    void applyDefaultGain() throws IOException;
 
     /**
      * Fills {@code into} with raw interleaved u8 IQ, blocking until it is full.

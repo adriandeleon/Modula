@@ -58,7 +58,7 @@ public final class FileReplaySource implements IqSource {
     }
 
     @Override
-    public void setGainAuto() {
+    public void applyDefaultGain() {
         // Fixed at capture time.
     }
 

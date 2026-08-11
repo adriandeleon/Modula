@@ -149,6 +149,17 @@ public final class RecordingSink implements AudioSink {
         delegate.setVolume(volume);
     }
 
+    /** The real sink's, not this one's: a recorder has no playback buffer of its own to overrun. */
+    @Override
+    public long droppedSamples() {
+        return delegate.droppedSamples();
+    }
+
+    @Override
+    public long underrunSamples() {
+        return delegate.underrunSamples();
+    }
+
     @Override
     public void close() {
         stop();
