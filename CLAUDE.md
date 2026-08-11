@@ -19,8 +19,20 @@ module `com.modula`).
 Modula is a **radio**, not an SDR panel. General SDR software is overwhelming because it exposes the
 DSP graph; Modula exposes a frequency and a volume knob. There is deliberately **no** demodulator
 picker, filter-bandwidth slider, gain/AGC panel, squelch control or FFT settings — none of them has
-a right answer a listener should have to supply. Gain is left to the dongle's own AGC and the
+a right answer a listener should have to supply. Gain is **fixed** by `source/TunerGain` and the
 bandwidth is fixed by `DemodChain`.
+
+**"No gain control" means one right answer, not no answer, and the answer is no longer the AGC.** It
+used to be — and `RtlSdrNativeSource.open` enabled *two* AGCs, the tuner's and the RTL2832U's digital
+one, hunting the same signal. Both are off now, for the reason documented on `TunerGain`: an AGC
+drives an **8-bit** ADC toward full scale whatever the signal is doing, and on a strong local station
+its compression products land right across the multiplex — the 19 kHz pilot, the 38 kHz difference
+channel and the 57 kHz RDS subcarrier all sit in the debris. That presents as marginal stereo and
+absent RDS on a station whose meter reads strong, which is a hard place to start looking. It also
+makes the level reading useless: an AGC reports its own target, not the station.
+
+`TunerGain.TARGET_TENTHS` (30 dB) is a **starting point, not a derived optimum**. Refine it against
+the quieting figure in the status line, which is why the two were added together.
 
 When adding a feature, the test is whether a car radio would have it. A preset button, yes. A
 "decimation stages" spinner, no.
@@ -121,6 +133,7 @@ monospace readout reads as punctuation rather than a sign.
 
 ```
 u8 IQ @ 1.2 MSPS  (16384-pair blocks, ~13.6 ms)
+ └ ByteRing  ← modula-usb writes here and goes straight back to reading
  └ SampleFormat.u8ToFloat       →  float i[], q[]      1.2 MSPS
    └ FirFilter ×2, ÷5           →  float i[], q[]      240 kHz  (channel select)
      └ FmDiscriminator          →  float mpx[]         240 kHz  (real, the multiplex)
@@ -146,16 +159,44 @@ transmitters are only required to manage about 29 dB).
 
 ### Threading
 
-Three threads, and there is no reason to add a fourth:
+Four threads, and the fourth was bought with a measurement:
 
-1. **`modula-dsp`** (`RadioEngine`) — read a block, run the chain, write PCM into the ring.
-2. **`modula-audio`** (`JavaSoundSink`) — pull from the ring, `line.write()`. Its blocking write is
+1. **`modula-usb`** (`RadioEngine`) — read a block off the dongle, put it in the `ByteRing`, read
+   again. Owns every call into the device, because librtlsdr is not thread-safe.
+2. **`modula-dsp`** (`RadioEngine`) — take a block from the ring, run the chain, write PCM into the
+   `ShortRing`, drive the seek machine, publish status.
+3. **`modula-audio`** (`JavaSoundSink`) — pull from the ring, `line.write()`. Its blocking write is
    the playback clock and is *meant* to block.
-3. **The FX thread** — receives status via a coalesced `Platform.runLater` (an `AtomicReference` for
+4. **The FX thread** — receives status via a coalesced `Platform.runLater` (an `AtomicReference` for
    the latest value plus an `AtomicBoolean` pending flag, so at most one repaint is ever queued).
 
-`radio` never calls into JavaFX. `RadioEngine` listeners fire **on the receive thread** and the UI
+**This used to be three, with reading and demodulating in one loop, and that shape loses samples by
+construction.** `rtlsdr_read_sync` keeps exactly one USB transfer outstanding and does not submit the
+next until it is called again, so for the whole demodulate-write-publish stretch nothing is in flight.
+The dongle does not wait: at 1.2 MSPS **every millisecond of that gap is 1200 I/Q samples gone**, and
+a gap inside a block is a phase discontinuity, so the pilot PLL loses lock. The symptom is not a click
+— it is a **stereo indicator flickering on and off while the signal strength sits perfectly still**,
+which reads as a reception problem and sends you to the antenna.
+
+It presented as an operating-system difference, because it is worse on macOS: resubmitting a bulk
+transfer through IOKit costs more than through Linux usbfs, and an external hub adds another tier of
+scheduling. The same build over `rtl_tcp` was never affected at all — `rtl_tcp` drives the dongle
+through `rtlsdr_read_async` with about fifteen transfers permanently queued, so **the two delivery
+paths have very different tolerance for the same stall**, and a comparison that changes both the
+machine and the delivery path at once cannot see the cause. `ShortRing`'s own documentation had
+described this failure mode since it was written; it had only ever been applied to the sound card end.
+
+`radio` never calls into JavaFX. `RadioEngine` listeners fire **on the DSP thread** and the UI
 marshals them. Keep it that way.
+
+**A retune now spans two threads, and the ring's generation counter is what joins them.** The device
+belongs to `modula-usb` and the filter chain to `modula-dsp`, so the reader moves the oscillator,
+discards what is still buffered from the old frequency and bumps `ByteRing`'s stamp; the DSP calls
+`DemodChain.reset()` when it first reads a block carrying the new one. That is what preserves the
+invariant that the previous station's tail is never smeared into the next. **The seek machine stays on
+the DSP thread**, because it decides from `noiseDbfs`, and it must not step again until the retune it
+asked for has landed — otherwise it measures a block captured at the previous frequency and walks the
+whole band without ever hearing the station on it.
 
 ## Invariants
 
@@ -199,14 +240,43 @@ the audio path entirely — no pool, no per-block arrays.
 blocked, a stalled sound card would back-pressure into the socket read and the dongle's own buffers
 would overflow, turning a momentary audio hiccup into dropped RF.
 
+**The reader thread must never do anything but read.** The same rule one stage up, and the one that
+was missing: every instruction between two calls to `source.read` is time the dongle is producing
+samples with nowhere to put them. `ByteRing` exists so the reader's only work is a copy, and adding
+anything to that loop — a measurement, a filter, a status update — costs real samples rather than
+just latency. `RadioEnginePipelineTest` pins it by stalling the consumer outright and asserting the
+dongle is still being read, because a timing assertion on the gap both flakes on a loaded runner and
+fails to fail on a fast one.
+
+**An overrun in the IQ ring must leave an even gap in the byte stream.** `ByteRing` holds interleaved
+u8 where even offsets are I and odd are Q, so dropping an odd number of bytes shifts that parity for
+everything after it and I and Q transpose — which conjugates the signal, mirrors the spectrum about
+the centre frequency and makes the discriminator recover the inverse of the modulation, until
+restart. It is the `ShortRing` frame rule with a subtlety: the constraint is on the gap between two
+*retained* bytes, not on any single call, because a full ring has to discard an odd offer whole and
+cannot round it off. That forced odd byte is carried as a debt and paid by the next write that keeps
+anything. A per-call test cannot see this; `ByteRingTest` feeds a stream marked 0 at every I position
+and 1 at every Q, and asserts no pair ever comes back transposed.
+
 **Retune happens on the receive thread.** `RadioEngine.setFrequency` parks the request in an atomic;
 the receive loop applies it and calls `DemodChain.reset()` before the next block, so it can never
 race the filter state and the previous station's tail is never smeared into the new one. Seek runs
 there too, for the same reason.
 
-**Seek thresholds on multiplex noise, never on signal strength.** With the dongle's AGC on, an empty
-channel is gained up until its RF power reads much like an occupied one — measured, −9.85 dBFS empty
-against −9.75 dBFS for a weak station, i.e. no usable difference at all. An FM discriminator fed
+**Seek thresholds on multiplex noise, never on signal strength.** This is now also what the status
+line's **quieting** figure reports, for the same reason. With an AGC running, an empty channel is
+gained up until its RF power reads much like an occupied one — measured, −9.85 dBFS empty against
+−9.75 dBFS for a weak station, i.e. no usable difference at all. (The AGC is off as of the fixed-gain
+change, so `signalDbfs` means more than it did — but multiplex noise remains the honest measure, and it
+is now what **three** things key on: seek, the stereo blend, and `ReceiverState`'s weak decision.)
+
+**`ReceiverState` judges weakness on quieting, falling back to power only where there is none.** It used
+to test `signalDbfs < -45`, which under an AGC could never fire — nothing came within 35 dB of it — so
+WEAK was unreachable and the receiver had no way to tell a listener their signal was poor. Quieting
+below `WEAK_QUIETING_DB` (14 dB, the same point seek stops at) is weak. The fallback covers AM, which
+leaves multiplex noise at zero because envelope detection has no discriminator to measure, and an empty
+FM channel, which has quieted nothing — one test serves both, and neither may read as permanently weak
+just because the measurement it lacks is absent. An FM discriminator fed
 noise, by contrast, produces loud broadband hiss above the multiplex, and a carrier quiets it:
 `DemodChain.noiseDbfs` reads −5.8 dBFS on an empty channel and −51 on a strong station. That is the
 same noise-squelch measurement analogue radios have always used, and it is immune to the AGC.
@@ -218,6 +288,26 @@ frequency — the classic centre spike.
 
 ## Known costs and limits
 
+- **The pilot lock detector needs hysteresis, and it is not a cosmetic detail.** The audio used to be
+  switched between the stereo matrix and a mono copy on `isLocked()`, so a detector level sitting near a
+  single threshold did not merely flicker an indicator — it changed the audio path several times a
+  second, heard as spottiness, while the status line reported *"no pilot"*, i.e. the station cutting
+  out. `Pll` acquires at 0.01 and releases at 0.004; acquisition is unchanged, so the pull-in time below
+  is untouched and only the decision to give up is slower. Same reasoning as the RDS subcarrier's
+  in-phase-versus-quadrature hysteresis.
+- **Stereo is blended, not switched.** `demod/StereoBlend` scales the difference channel by 0–1 rather
+  than choosing between the matrix and mono, so a marginal station narrows its image *and* attenuates
+  the difference channel's noise by the same factor. Hysteresis alone only moves the cliff; either side
+  of it the listener still gets all 20 dB of the noise stereo costs, or none of the separation. Driven
+  by **quieting**, so what is heard and what the status line says cannot disagree. Full image at 20 dB,
+  mono at 8, linear between — from the same calibration, so the same synthetic-RF caveat applies.
+  - **It seeds on first lock rather than ramping**, for two reasons that happen to coincide: a fade-in
+    on every retune is audible, and `DemodChainTest` measures separation from a settled tail, so a ramp
+    lasting a time constant would pull it under the 20 dB floor and make a working blend look like a
+    broken matrix. After the first measurement every change is smoothed — which is the point.
+  - `pilotLocked` still reports the **transmitter**, so the indicator lights on a station sending a
+    pilot even when the blend has taken the audio most of the way to mono. That is the one state a
+    listener cannot otherwise explain, which is why `Readouts.stereoBlend` names it while partial.
 - **PLL acquisition time is a product constraint, not a tuning detail.** It is how long after a
   retune the stereo indicator lights. Measured pull-in against a 30 Hz offset: at a 20 Hz loop
   bandwidth the loop still rings ±7 Hz at 500 ms and settles near 1 s; at 50 Hz it is within 3 Hz
@@ -233,6 +323,37 @@ frequency — the classic centre spike.
 - **The two clocks drift.** The dongle samples on its crystal, the sound card plays on its own, so
   over a long session the ring creeps toward full or empty and will eventually glitch. The fix is a
   fractional resampler tracking the ring's fill level, and it belongs in `audio` — not in the chain.
+- **The IQ ring's depth is a latency budget.** Eight blocks, about 109 ms. Deep enough to ride out a
+  GC pause or a scheduling stall on a busy USB tree; shallow enough that a ring which does briefly
+  fill cannot add much delay. It only drains back to empty because the chain runs faster than real
+  time, which is the assumption the depth rests on — `Losses.iqDropped` is what shows that assumption
+  failing on a machine where it does not hold. Retuning clears the ring, so tuning latency is not
+  affected by how full it was.
+- **The four loss counters are the diagnosis, and they are not interchangeable.** `iqLost` is time the
+  bus had nothing in flight, `iqDropped` is the DSP falling behind real time, `audioDropped` is the
+  sound card being outrun, and `audioUnderrun` is the sink being starved. One "dropped samples" number
+  attributed all four to the sound card, which is where a day went. `iqLost` is derived from measured
+  gap time rather than by comparing a sample count against the clock, deliberately: the dongle's
+  crystal is tens of ppm off, and a wall-clock deficit cannot separate that baseline error from real
+  loss — a gap can.
+  - **Not every gap is a loss, and a counter that assumes otherwise is worse than none.** Charging all
+    of it read ~1200 samples a second on a healthy receiver — the 32 KB copy into the ring, about 13 µs
+    a block, which the dongle's FIFO absorbs. The total then grew without bound, kept the fault
+    permanently on, and because the fault branch *replaced* the status line it hid the quieting and RDS
+    figures behind itself: **stereo and RDS were working and invisible, and the counter built to
+    diagnose the problem was manufacturing one.** Only gap beyond `GAP_TOLERANCE_NANOS` (500 µs — an
+    order of magnitude above the copy, an order below a GC pause or a scheduling miss) counts, a fault
+    needs `AUDIBLE_LOSS_SAMPLES` between publishes, and a fault is appended rather than substituted.
+    The lesson generalises: a diagnostic that cannot read zero on a working system is not a diagnostic.
+- **The carrier-offset readout exists because a frequency error damages stereo before mono.** The
+  offset slides the multiplex within the channel filter, and the 38 kHz difference channel and 57 kHz
+  RDS subcarrier sit at the top of that band, so they hit the edge while the mono sum below 15 kHz
+  still sounds clean. `DemodChain.carrierOffsetHz` reads it straight off the discriminator's DC level
+  — full deviation is scaled to ±1.0, so the mean *is* the offset in hertz once programme content has
+  averaged out. Reported only above 5 kHz, since most of it is the dongle's crystal and a listener can
+  do nothing about a small one. **Correcting it is not implemented**: `rtlsdr_set_freq_correction` is
+  not bound, and where the number would come from is a product decision — measure first, which is what
+  this readout is for.
 - **Medium-wave AM is unreachable on a stock dongle** (R820T2 tuner floor ~24 MHz). See the README.
   `IqSource.tunableRange()` is the mechanism: the UI asks the source before offering a band.
 
@@ -530,9 +651,18 @@ and calls `close` only after joining it. Buffers come from an `Arena.ofAuto()` s
 close-while-reading hazard — a shared arena closed from the FX thread while the receive thread is
 inside `rtlsdr_read_sync` is exactly the crash this avoids.
 
-Reads are synchronous. The asynchronous API wants a callback on its own thread, while the engine's
-loop is already a thread that wants to block on a read; at 13.6 ms a block, `rtlsdr_read_sync`
-returns long before any timeout.
+**Reads are synchronous, and that is only survivable because the reader does nothing else.** The
+original reasoning here — that the asynchronous API wants a callback on its own thread while the
+engine's loop is already a thread that wants to block on a read — was true and beside the point:
+`rtlsdr_read_sync` keeps *one* transfer outstanding, so whatever the caller does between two reads is
+a window in which the dongle's output is discarded. The fix was the `ByteRing` and the `modula-usb`
+thread (see *Threading*), which shrinks that window to a memcpy.
+
+`rtlsdr_read_async` remains the better primitive and is what `rtl_tcp` itself uses: it keeps about
+fifteen transfers queued, so a stall anywhere in the process cannot empty the queue. Moving to it
+needs a `Linker.upcallStub` and a callback that only copies and returns — anything slower in there
+stalls libusb's own event loop. Worth doing if the `iqLost` counter ever shows loss on a machine where
+the reader is genuinely doing nothing else; it is not worth doing speculatively.
 
 ## The spectrum strip
 

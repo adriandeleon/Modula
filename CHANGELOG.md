@@ -3,6 +3,66 @@
 Notable changes to Modula. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Dropped samples on the USB path, which presented as spotty audio and a stereo indicator flickering
+  on and off.** Reading and demodulating shared one thread, and `rtlsdr_read_sync` keeps only one USB
+  transfer outstanding — so for as long as each block spent in the filter chain nothing was in flight,
+  and whatever the dongle produced was discarded. At 1.2 MSPS a millisecond of that gap is 1200 I/Q
+  samples, and a gap inside a block is a phase discontinuity, which is what dropped the 19 kHz pilot
+  lock. Reading now happens on its own `modula-usb` thread that does nothing but read, handing blocks
+  to the DSP through a new `ByteRing`. It was worse on macOS and worse again through a hub, because
+  resubmitting a bulk transfer through IOKit costs more than through Linux usbfs; the `rtl_tcp` path
+  was never affected, since `rtl_tcp` keeps about fifteen transfers queued.
+- **The front end ran on AGC — two of them, in fact.** The tuner's own AGC and the RTL2832U's digital
+  AGC were both enabled, hunting the same signal. Both are off now in favour of a fixed gain, on both
+  the librtlsdr and `rtl_tcp` paths. An AGC drives an 8-bit ADC toward full scale whatever the signal is
+  doing, and on a strong local station its compression products land across the whole multiplex — the
+  19 kHz pilot, the 38 kHz difference channel and the 57 kHz RDS subcarrier included — so stereo goes
+  marginal and RDS vanishes on a station whose meter reads strong. It also made the level reading
+  meaningless, since an AGC reports its own target rather than the station.
+- **Stereo and the pilot indicator turning on and off on a steady signal.** The pilot lock detector was
+  a single threshold with no hysteresis, so a detector level sitting anywhere near it alternated. That
+  was not cosmetic: the chain switches the audio between the stereo matrix and a mono copy on this flag,
+  so the audio path was changing several times a second — heard as spottiness — while the status line
+  reported *"no pilot"*, which reads as the station cutting out. It now acquires at one level and
+  releases at a lower one. Acquisition is unchanged, so stereo still engages as quickly after a retune.
+- **A weak signal could never be reported as weak.** The decision tested channel power against −45 dBFS,
+  but with an AGC running that figure reports the AGC's target rather than the station — measured, −9.85
+  dBFS on an empty channel against −9.75 for a weak one — so nothing ever came within 35 dB of the
+  threshold and the WEAK state was unreachable. It is now judged on quieting, which measures the station,
+  falling back to power for AM and for an empty channel where there is no quieting to judge.
+- **A single dropped sample used to fault the receiver for the rest of the session.** The fault test
+  read a cumulative counter for "greater than zero", so one momentary overrun pinned the display coral
+  permanently. It now reports loss since the previous status, and so can clear.
+
+### Added
+
+- **Four separate loss counters** — samples lost on the bus, discarded before demodulation, dropped by
+  the sound card, and filled with silence — where there was previously one number that attributed all
+  four to the audio device. The status line names the dominant one, and each has a different remedy.
+- **A stereo blend.** The difference channel is scaled between 0 and 1 on signal quality rather than the
+  output being switched between full stereo and mono, so a marginal station narrows its image and has the
+  difference channel's noise attenuated with it — progressively, instead of at a threshold. Hysteresis
+  alone only moves the cliff: either side of it the listener gets all 20 dB of the noise stereo costs, or
+  none of the separation. Full image at 20 dB of quieting, mono at 8, linear between, smoothed over about
+  a third of a second. The stereo indicator still reports what the *station* is transmitting, so the
+  status line names the blend while it is partial — otherwise a lit indicator over near-mono audio has no
+  explanation.
+- **A quieting figure in the status line** — how far the carrier has suppressed the discriminator's
+  noise, higher being better, 0 meaning an empty channel. This, not the dBFS beside it, is what says
+  whether a station is any good: multiplex noise has a 45 dB usable range where RF power had none worth
+  using, which is why seek has always thresholded on it. Expressed as suppression rather than raw noise
+  dBFS so that better reads as a bigger number, and so there are not two different negative decibel
+  figures side by side. Absent on AM, where there is no discriminator to measure.
+- **A carrier-offset readout**, in kHz and ppm, shown once the offset exceeds 5 kHz. Read off the
+  discriminator's DC level, which is the offset by definition. Worth surfacing because a frequency
+  error damages stereo and RDS before it damages mono: the 38 kHz and 57 kHz subcarriers sit at the top
+  of the multiplex and reach the channel filter's edge first, so a miscalibrated dongle sounds perfect
+  in mono and poor in stereo — a confusing symptom to diagnose by ear and an obvious one to read.
+
 ## [1.0.0] - 2026-08-09
 
 The first release. Everything below is the whole history rather than a delta.
