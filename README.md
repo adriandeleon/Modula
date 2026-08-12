@@ -22,6 +22,10 @@ filter-bandwidth slider, no gain or AGC controls, no FFT settings.
 hardware access. Measured channel separation is 33 dB flat from 100 Hz to 10 kHz; RDS is verified
 against an off-air recording.
 
+<p align="center">
+  <img src="docs/screenshot.png" width="520" alt="Modula tuned to 98.9 MHz in stereo: the frequency in amber on the upper glass, a spectrum strip showing the station centred between its neighbours across 600 kHz either side, transport buttons, four saved presets, and a status line reading signal level, quieting, stereo blend and RDS group rate.">
+</p>
+
 ## Installing it
 
 ```bash
