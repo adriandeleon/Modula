@@ -3,7 +3,11 @@
 Notable changes to Modula. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-08-11
+
+A reception release. Everything in it came out of one report — spotty audio on macOS through a USB hub,
+with the stereo indicator turning on and off — which turned out to be three unrelated faults stacked on
+top of each other, none of which was the hub.
 
 ### Fixed
 
@@ -62,6 +66,15 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   error damages stereo and RDS before it damages mono: the 38 kHz and 57 kHz subcarriers sit at the top
   of the multiplex and reach the channel filter's edge first, so a miscalibrated dongle sounds perfect
   in mono and poor in stereo — a confusing symptom to diagnose by ear and an obvious one to read.
+
+### Dependencies
+
+- JUnit 5.11.4 → 6.1.2, JavaFX 26.0.1 → 26.0.2, dbus-java 5.1.1 → 5.2.0, and the Maven
+  dependency and antrun plugins. Test and packaging jobs pass on all three platforms.
+- The workflow actions: checkout 4 → 7, setup-java 4 → 5, upload-artifact 4 → 7,
+  download-artifact 4 → 8, action-gh-release 2 → 3. **This is the first release built with them**, so
+  it is also the first real exercise of the download-artifact and gh-release majors, which `build.yml`
+  never reaches.
 
 ## [1.0.0] - 2026-08-09
 
