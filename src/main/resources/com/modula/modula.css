@@ -540,6 +540,11 @@
 }
 
 .context-menu .menu-item {
+    /* Explicitly transparent so the row shows the popup's own -surface. Leaving it unset let the
+     * user-agent theme paint it, which put PrimerDark's dark rows behind daylight's near-black -ink
+     * label — dark on dark, legible only on the hovered row, which uses -glass below. The ground is
+     * this sheet's business, so it says so rather than depending on which control theme is loaded. */
+    -fx-background-color: transparent;
     -fx-background-radius: 5;
     -fx-padding: 4 8 4 8;
 }

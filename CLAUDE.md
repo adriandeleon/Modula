@@ -67,7 +67,18 @@ the failure the product is defined against. Lock is teal, faults coral, everythi
 of three weights.
 
 **Every look lives in `modula.css`**, in two token blocks — night by default, daylight behind the
-`daylight` class on the root. There are no `setStyle` calls; a state is a style class, which is what
+`daylight` class on the root — **but the sheet is only half of a ground.** The toolkit's own controls are
+painted by a *user-agent* stylesheet that knows nothing about that class, so `ui/Themes` switches
+AtlantaFX between Primer Light and Primer Dark and `setDaylight` calls both halves. Setting it once at
+startup, as the app used to, put light tokens over dark controls: the right-click menu came up with dark
+rows behind daylight's near-black label text, legible only on the hovered row because that one uses
+Modula's own `-glass`, and the Stereo checkbox wore the dark theme's light label on a light ground.
+*Anything drawn here looked right; anything the toolkit drew stayed in night.* A related trap, worth
+knowing because it is the opposite of what you would guess: the `daylight` class **does** reach a popup's
+content even though a popup is its own scene, so the tokens were never the problem. When a surface is
+entirely stock chrome, suspect the user-agent theme, not the sheet. `setUserAgentStylesheet` is global and
+re-resolves every scene at once, which is what makes a live switch reach the settings window and any open
+popup without either of them cooperating. There are no `setStyle` calls; a state is a style class, which is what
 makes `ReceiverState` expressible as a class swap rather than seven branches of string concatenation.
 
 **The command palette is an in-scene overlay, not a popup window.** A separate stage does not

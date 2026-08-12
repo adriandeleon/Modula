@@ -9,13 +9,13 @@ import javafx.scene.Scene;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
-import atlantafx.base.theme.PrimerDark;
 import com.modula.config.ConfigStore;
 import com.modula.config.Settings;
 import com.modula.tray.ModulaTray;
 import com.modula.tray.TrayDisplay;
 import com.modula.tray.Trays;
 import com.modula.ui.RadioPane;
+import com.modula.ui.Themes;
 import com.modula.update.UpdateCheck;
 import com.modula.update.UpdateService;
 
@@ -36,11 +36,13 @@ public final class ModulaApp extends Application {
     @Override
     public void start(Stage stage) {
         loadFonts();
-        // AtlantaFX themes the five standard controls in use; modula.css does the rest.
-        Application.setUserAgentStylesheet(new PrimerDark().getUserAgentStylesheet());
 
         ConfigStore config = ConfigStore.userDefault();
         Settings settings = config.loadSettings();
+        // AtlantaFX themes the standard controls in use; modula.css does the rest. Both have to follow
+        // the ground, so this reads the saved setting rather than hardcoding night — a daylight user was
+        // getting light tokens on a dark control theme. Settings load first purely so this can.
+        Themes.apply(settings.daylight());
         pane = new RadioPane(config);
         pane.setHostServices(getHostServices());
         Scene scene = new Scene(pane, WINDOW_WIDTH, WINDOW_HEIGHT);

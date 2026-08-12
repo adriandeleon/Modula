@@ -7,6 +7,13 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Daylight left the standard controls in the night theme.** The AtlantaFX user-agent stylesheet was set
+  to Primer Dark once at startup and never changed, so switching ground inverted only what `modula.css`
+  draws. The right-click menu was the worst of it — dark rows under daylight's near-black label text, every
+  row unreadable except the one under the cursor, which uses Modula's own token — and the Stereo checkbox
+  wore the dark theme's light label on a light ground. Both halves now follow the ground, and
+  `.context-menu .menu-item` states its own background rather than inheriting whichever control theme
+  happens to be loaded.
 - **A station sitting exactly on the weak-signal threshold restyled the dial on every update.** The
   threshold had no hysteresis — the same mistake as the pilot detector, made one layer up and immediately
   after fixing it. A signal must now recover by a margin before it stops being called weak. Observed on a
