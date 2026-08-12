@@ -752,6 +752,12 @@ public final class RadioPane extends StackPane {
         } else {
             getStyleClass().remove(DAYLIGHT);
         }
+        // The class only reaches what modula.css draws. The toolkit's own controls come from a
+        // user-agent stylesheet that knows nothing about it, so switching ground is two changes — and
+        // this was the missing one. It is why daylight showed dark menu rows and a washed-out checkbox
+        // label on a light ground. Global and FX-thread-only, which is what makes it reach the settings
+        // window and any open popup without either of them having to cooperate.
+        Themes.apply(daylight);
         applyTheme();
     }
 
