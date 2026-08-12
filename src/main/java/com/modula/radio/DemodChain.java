@@ -159,6 +159,7 @@ public final class DemodChain {
     private double offsetEstimate;
     private int offsetBlocks;
     private volatile double signalDbfs = PowerMeter.FLOOR_DBFS;
+    private volatile double adcHeadroomDb = Double.NaN;
     private volatile double noiseDbfs = 0.0;
     private volatile double carrierOffsetHz = Double.NaN;
     private volatile boolean pilotLocked;
@@ -253,6 +254,9 @@ public final class DemodChain {
     public int process(byte[] raw, int byteCount, short[] out) {
         int pairs = SampleFormat.u8ToFloat(raw, byteCount, rawI, rawQ);
         lastPairs = pairs;
+
+        // Measured before the channel filter, which is the entire point — see adcHeadroomDb.
+        adcHeadroomDb = -PowerMeter.rmsDbfs(rawI, rawQ, pairs);
 
         int ifCount = channelI.filter(rawI, pairs, ifI);
         channelQ.filter(rawQ, pairs, ifQ);
@@ -388,6 +392,29 @@ public final class DemodChain {
     }
 
     /**
+     * How much room is left before the ADC saturates, in dB — <b>higher is safer</b>.
+     *
+     * <p>Taken from the raw samples, <b>before</b> the channel filter, and that is the whole reason it
+     * exists. The ADC digitises the entire {@link #INPUT_RATE} window, so its headroom is consumed by the
+     * strongest signal anywhere in that window — not by the station being listened to. A weak station
+     * flanked by strong neighbours a few hundred kilohertz away therefore cannot be improved by raising
+     * the front-end gain: the neighbours reach saturation first, and an 8-bit ADC in compression sprays
+     * intermodulation products straight across the multiplex. {@link #signalDbfs} is measured after the
+     * filter and is blind to all of it, which made "will more gain help?" a question this receiver could
+     * not answer about itself.
+     *
+     * <p>Read from RMS rather than from peaks. Broadcast FM is constant-envelope, so for a handful of
+     * comparable carriers the crest factor is modest and RMS tracks saturation closely enough to decide a
+     * gain step; counting railed samples would be the stricter measure if this ever needs to be exact.
+     *
+     * <p>Costs one pass over the block — about 1% of the channel filter beside it — and reuses
+     * {@code PowerMeter} rather than hand-rolling the arithmetic.
+     */
+    public double adcHeadroomDb() {
+        return adcHeadroomDb;
+    }
+
+    /**
      * A snapshot of the RF spectrum across the full sample rate, most negative frequency first.
      *
      * <p>Taken from the raw IQ of the block just processed, so it shows the neighbours as well as the
@@ -516,6 +543,7 @@ public final class DemodChain {
         deemphasisLeft.reset();
         deemphasisRight.reset();
         signalDbfs = PowerMeter.FLOOR_DBFS;
+        adcHeadroomDb = Double.NaN;
         noiseDbfs = 0.0;
         pilotLocked = false;
         // The offset belongs to the station we were on, so it has to be re-measured for the next one.

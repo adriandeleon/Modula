@@ -100,6 +100,9 @@ public final class RadioPane extends StackPane {
     private long frequencyHz;
     private boolean faulted;
 
+    /** What {@link ReceiverState#of} said last time, which is what gives its weak threshold hysteresis. */
+    private ReceiverState lastState;
+
     private RadioEngine engine;
     private JavaSoundSink sink;
     private RecordingSink recorder;
@@ -1118,7 +1121,10 @@ public final class RadioPane extends StackPane {
             presetBar.setTuned(frequencyHz);
         }
 
-        ReceiverState state = ReceiverState.of(status, faulted);
+        // The previous state is what gives the weak threshold hysteresis; ReceiverState stays pure by
+        // being told rather than remembering. FX thread only, so a plain field is enough.
+        ReceiverState state = ReceiverState.of(status, faulted, lastState);
+        lastState = state;
         glass.apply(state, status, frequencyHz);
         publishTray();
 
@@ -1138,6 +1144,7 @@ public final class RadioPane extends StackPane {
             String signal = join(
                     Readouts.dbfs(status.signalDbfs()),
                     Readouts.quieting(DemodChain.quietingDb(status.noiseDbfs())),
+                    Readouts.headroom(status.adcHeadroomDb()),
                     Readouts.stereoBlend(status.stereoBlend()),
                     status.rdsDiagnostic(),
                     Readouts.carrierOffset(status.carrierOffsetHz(), status.frequencyHz()));

@@ -270,6 +270,14 @@ gained up until its RF power reads much like an occupied one — measured, −9.
 change, so `signalDbfs` means more than it did — but multiplex noise remains the honest measure, and it
 is now what **three** things key on: seek, the stereo blend, and `ReceiverState`'s weak decision.)
 
+**A threshold without hysteresis is the mistake this codebase has now made twice.** The pilot detector
+flapped for it, and the weak-signal threshold was then written the same way — a real station measured
+quieting of exactly 14 dB, sitting on the boundary, restyling the dial on every crossing.
+`ReceiverState.WEAK_HYSTERESIS_DB` is the margin a signal must clear on the way *out*. **The previous
+state is passed into `ReceiverState.of` rather than remembered there**, which is what keeps it a pure
+function — the property that makes every one of those decisions testable without a toolkit. When adding a
+threshold anywhere, ask what happens to a signal that sits exactly on it.
+
 **`ReceiverState` judges weakness on quieting, falling back to power only where there is none.** It used
 to test `signalDbfs < -45`, which under an AGC could never fire — nothing came within 35 dB of it — so
 WEAK was unreachable and the receiver had no way to tell a listener their signal was poor. Quieting
@@ -345,6 +353,13 @@ frequency — the classic centre spike.
     order of magnitude above the copy, an order below a GC pause or a scheduling miss) counts, a fault
     needs `AUDIBLE_LOSS_SAMPLES` between publishes, and a fault is appended rather than substituted.
     The lesson generalises: a diagnostic that cannot read zero on a working system is not a diagnostic.
+- **Headroom is measured before the channel filter, and that is the whole point.** The ADC digitises the
+  entire 1.2 MHz window, so its headroom is spent by the strongest signal anywhere in it — not by the
+  station being listened to. `DemodChain.adcHeadroomDb` is what makes "would more gain help?" answerable:
+  a weak station flanked by strong neighbours cannot be improved by raising the gain, because the
+  neighbours saturate first and an 8-bit ADC in compression sprays intermodulation across the multiplex.
+  `signalDbfs` is post-filter and blind to all of it. Reported only below 12 dB, i.e. only once a normal
+  gain step would clip.
 - **The carrier-offset readout exists because a frequency error damages stereo before mono.** The
   offset slides the multiplex within the channel filter, and the 38 kHz difference channel and 57 kHz
   RDS subcarrier sit at the top of that band, so they hit the edge while the mono sum below 15 kHz

@@ -3,6 +3,24 @@
 Notable changes to Modula. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A station sitting exactly on the weak-signal threshold restyled the dial on every update.** The
+  threshold had no hysteresis — the same mistake as the pilot detector, made one layer up and immediately
+  after fixing it. A signal must now recover by a margin before it stops being called weak. Observed on a
+  real station measuring quieting of exactly 14 dB, which is the threshold itself.
+
+### Added
+
+- **An ADC headroom readout**, shown once there is less than 12 dB left, i.e. once a normal gain step
+  would saturate. Measured across the whole sampled window rather than the tuned channel, which is what
+  makes it useful: the converter's headroom is spent by the strongest signal anywhere in the window, so a
+  weak station flanked by strong neighbours cannot be helped by more gain — they reach saturation first,
+  and the compression products land across the multiplex. The receiver previously had no way to answer
+  "would more gain help?" about itself.
+
 ## [1.1.0] - 2026-08-11
 
 A reception release. Everything in it came out of one report — spotty audio on macOS through a USB hub,

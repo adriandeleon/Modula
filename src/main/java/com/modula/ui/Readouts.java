@@ -97,6 +97,31 @@ public final class Readouts {
         return "stereo %.0f%%".formatted(blend * 100.0);
     }
 
+    /**
+     * Headroom above which the front end is not the constraint, so reporting it would be noise.
+     *
+     * <p>12 dB, because the decision this readout serves is whether a gain step is safe: with less than
+     * that left, the usual ten-decibel increase reaches saturation.
+     */
+    static final double HEADROOM_WORTH_REPORTING_DB = 12.0;
+
+    /**
+     * How much room is left before the ADC saturates, when there is little enough to matter.
+     *
+     * <p>Appears only once the front end has become the limit, which is exactly when someone is asking
+     * whether to raise the gain. A comfortable receiver says nothing, and the silence is the answer.
+     *
+     * <p>See {@code DemodChain.adcHeadroomDb} for why this is a different question from signal strength:
+     * it is measured across the whole sampled window, so a strong neighbour a few hundred kilohertz away
+     * spends the headroom even while the tuned channel reads weak.
+     */
+    public static String headroom(double headroomDb) {
+        if (Double.isNaN(headroomDb) || headroomDb >= HEADROOM_WORTH_REPORTING_DB) {
+            return "";
+        }
+        return "headroom %.0f dB".formatted(Math.max(0.0, headroomDb));
+    }
+
     /** Offsets smaller than this are not worth a listener's attention, and saying so every time is noise. */
     static final double OFFSET_WORTH_REPORTING_HZ = 5_000.0;
 
