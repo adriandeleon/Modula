@@ -80,6 +80,20 @@ public enum ReceiverState {
     public static final double WEAK_DBFS = -45.0;
 
     /**
+     * How far a signal must recover before it stops being called weak, in dB.
+     *
+     * <p><b>A threshold with no hysteresis is the mistake this receiver has now made twice.</b> The pilot
+     * detector flapped for the same reason, and it is not hypothetical here: a real station measured
+     * quieting of exactly 14 dB, sitting on the boundary, which restyles the dial every time the estimate
+     * crosses it. Three decibels either side is enough to settle it without making a genuinely improving
+     * signal wait.
+     *
+     * <p>Applied to the power fallback too, since the argument has nothing to do with which measurement
+     * is being compared.
+     */
+    public static final double WEAK_HYSTERESIS_DB = 3.0;
+
+    /**
      * Classifies a status snapshot.
      *
      * <p>Order matters and encodes the priorities above: a fault outranks everything because it needs
@@ -90,6 +104,20 @@ public enum ReceiverState {
      * @param faulted whether the engine reported an error
      */
     public static ReceiverState of(RadioEngine.Status status, boolean faulted) {
+        return of(status, faulted, null);
+    }
+
+    /**
+     * Classifies a status snapshot, given what it was last time.
+     *
+     * <p>The previous state is passed in rather than remembered here, which is what lets the weak
+     * threshold have hysteresis while this stays a <b>pure function</b> — the property that makes every
+     * one of these decisions testable without a toolkit. The caller already knows what it last displayed.
+     *
+     * @param previous the state this returned last time, or null for no hysteresis (a first
+     *     classification, or a caller that does not track it)
+     */
+    public static ReceiverState of(RadioEngine.Status status, boolean faulted, ReceiverState previous) {
         if (status == null) {
             return NOT_LISTENING;
         }
@@ -105,7 +133,7 @@ public enum ReceiverState {
         if (status.signalDbfs() <= com.modula.dsp.PowerMeter.FLOOR_DBFS) {
             return STARTING; // running, but nothing measured yet
         }
-        if (isWeak(status)) {
+        if (isWeak(status, previous == WEAK)) {
             return WEAK;
         }
         return status.pilotLocked() ? STEREO : MONO;
@@ -117,12 +145,14 @@ public enum ReceiverState {
      * <p>Judged on quieting where there is any, because that measures the station; power is the fallback
      * for AM and for an empty channel, where there is no multiplex noise to have suppressed.
      */
-    private static boolean isWeak(RadioEngine.Status status) {
+    private static boolean isWeak(RadioEngine.Status status, boolean wasWeak) {
+        // Already weak: the signal has to clear the threshold by the hysteresis before we say otherwise.
+        double margin = wasWeak ? WEAK_HYSTERESIS_DB : 0.0;
         double quieting = com.modula.radio.DemodChain.quietingDb(status.noiseDbfs());
         if (quieting >= MEASURABLE_QUIETING_DB) {
-            return quieting < WEAK_QUIETING_DB;
+            return quieting < WEAK_QUIETING_DB + margin;
         }
-        return status.signalDbfs() < WEAK_DBFS;
+        return status.signalDbfs() < WEAK_DBFS + margin;
     }
 
     /** Whether the receiver is running at all, whatever it is managing to hear. */

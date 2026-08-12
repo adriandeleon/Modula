@@ -171,6 +171,8 @@ public final class RadioEngine implements AutoCloseable {
      *     AGC is running, since it then reports the AGC's target; {@code noiseDbfs} is the honest one
      * @param noiseDbfs multiplex noise above 60 kHz, where <b>lower means a stronger station</b>; see
      *     {@link DemodChain#noiseDbfs()}
+     * @param adcHeadroomDb room left before the ADC saturates, measured across the whole sampled window
+     *     rather than the tuned channel; see {@link DemodChain#adcHeadroomDb()}
      * @param stereoBlend how wide the image actually is, 0 to 1 — what the listener is getting, as
      *     opposed to {@code pilotLocked}, which is what the station is sending
      * @param carrierOffsetHz how far the carrier sits from where we tuned, or {@code NaN} until
@@ -185,6 +187,7 @@ public final class RadioEngine implements AutoCloseable {
             String rdsDiagnostic,
             float[] spectrum,
             double noiseDbfs,
+            double adcHeadroomDb,
             double stereoBlend,
             double carrierOffsetHz,
             Losses losses,
@@ -511,6 +514,7 @@ public final class RadioEngine implements AutoCloseable {
                 // Computed here rather than in the loop: nine transforms a second, not seventy-three.
                 running ? chain.captureSpectrum() : null,
                 chain.noiseDbfs(),
+                chain.adcHeadroomDb(),
                 chain.stereoBlend(),
                 chain.carrierOffsetHz(),
                 losses(),

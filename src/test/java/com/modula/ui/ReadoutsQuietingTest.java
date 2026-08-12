@@ -71,4 +71,30 @@ class ReadoutsQuietingTest {
         assertEquals("stereo 40%", Readouts.stereoBlend(0.4));
         assertEquals("stereo 75%", Readouts.stereoBlend(0.75));
     }
+
+    // --- headroom ------------------------------------------------------------------------------
+
+    /** A comfortable front end says nothing, and the silence is the answer to "should I add gain?". */
+    @Test
+    void plentyOfHeadroomIsNotWorthMentioning() {
+        assertEquals("", Readouts.headroom(30.0));
+        assertEquals("", Readouts.headroom(Readouts.HEADROOM_WORTH_REPORTING_DB));
+        assertEquals("", Readouts.headroom(Double.NaN));
+    }
+
+    /**
+     * It appears exactly when the front end has become the constraint: with less than the usual ten-decibel
+     * step left, raising the gain reaches saturation instead of improving anything.
+     */
+    @Test
+    void aConstrainedFrontEndSaysHowMuchIsLeft() {
+        assertEquals("headroom 6 dB", Readouts.headroom(6.0));
+        assertEquals("headroom 0 dB", Readouts.headroom(0.0), "no room left at all is the case that matters most");
+    }
+
+    /** An overloaded front end reads zero rather than a negative number, which would not mean anything. */
+    @Test
+    void anOverloadedFrontEndDoesNotReportNegativeRoom() {
+        assertEquals("headroom 0 dB", Readouts.headroom(-4.0));
+    }
 }

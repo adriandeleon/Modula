@@ -81,7 +81,19 @@ class ReceiverStateTest {
     void aLossThatHasStoppedHappeningIsNoLongerAFault() {
         RadioEngine.Losses settled = new RadioEngine.Losses(0L, 0L, 44L, 0L, false);
         RadioEngine.Status status = new RadioEngine.Status(
-                98_900_000L, -16, true, false, StationInfo.NONE, "", null, 0.0, 0.0, Double.NaN, settled, true);
+                98_900_000L,
+                -16,
+                true,
+                false,
+                StationInfo.NONE,
+                "",
+                null,
+                0.0,
+                Double.NaN,
+                0.0,
+                Double.NaN,
+                settled,
+                true);
 
         assertEquals(ReceiverState.STEREO, ReceiverState.of(status, false));
     }
@@ -118,6 +130,7 @@ class ReceiverStateTest {
                 "AM",
                 null,
                 0.0,
+                Double.NaN,
                 0.0,
                 Double.NaN,
                 new RadioEngine.Losses(0L, 0L, 0L, 0L, false),
@@ -125,6 +138,49 @@ class ReceiverStateTest {
 
         assertEquals(ReceiverState.MONO, ReceiverState.of(am, false));
     }
+
+    /**
+     * A station parked on the threshold must settle on an answer.
+     *
+     * <p>Not hypothetical: a real station measured quieting of exactly 14 dB, which <i>is</i> the
+     * threshold, so every crossing restyled the dial. The same mistake as the pilot detector's single
+     * threshold, one layer up — and made immediately after fixing that one, which is why it is pinned.
+     */
+    @Test
+    void aSignalOnTheThresholdDoesNotAlternate() {
+        ReceiverState state = ReceiverState.WEAK;
+        for (int n = 0; n < 40; n++) {
+            // Jitter either side of the boundary, block by block, as a real estimate does.
+            double quieting = ReceiverState.WEAK_QUIETING_DB + (n % 2 == 0 ? 0.4 : -0.4);
+            ReceiverState next = ReceiverState.of(withQuieting(-9, quieting, true), false, state);
+
+            assertEquals(ReceiverState.WEAK, next, "left WEAK on a signal that has not really recovered");
+            state = next;
+        }
+    }
+
+    /** Hysteresis must not become stickiness: a signal that genuinely recovers has to be released. */
+    @Test
+    void aRecoveredSignalStopsBeingWeak() {
+        double recovered = ReceiverState.WEAK_QUIETING_DB + ReceiverState.WEAK_HYSTERESIS_DB + 1.0;
+
+        assertEquals(
+                ReceiverState.STEREO, ReceiverState.of(withQuieting(-9, recovered, true), false, ReceiverState.WEAK));
+    }
+
+    /** Entering WEAK is unchanged: the margin applies only on the way out. */
+    @Test
+    void enteringWeakStillHappensAtThePlainThreshold() {
+        assertEquals(
+                ReceiverState.WEAK,
+                ReceiverState.of(withQuieting(-9, ReceiverState.WEAK_QUIETING_DB - 0.4, true), false, STRONG_BEFORE));
+        assertEquals(
+                ReceiverState.STEREO,
+                ReceiverState.of(withQuieting(-9, ReceiverState.WEAK_QUIETING_DB + 0.4, true), false, null),
+                "with no previous state there is nothing to be hysteretic about");
+    }
+
+    private static final ReceiverState STRONG_BEFORE = ReceiverState.STEREO;
 
     @Test
     void anEngineErrorIsAFaultEvenWithAGoodSignal() {
@@ -177,6 +233,7 @@ class ReceiverStateTest {
                 "",
                 null,
                 noiseDbfs,
+                Double.NaN,
                 pilot ? 1.0 : 0.0,
                 Double.NaN,
                 new RadioEngine.Losses(0L, 0L, 0L, 0L, false),
@@ -197,6 +254,7 @@ class ReceiverStateTest {
                 "",
                 null,
                 0.0,
+                Double.NaN,
                 0.0,
                 Double.NaN,
                 losses,
