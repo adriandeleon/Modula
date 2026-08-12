@@ -3,7 +3,11 @@
 Notable changes to Modula. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2026-08-11
+
+A follow-up to 1.1.0, and mostly a list of things 1.1.0's own work exposed: a threshold written without
+hysteresis immediately after fixing another one, a ground that only ever inverted half of itself, and the
+measurement that finally answers whether more front-end gain would help.
 
 ### Fixed
 
