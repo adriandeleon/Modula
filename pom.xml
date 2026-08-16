@@ -41,7 +41,7 @@
         <exec.plugin.version>3.5.0</exec.plugin.version>
         <dependency.plugin.version>3.11.0</dependency.plugin.version>
         <antrun.plugin.version>3.2.0</antrun.plugin.version>
-        <buildhelper.plugin.version>3.6.0</buildhelper.plugin.version>
+        <buildhelper.plugin.version>3.6.1</buildhelper.plugin.version>
 
         <jpackage.vendor>Adrian De Leon</jpackage.vendor>
         <!-- Overridable: -Djpackage.type=APP_IMAGE gives an unpackaged bundle, which is much faster
