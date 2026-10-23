@@ -11,8 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UpdateCheckTest {
 
-    private static final String RELEASE =
-            """
+    private static final String RELEASE = """
             {"tag_name":"v0.4.0","name":"Modula 0.4.0","draft":false,"prerelease":false,
              "html_url":"https://example.invalid/releases/v0.4.0"}
             """;

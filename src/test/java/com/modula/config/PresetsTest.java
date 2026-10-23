@@ -30,8 +30,7 @@ class PresetsTest {
     /** One bad line must cost one preset, not the whole file — a radio has to start. */
     @Test
     void skipsMalformedLinesRatherThanFailing() {
-        String text =
-                """
+        String text = """
                 101500000\tGood
                 not-a-number\tBad
                 \t
