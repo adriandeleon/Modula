@@ -1,6 +1,6 @@
 # Modula
 
-An FM/AM broadcast radio receiver for RTL-SDR dongles. JDK 25 + JavaFX 26 + Maven, modular (JPMS,
+An FM/AM broadcast radio receiver for RTL-SDR dongles. JDK 25 + JavaFX 27 + Maven, modular (JPMS,
 module `com.modula`).
 
 ## Commands
@@ -614,7 +614,7 @@ hand-written `module-info` sources for automatic modules.
 
 Four things the profile has to get right, each verified rather than assumed:
 
-- **openjfx publishes every module twice.** The classifier-less `javafx-graphics-26.0.1.jar` is
+- **openjfx publishes every module twice.** The classifier-less `javafx-graphics-27.0.1.jar` is
   genuinely **empty** (measured: 2 entries, 70 bytes); the real one, with `module-info` and the
   natives, carries a platform classifier. Both are in the dependency tree, and two jars claiming
   `javafx.graphics` on one module path is an error at best — at worst the empty one wins and the

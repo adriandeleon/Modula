@@ -7,12 +7,12 @@
 [![build](https://github.com/adriandeleon/Modula/actions/workflows/build.yml/badge.svg)](https://github.com/adriandeleon/Modula/actions/workflows/build.yml)
 [![licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 [![JDK 25](https://img.shields.io/badge/JDK-25-orange.svg)](https://openjdk.org/projects/jdk/25/)
-[![JavaFX 26](https://img.shields.io/badge/JavaFX-26-blue.svg)](https://openjfx.io/)
+[![JavaFX 27](https://img.shields.io/badge/JavaFX-27-blue.svg)](https://openjfx.io/)
 [![platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#installing-it)
 
 <br clear="left">
 
-Listen to broadcast radio with an RTL-SDR dongle. Java 25 + JavaFX 26.
+Listen to broadcast radio with an RTL-SDR dongle. Java 25 + JavaFX 27.
 
 Not an SDR panel — a radio. One amber number is the brightest thing on screen; everything else is
 instrumentation around it, dimmed until it has something to say. No demodulator picker, no
@@ -100,7 +100,7 @@ as does `FileReplaySource`, which replays a recorded capture for testing.
 ## CI
 
 `build.yml` tests and packages on Linux, macOS and Windows for every push and pull request. The FX
-tests use JavaFX 26's built-in headless platform, so there is no Xvfb and no display; the hardware
+tests use JavaFX 27's built-in headless platform, so there is no Xvfb and no display; the hardware
 test skips itself when no dongle is attached, which on a runner is always.
 
 `release.yml` runs on a `v*` tag: it builds an installer per target, refuses to proceed if the tag

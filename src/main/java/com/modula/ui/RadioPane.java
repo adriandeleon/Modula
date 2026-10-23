@@ -1060,12 +1060,11 @@ public final class RadioPane extends StackPane {
      * as a region change does.
      */
     private void setBand(String name) {
-        BandPlan chosen =
-                switch (name) {
-                    case "AM" -> BandPlan.mediumWave(region);
-                    case "AIR" -> BandPlan.airband();
-                    default -> BandPlan.fm(region);
-                };
+        BandPlan chosen = switch (name) {
+            case "AM" -> BandPlan.mediumWave(region);
+            case "AIR" -> BandPlan.airband();
+            default -> BandPlan.fm(region);
+        };
         applyBand(chosen);
         // Stereo is meaningless outside FM, so the control says so rather than sitting there inert.
         stereoCheck.setDisable(!chosen.modulation().carriesStereo());
