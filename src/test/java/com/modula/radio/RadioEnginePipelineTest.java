@@ -116,6 +116,99 @@ class RadioEnginePipelineTest {
         assertTrue(new RadioEngine.Losses(0L, 0L, 9L, 9L, true).describe().contains("audio device"));
     }
 
+    /**
+     * The contract the UI's fault handler depends on: an engine that stops itself — the dongle
+     * unplugged mid-read — reports it, but keeps the device and the sound card until {@code stop()},
+     * and {@code stop()} still releases both afterwards. The UI once only restyled itself on a fault,
+     * so the dead engine kept the dongle claimed and the next Listen could not open it.
+     */
+    @Test
+    @Timeout(30)
+    void anEngineThatFaultedStillReleasesEverythingWhenStopped() throws Exception {
+        CountDownLatch faulted = new CountDownLatch(1);
+        UnpluggedDongle dongle = new UnpluggedDongle(3);
+        ClosingSink sink = new ClosingSink();
+        RadioEngine engine = new RadioEngine(dongle, sink, Region.AMERICAS, BandPlan.fm(Region.AMERICAS));
+        engine.setErrorListener(error -> faulted.countDown());
+
+        engine.start(START_HZ);
+        assertTrue(faulted.await(20, TimeUnit.SECONDS), "an unplugged dongle must be reported");
+        long deadline = System.nanoTime() + 20_000_000_000L;
+        while (engine.isRunning() && System.nanoTime() < deadline) {
+            Thread.sleep(2);
+        }
+        assertTrue(!engine.isRunning(), "a faulted engine should say it has stopped");
+        assertTrue(!dongle.closed, "nothing releases the device until stop() — so the UI must call it");
+
+        engine.stop();
+        assertTrue(dongle.closed, "stop() on a faulted engine must release the device");
+        assertTrue(sink.closed, "and the sound card, which is what finalises a recording");
+    }
+
+    /** Delivers a few blocks, then fails the way a pulled USB plug does. */
+    private static final class UnpluggedDongle implements IqSource {
+
+        private final byte[] block = new byte[DemodChain.BLOCK_PAIRS * 2];
+        private int remaining;
+        volatile boolean closed;
+
+        UnpluggedDongle(int blocks) {
+            this.remaining = blocks;
+            new Random(5).nextBytes(block);
+        }
+
+        @Override
+        public void open() {}
+
+        @Override
+        public void setFrequency(long hz) {}
+
+        @Override
+        public void setSampleRate(int samplesPerSecond) {}
+
+        @Override
+        public void applyDefaultGain() {}
+
+        @Override
+        public int read(byte[] into) throws java.io.IOException {
+            if (remaining-- <= 0) {
+                throw new java.io.IOException("LIBUSB_ERROR_NO_DEVICE");
+            }
+            int n = Math.min(into.length, block.length);
+            System.arraycopy(block, 0, into, 0, n);
+            return n;
+        }
+
+        @Override
+        public Range tunableRange() {
+            return new Range(0L, Long.MAX_VALUE);
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+    }
+
+    private static final class ClosingSink implements AudioSink {
+
+        volatile boolean closed;
+
+        @Override
+        public void open() {}
+
+        @Override
+        public void write(short[] pcm, int count) {}
+
+        @Override
+        public void setVolume(double volume) {}
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+    }
+
     /** A dongle that always has a block ready, and counts how often it is asked for one. */
     private static final class CountingDongle implements IqSource {
 
