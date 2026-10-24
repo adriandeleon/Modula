@@ -547,7 +547,8 @@ public final class RadioPane extends StackPane {
                     setDaylight(applied.daylight());
                     config.saveSettings(applied);
                 },
-                trayAvailable);
+                trayAvailable,
+                this::showAbout);
     }
 
     private void showAbout() {
