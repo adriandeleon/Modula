@@ -58,7 +58,7 @@ public final class ModulaApp extends Application {
 
         installTray(stage, settings);
         installCloseBehaviour(stage);
-        checkForUpdates(config, settings);
+        checkForUpdates(settings);
     }
 
     /**
@@ -130,7 +130,7 @@ public final class ModulaApp extends Application {
         });
     }
 
-    private void checkForUpdates(ConfigStore config, Settings settings) {
+    private void checkForUpdates(Settings settings) {
         if (!settings.updateCheck() || !UpdateCheck.isDue(settings.lastUpdateCheck(), System.currentTimeMillis())) {
             return;
         }
@@ -140,7 +140,7 @@ public final class ModulaApp extends Application {
         }
         // Stamp the attempt before making it, so a failing endpoint is retried tomorrow rather than
         // on every launch.
-        config.saveSettings(settings.withLastUpdateCheck(System.currentTimeMillis()));
+        pane.markUpdateChecked(System.currentTimeMillis());
         updates.check(release -> pane.setAvailableUpdate(release));
     }
 

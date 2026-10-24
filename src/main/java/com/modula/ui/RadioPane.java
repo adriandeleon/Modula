@@ -179,6 +179,18 @@ public final class RadioPane extends StackPane {
                 getStyleClass().contains(DAYLIGHT));
     }
 
+    /**
+     * Records that an update check was attempted, through the settings this pane owns.
+     *
+     * <p>The app used to stamp the file directly, from its own copy loaded at startup — and this pane,
+     * holding the copy it had loaded a moment earlier, wrote the old stamp straight back on the next
+     * settings change or on quit. The once-a-day check then ran on every launch. One owner per file.
+     */
+    public void markUpdateChecked(long epochMillis) {
+        settings = currentSettings().withLastUpdateCheck(epochMillis);
+        config.saveSettings(settings);
+    }
+
     private static BandPlan bandNamed(String name) {
         return switch (name) {
             case "AM" -> BandPlan.mediumWave(com.modula.band.Region.AMERICAS);
