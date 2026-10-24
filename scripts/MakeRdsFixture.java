@@ -8,6 +8,7 @@ import com.modula.demod.PilotTracker;
 import com.modula.dsp.FirDesign;
 import com.modula.dsp.FirFilter;
 import com.modula.radio.DemodChain;
+import com.modula.rds.RdsDemodulator;
 import com.modula.source.SampleFormat;
 
 /**
@@ -26,22 +27,20 @@ import com.modula.source.SampleFormat;
  * timing, differential decoding, block sync, the CRC and group decoding — at a size a repository can
  * carry.
  *
- * <p><b>The filter here must match {@code RdsDemodulator}'s exactly.</b> A fixture distilled through
- * a different front end is not testing production. Learned the hard way: distilling through a wider
- * 4 kHz baseband filter produced a fixture whose spectrum was perfect and which a fixed clock decoded
- * at 3.6%, but which the real demodulator could not lock to at all — the extra 1.7x of noise defeats
- * the bang-bang timing detector, which keys off a single sample.
+ * <p><b>The front end here is {@code RdsDemodulator.recoverBaseband} itself, not a copy.</b> A fixture
+ * distilled through a different front end is not testing production. Learned the hard way, twice:
+ * distilling through a wider 4 kHz baseband filter produced a fixture whose spectrum was perfect and
+ * which a fixed clock decoded at 3.6%, but which the real demodulator could not lock to at all; and
+ * this script then kept mixing against the in-phase reference only after the receiver had moved to
+ * tracking the carrier, so it would have distilled a station whose RDS turns against the pilot into a
+ * fixture the receiver never sees. Calling the receiver's own code is the only way they stay equal.
  *
  * <p>Amplitude is normalised, which is faithful: the symbol detector takes a sign and the timing loop
  * is bang-bang, so neither depends on absolute level.
  */
 public class MakeRdsFixture {
 
-    /** Must stay identical to RdsDemodulator's baseband filter. */
-    private static final double BASEBAND_CUTOFF_HZ = 2_400.0;
-
-    private static final double BASEBAND_TRANSITION_HZ = 5_600.0;
-
+    /** RdsDemodulator's baseband is the IF rate over ten: 24 kHz. */
     private static final int DECIMATION = 10;
 
     public static void main(String[] args) throws Exception {
@@ -66,15 +65,10 @@ public class MakeRdsFixture {
         float[] ifI = new float[ifCapacity];
         float[] ifQ = new float[ifCapacity];
         float[] mpx = new float[ifCapacity];
-        float[] mixed = new float[ifCapacity];
 
         PilotTracker tracker = new PilotTracker(DemodChain.IF_RATE, ifCapacity);
-        FirFilter lowPass = new FirFilter(
-                FirDesign.lowPass(
-                        FirDesign.tapsForTransition(BASEBAND_TRANSITION_HZ / DemodChain.IF_RATE),
-                        BASEBAND_CUTOFF_HZ / DemodChain.IF_RATE),
-                DECIMATION);
-        float[] out = new float[lowPass.outputCapacity(ifCapacity)];
+        RdsDemodulator demodulator = new RdsDemodulator(DemodChain.IF_RATE, ifCapacity, bit -> {});
+        float[] out = new float[demodulator.basebandCapacity()];
 
         float[] collected = new float[wanted + 4096];
         int at = 0;
@@ -87,13 +81,7 @@ public class MakeRdsFixture {
             channelQ.filter(rawQ, p, ifQ);
             discriminator.demodulate(ifI, ifQ, n, mpx);
             tracker.process(mpx, n);
-
-            float[] aligned = tracker.alignedMpx();
-            float[] carrier = tracker.subcarrier57();
-            for (int i = 0; i < n; i++) {
-                mixed[i] = aligned[i] * 2f * carrier[i];
-            }
-            int m = lowPass.filter(mixed, n, out);
+            int m = demodulator.recoverBaseband(tracker, out);
             System.arraycopy(out, 0, collected, at, Math.min(m, collected.length - at));
             at += m;
         }
