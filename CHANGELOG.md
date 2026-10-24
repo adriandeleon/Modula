@@ -5,6 +5,18 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-24
+
+A field release. Most of it came from listening to real stations rather than synthesis: stereo that
+decoded the wrong axis of the difference channel on every transmitter, RDS that lost most of what
+stations sent, and a keyboard that stopped working after the first click. It also makes the installers
+whole on all three platforms.
+
+### Added
+
+- **Settings shows the version**, with an **About Modula…** button beside Close. About was reachable
+  only from the palette and the right-click menu.
+
 ### Changed
 
 - **A preset is recalled by its number then Enter**, not by the number alone. A bare digit now always
@@ -256,4 +268,8 @@ disagrees with the application about what it is. Starting at 1.0.0 makes that im
   AppIndicator extension — has nowhere to put the icon, so closing the window quits; Modula says so
   in the status line and in Settings rather than leaving it to be discovered.
 
+[Unreleased]: https://github.com/adriandeleon/Modula/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/adriandeleon/Modula/releases/tag/v1.3.0
+[1.2.0]: https://github.com/adriandeleon/Modula/releases/tag/v1.2.0
+[1.1.0]: https://github.com/adriandeleon/Modula/releases/tag/v1.1.0
 [1.0.0]: https://github.com/adriandeleon/Modula/releases/tag/v1.0.0
