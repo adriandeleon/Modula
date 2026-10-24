@@ -24,7 +24,6 @@ public final class Readouts {
         return minus("%.0f".formatted(value)) + " dBFS";
     }
 
-    /** A frequency in MHz to one decimal, e.g. {@code 101.5}. */
     /** The slider position as a percentage: what the control is, stated plainly. */
     public static String volumePercent(double gain) {
         return Math.round(Math.clamp(gain, 0.0, 1.0) * 100) + "%";
@@ -46,10 +45,6 @@ public final class Readouts {
             return "muted";
         }
         return minus("%.1f dB".formatted(20 * Math.log10(g)));
-    }
-
-    public static String megahertz(long hz) {
-        return String.format(Locale.ROOT, "%.1f", hz / 1_000_000.0);
     }
 
     /**

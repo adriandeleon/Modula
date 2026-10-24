@@ -16,6 +16,11 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **AM and airband frequencies were unreadable.** Everything was written in megahertz to one decimal, so
+  1000 to 1040 kHz all read "1.0" and 118.000 and 118.025 both read "118.0". Medium wave now reads in
+  kilohertz with the unit beside the dial, airband to three decimals, and FM as before — on the dial, the
+  scale, preset chips, recording file names, the tray and schedules. A medium-wave frequency can be typed
+  in kilohertz.
 - **Seek could never find an AM or airband station.** It stops when the FM multiplex noise drops, and AM
   has no multiplex, so it reported none and every seek walked the whole band muted and gave up where it
   began. AM now seeks on the envelope's ripple: noise alone holds it at a fixed −5.6 dB whatever its

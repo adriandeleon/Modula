@@ -405,7 +405,7 @@ public final class RadioPane extends StackPane {
         }
         boolean running = engine != null && engine.isRunning();
         boolean recording = isRecording();
-        String frequency = Readouts.megahertz(frequencyHz);
+        String frequency = com.modula.band.Frequencies.digits(frequencyHz);
         com.modula.tray.TrayDisplay display = faulted
                 ? com.modula.tray.TrayDisplay.fault(frequency)
                 : (running
@@ -414,9 +414,9 @@ public final class RadioPane extends StackPane {
         RadioEngine.Status status = latestStatus.get();
         String station = status == null ? "" : status.station().programService();
         String tooltip = running
-                ? "Modula \u00b7 %s MHz%s%s"
+                ? "Modula \u00b7 %s%s%s"
                         .formatted(
-                                frequency,
+                                com.modula.band.Frequencies.withUnit(frequencyHz),
                                 station.isBlank() ? "" : " \u00b7 " + station,
                                 recording ? " \u00b7 recording" : "")
                 : "Modula \u00b7 not listening";
@@ -515,7 +515,7 @@ public final class RadioPane extends StackPane {
         for (com.modula.schedule.Recording r : schedules) {
             text.append(r.name())
                     .append(" \u00b7 ")
-                    .append(Readouts.megahertz(r.frequencyHz()))
+                    .append(com.modula.band.Frequencies.withUnit(r.frequencyHz()))
                     .append(" \u00b7 ")
                     .append(r.describe())
                     .append(r.enabled() ? "" : "  (off)")
@@ -613,7 +613,9 @@ public final class RadioPane extends StackPane {
     private String recordingLabel() {
         RadioEngine.Status status = latestStatus.get();
         String name = status == null ? "" : status.station().programService();
-        return name.isBlank() ? Readouts.megahertz(frequencyHz) + "MHz" : name;
+        return name.isBlank()
+                ? com.modula.band.Frequencies.digits(frequencyHz) + com.modula.band.Frequencies.unit(frequencyHz)
+                : name;
     }
 
     // --- layout --------------------------------------------------------------------------------
@@ -997,19 +999,23 @@ public final class RadioPane extends StackPane {
             }
             return;
         }
-        try {
-            long hz = Math.round(Double.parseDouble(text.trim()) * MHZ);
-            if (!band.contains(hz)) {
-                setStatusText(
-                        "%.1f is outside the %s band (%.1f–%.1f MHz)"
-                                .formatted(hz / MHZ, band.name(), band.minHz() / MHZ, band.maxHz() / MHZ),
-                        true);
-                return;
-            }
-            tuneTo(band.snap(hz));
-        } catch (NumberFormatException ex) {
-            setStatusText("Not a frequency: " + text, true);
+        long hz = com.modula.band.Frequencies.parse(entered, band);
+        if (hz < 0) {
+            setStatusText("Not a frequency: " + entered, true);
+            return;
         }
+        if (!band.contains(hz)) {
+            setStatusText(
+                    "%s is outside the %s band (%s–%s)"
+                            .formatted(
+                                    com.modula.band.Frequencies.withUnit(hz),
+                                    band.name(),
+                                    com.modula.band.Frequencies.digits(band.minHz()),
+                                    com.modula.band.Frequencies.withUnit(band.maxHz())),
+                    true);
+            return;
+        }
+        tuneTo(band.snap(hz));
     }
 
     // --- actions -------------------------------------------------------------------------------
@@ -1103,8 +1109,8 @@ public final class RadioPane extends StackPane {
         IqSource.Range range = source.tunableRange();
         if (frequencyHz > range.maxHz()) {
             setStatusText(
-                    "%.1f MHz is above the tuner's range (up to %.0f MHz)"
-                            .formatted(frequencyHz / MHZ, range.maxHz() / MHZ),
+                    "%s is above the tuner's range (up to %.0f MHz)"
+                            .formatted(com.modula.band.Frequencies.withUnit(frequencyHz), range.maxHz() / MHZ),
                     true);
             return;
         }
