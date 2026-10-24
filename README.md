@@ -29,6 +29,21 @@ against an off-air recording.
 
 ## Installing it
 
+Installers for Linux, macOS (Apple silicon and Intel) and Windows are on the
+[releases page](https://github.com/adriandeleon/Modula/releases). None of them is signed, so each
+platform asks once:
+
+- **Linux** — `sudo apt install ./Modula-<version>-linux-x64.deb`. Installing through `apt` rather
+  than `dpkg -i` also brings in `librtlsdr`, which the package recommends for direct dongle access.
+- **macOS** — drag Modula to Applications and open it. macOS refuses the first launch of an
+  unnotarized app; open **System Settings → Privacy & Security**, find Modula near the bottom, and
+  choose **Open Anyway**. Install `librtlsdr` with `brew install librtlsdr`.
+- **Windows** — SmartScreen stops an unsigned installer: choose **More info → Run anyway**. The dongle
+  then needs its driver replaced with WinUSB using [Zadig](https://zadig.akeo.ie/), on *Interface 0*;
+  Modula says so if it finds the dongle unusable.
+
+To build an installer yourself:
+
 ```bash
 ./mvnw -Pdist package            # a native installer for this platform
 ./mvnw -Pdist package -DskipTests -Djpackage.type=app-image   # an unpackaged bundle, much faster

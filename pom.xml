@@ -44,7 +44,7 @@
         <buildhelper.plugin.version>3.6.2</buildhelper.plugin.version>
 
         <jpackage.vendor>Adrian De Leon</jpackage.vendor>
-        <!-- Overridable: -Djpackage.type=APP_IMAGE gives an unpackaged bundle, which is much faster
+        <!-- Overridable: -Djpackage.type=app-image gives an unpackaged bundle, which is much faster
              to iterate on than building a real installer. -->
         <jpackage.type>${jpackage.defaultType}</jpackage.type>
     </properties>
@@ -196,6 +196,11 @@
                 <jpackage.defaultType>dmg</jpackage.defaultType>
                 <jpackage.icon>${project.basedir}/branding/modula.icns</jpackage.icon>
                 <jpackage.resourceDir>${project.basedir}/packaging/mac</jpackage.resourceDir>
+                <jpackage.installerArgs>@${project.basedir}/packaging/mac/jpackage.args</jpackage.installerArgs>
+                <!-- A directory named Resources, so it lands in Contents/Resources. Loose files in
+                     Contents itself fail even ad-hoc signing: "code object is not signed at all,
+                     in subcomponent Contents/LICENSE". -->
+                <jpackage.appContent>${project.build.directory}/app-content/Resources</jpackage.appContent>
             </properties>
         </profile>
         <profile>
@@ -209,6 +214,8 @@
                 <jpackage.defaultType>msi</jpackage.defaultType>
                 <jpackage.icon>${project.basedir}/branding/modula.ico</jpackage.icon>
                 <jpackage.resourceDir>${project.basedir}/packaging/windows</jpackage.resourceDir>
+                <jpackage.installerArgs>@${project.basedir}/packaging/windows/jpackage.args</jpackage.installerArgs>
+                <jpackage.appContent>${project.basedir}/LICENSE,${project.basedir}/NOTICE,${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt,${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt</jpackage.appContent>
             </properties>
         </profile>
         <profile>
@@ -222,6 +229,26 @@
                 <jpackage.defaultType>deb</jpackage.defaultType>
                 <jpackage.icon>${project.basedir}/branding/modula-icon-512.png</jpackage.icon>
                 <jpackage.resourceDir>${project.basedir}/packaging/linux</jpackage.resourceDir>
+                <jpackage.installerArgs>@${project.basedir}/packaging/linux/jpackage.args</jpackage.installerArgs>
+                <jpackage.appContent>${project.basedir}/LICENSE,${project.basedir}/NOTICE,${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt,${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt</jpackage.appContent>
+            </properties>
+        </profile>
+
+        <!--
+            An unpackaged bundle has no menu, shortcut or package metadata, and jpackage rejects the
+            installer-only options (measured: jpackage refuses linux-shortcut for type app-image).
+            Declared after the OS profiles, so this value is the one that applies.
+        -->
+        <profile>
+            <id>app-image</id>
+            <activation>
+                <property>
+                    <name>jpackage.type</name>
+                    <value>app-image</value>
+                </property>
+            </activation>
+            <properties>
+                <jpackage.installerArgs>@${project.basedir}/packaging/app-image.args</jpackage.installerArgs>
             </properties>
         </profile>
 
@@ -308,6 +335,14 @@
                                             <fileset dir="${project.build.directory}/modules"
                                                      includes="javafx-*-${javafx.version}.jar"/>
                                         </delete>
+                                        <!-- The licences as a directory named Resources, for macOS:
+                                             see jpackage.appContent in the os-mac profile. -->
+                                        <copy todir="${project.build.directory}/app-content/Resources">
+                                            <fileset file="${project.basedir}/LICENSE"/>
+                                            <fileset file="${project.basedir}/NOTICE"/>
+                                            <fileset file="${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt"/>
+                                            <fileset file="${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt"/>
+                                        </copy>
                                         <!-- jpackage refuses to overwrite its destination, so a
                                              rebuild without a clean would fail on the second run. -->
                                         <delete dir="${project.build.directory}/dist" quiet="true"/>
@@ -349,6 +384,17 @@
                                         <argument>com.modula/com.modula.ModulaApp</argument>
                                         <argument>--resource-dir</argument>
                                         <argument>${jpackage.resourceDir}</argument>
+                                        <!-- Per platform: menu entries and shortcuts. See each
+                                             packaging/<os>/jpackage.args for why. -->
+                                        <argument>${jpackage.installerArgs}</argument>
+                                        <!--
+                                            The licences travel with the app. MIT (AtlantaFX, dbus-java,
+                                            SLF4J) requires its notice in every copy, the OFL wants its
+                                            licence where a user can read it, and the jlinked runtime's
+                                            legal/ directory covers only the JDK's own modules.
+                                        -->
+                                        <argument>--app-content</argument>
+                                        <argument>${jpackage.appContent}</argument>
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/dist</argument>
                                         <argument>--java-options</argument>
@@ -363,7 +409,10 @@
                                         <argument>--java-options</argument>
                                         <argument>--enable-native-access=com.modula,javafx.graphics</argument>
                                         <argument>--jlink-options</argument>
-                                        <argument>--strip-debug --no-man-pages --no-header-files --compress=zip-6</argument>
+                                        <!-- Replaces jpackage's own jlink defaults rather than adding to
+                                             them, so strip-native-commands has to be restated or the
+                                             image ships bin/java and keytool. -->
+                                        <argument>--strip-debug --strip-native-commands --no-man-pages --no-header-files --compress=zip-6</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

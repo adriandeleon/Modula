@@ -16,6 +16,14 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **The Windows installer created no Start-menu entry or shortcut.** It installed into Program Files and
+  left nothing to start Modula from.
+- **The Linux package would not install on Debian 12 or Ubuntu 22.04**, because it depended on the
+  build host's `libasound2t64`; it now accepts `libasound2` too. It also recommends `librtlsdr`, so
+  installing through `apt` brings in direct dongle access.
+- **The installers carried no third-party licences.** LICENSE, NOTICE, the font's OFL and the licence of
+  every bundled library now ship with the app, and the runtime no longer includes an unused `java`
+  and `keytool`.
 - **AM and airband frequencies were unreadable.** Everything was written in megahertz to one decimal, so
   1000 to 1040 kHz all read "1.0" and 118.000 and 118.025 both read "118.0". Medium wave now reads in
   kilohertz with the unit beside the dial, airband to three decimals, and FM as before — on the dial, the

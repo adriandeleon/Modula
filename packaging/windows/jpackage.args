@@ -1,0 +1,6 @@
+# Extra jpackage options for Windows, passed as @packaging/windows/jpackage.args.
+#
+# Without these the MSI installed into Program Files and created nothing to start it from.
+--win-menu
+--win-shortcut
+--win-dir-chooser

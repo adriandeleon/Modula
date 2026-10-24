@@ -1,0 +1,2 @@
+# Options for an unpackaged bundle (-Djpackage.type=app-image): none. The installer-only ones
+# in packaging/<os>/jpackage.args are rejected for this type.

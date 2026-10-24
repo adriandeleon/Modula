@@ -629,7 +629,7 @@ to iterate on.
 usually makes packaging a JavaFX app painful — contrast Editora, where half the dist profile is
 hand-written `module-info` sources for automatic modules.
 
-Four things the profile has to get right, each verified rather than assumed:
+What the profile has to get right, each verified rather than assumed:
 
 - **openjfx publishes every module twice.** The classifier-less `javafx-graphics-27.0.1.jar` is
   genuinely **empty** (measured: 2 entries, 70 bytes); the real one, with `module-info` and the
@@ -646,17 +646,36 @@ Four things the profile has to get right, each verified rather than assumed:
 - **`Categories` is literal in the template**, not jpackage's `DEPLOY_BUNDLE_CATEGORY` token, because
   the flag that fills that in (`--linux-menu-group`) is Linux-only and would fail the macOS and
   Windows builds. jpackage's own default is the literal string `Unknown`.
+- **Platform-only options live in `packaging/<os>/jpackage.args`**, passed as an `@argfile`, because
+  an option one platform needs is an error on the others. Windows needs `--win-menu` and
+  `--win-shortcut`, or the MSI installs into Program Files and creates nothing to start it from.
+  Linux does **not** need `--linux-shortcut` — the `.deb` already registers `Modula.desktop` because
+  the template is in the resource directory (1.2.0's postinst runs `xdg-desktop-menu install`); a
+  review claimed otherwise and was wrong. Installer options are rejected for `app-image`, so a profile
+  activated by `-Djpackage.type=app-image` swaps in an empty argfile.
+- **The `.deb`'s `Depends` is written out in `packaging/linux/control`**, not left to jpackage, which
+  copies the build host's package names: on a current host ALSA is `libasound2t64`, which does not
+  exist on Debian 12 or Ubuntu 22.04, so the package would not install there. `libasound2t64`
+  Provides `libasound2`, so the alternative covers both. The same file **Recommends** `librtlsdr` —
+  a recommendation, because rtl_tcp is a working fallback.
+- **The licences travel with the app** via `--app-content`: LICENSE, NOTICE, the OFL and
+  `packaging/legal/THIRD-PARTY-LICENSES.txt` (each dependency's licence, verbatim from its repository).
+  MIT requires its notice in every copy, and the jlinked runtime's `legal/` covers only the JDK.
+  **On macOS they go in as a directory named `Resources`**, staged by the antrun step, so they land
+  in `Contents/Resources`: loose files in `Contents/` fail even jpackage's ad-hoc signing ("code
+  object is not signed at all, in subcomponent Contents/LICENSE"), which broke the macOS build.
+- **`--jlink-options` replaces jpackage's defaults** rather than adding to them, so
+  `--strip-native-commands` has to be restated — without it the image shipped `bin/java` and
+  `keytool`.
 
 **A "No JDK Modules found" warning is not a failure.** JDK 25 links a runtime from its own run-time
 image (JEP 493), so a Temurin JDK with no `jmods` directory still produces a complete image —
 verified: 21 modules, and the app launches.
 
-**Known issue — the macOS bundle version is not the real version.** jpackage refuses an app version
-whose first number is zero *on macOS only*, so `0.1.0` is shipped to it as `1.1.0`, and that number
-reaches `CFBundleVersion`: Finder's Get Info will say 1.1.0 while the app itself correctly says
-0.1.0 (About reads the pom-derived `AppInfo.VERSION`, which is untouched). Two ways out — release at
-`1.0.0` or above, where the problem cannot arise, or rewrite `Info.plist` after the app-image build
-and before the DMG wrap, as Editora does. Nothing does the latter yet.
+**Resolved by releasing at 1.0.0 — the macOS zero-major version.** jpackage refuses an app version
+whose first number is zero *on macOS only*, so the pom still maps a `0.x` version to `1.x` for that
+platform, which would make Finder's Get Info disagree with About. Every release since 1.0.0 is
+unaffected; the mapping only matters if a `0.x` build is ever packaged again.
 
 ## CI
 

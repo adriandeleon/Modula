@@ -1,0 +1,2 @@
+# Extra jpackage options for macOS, passed as @packaging/mac/jpackage.args. None today: a .dmg
+# is dragged to Applications, which is its own launcher.
