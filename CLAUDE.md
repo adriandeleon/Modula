@@ -661,6 +661,9 @@ What the profile has to get right, each verified rather than assumed:
 - **The licences travel with the app** via `--app-content`: LICENSE, NOTICE, the OFL and
   `packaging/legal/THIRD-PARTY-LICENSES.txt` (each dependency's licence, verbatim from its repository).
   MIT requires its notice in every copy, and the jlinked runtime's `legal/` covers only the JDK.
+  **On macOS they go in as a directory named `Resources`**, staged by the antrun step, so they land
+  in `Contents/Resources`: loose files in `Contents/` fail even jpackage's ad-hoc signing ("code
+  object is not signed at all, in subcomponent Contents/LICENSE"), which broke the macOS build.
 - **`--jlink-options` replaces jpackage's defaults** rather than adding to them, so
   `--strip-native-commands` has to be restated — without it the image shipped `bin/java` and
   `keytool`.
