@@ -1,0 +1,8 @@
+# Extra jpackage options for Linux, passed as @packaging/linux/jpackage.args.
+#
+# No shortcut option: the .deb already installs a menu entry, because jpackage registers the
+# Modula.desktop template it finds in this directory (checked: 1.2.0's postinst runs
+# xdg-desktop-menu install on it). The licence goes in as the package's copyright file, where
+# Debian tools look for it.
+--license-file
+LICENSE

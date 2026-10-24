@@ -1,0 +1,12 @@
+Package: APPLICATION_PACKAGE
+Version: APPLICATION_VERSION_WITH_RELEASE
+Section: APPLICATION_SECTION
+Maintainer: APPLICATION_MAINTAINER
+Priority: optional
+Architecture: APPLICATION_ARCH
+Provides: APPLICATION_PACKAGE
+Description: APPLICATION_DESCRIPTION
+Depends: libasound2t64 | libasound2, libc6, libx11-6, libxau6, libxcb1, libxdmcp6, libxext6, libxi6, libxrender1, libxtst6, xdg-utils, zlib1g PACKAGE_CUSTOM_DEPENDENCIES
+Recommends: librtlsdr0 | librtlsdr2, rtl-sdr
+Installed-Size: APPLICATION_INSTALLED_SIZE
+APPLICATION_HOMEPAGE

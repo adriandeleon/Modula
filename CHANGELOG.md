@@ -16,6 +16,14 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **The Windows installer created no Start-menu entry or shortcut.** It installed into Program Files and
+  left nothing to start Modula from.
+- **The Linux package would not install on Debian 12 or Ubuntu 22.04**, because it depended on the
+  build host's `libasound2t64`; it now accepts `libasound2` too. It also recommends `librtlsdr`, so
+  installing through `apt` brings in direct dongle access.
+- **The installers carried no third-party licences.** LICENSE, NOTICE, the font's OFL and the licence of
+  every bundled library now ship with the app, and the runtime no longer includes an unused `java`
+  and `keytool`.
 - **RDS decoded a fraction of what stations sent, and often never showed a name.** Three faults, found
   by decoding off-air captures of eight local stations rather than by synthesis:
   - The receiver assumed the 57 kHz subcarrier sits exactly in phase or in quadrature with the pilot's
