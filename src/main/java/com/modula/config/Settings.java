@@ -31,42 +31,8 @@ public record Settings(
         String recordingFormat,
         String encoderPath) {
 
-    /**
-     * The shape before recording formats existed.
-     *
-     * <p>Kept so adding two components did not mean rewriting every positional call site — a record
-     * with a dozen fields makes each of those an opportunity to transpose two strings silently.
-     */
-    public Settings(
-            long frequencyHz,
-            Region region,
-            String band,
-            double volume,
-            boolean stereo,
-            boolean daylight,
-            boolean tray,
-            boolean closeToTray,
-            boolean updateCheck,
-            long lastUpdateCheck,
-            String recordingDirectory) {
-        this(
-                frequencyHz,
-                region,
-                band,
-                volume,
-                stereo,
-                daylight,
-                tray,
-                closeToTray,
-                updateCheck,
-                lastUpdateCheck,
-                recordingDirectory,
-                "WAV",
-                "");
-    }
-
     public static final Settings DEFAULTS =
-            new Settings(101_500_000L, Region.AMERICAS, "FM", 0.7, true, false, true, false, true, 0L, "");
+            new Settings(101_500_000L, Region.AMERICAS, "FM", 0.7, true, false, true, false, true, 0L, "", "WAV", "");
 
     private static final String KEY_FREQUENCY = "frequency";
     private static final String KEY_REGION = "region";
@@ -96,6 +62,109 @@ public record Settings(
                 ? "WAV"
                 : recordingFormat.strip().toUpperCase(Locale.ROOT);
         encoderPath = encoderPath == null ? "" : encoderPath.strip();
+    }
+
+    /*
+     * Every change goes through a wither, and there is deliberately no shorter constructor.
+     *
+     * There used to be one — the eleven fields from before recording formats existed, kept so the
+     * positional call sites would not need rewriting. They did not, and every one of them quietly
+     * passed "WAV" for the two fields it could not see: ticking Daylight, changing the recordings
+     * folder, or simply pressing Stop (which persists the session) reset a chosen FLAC or MP3 back to
+     * WAV while the Settings combo still showed the old choice. A wither names the one field it
+     * changes and carries the rest, so a new component cannot be silently defaulted by a call site
+     * that predates it.
+     */
+
+    /** The fields the receiver itself owns, as it stands right now. */
+    public Settings withSession(
+            long frequencyHz, Region region, String band, double volume, boolean stereo, boolean daylight) {
+        return new Settings(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                tray,
+                closeToTray,
+                updateCheck,
+                lastUpdateCheck,
+                recordingDirectory,
+                recordingFormat,
+                encoderPath);
+    }
+
+    public Settings withDaylight(boolean value) {
+        return withSession(frequencyHz, region, band, volume, stereo, value);
+    }
+
+    public Settings withTray(boolean value) {
+        return new Settings(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                value,
+                closeToTray,
+                updateCheck,
+                lastUpdateCheck,
+                recordingDirectory,
+                recordingFormat,
+                encoderPath);
+    }
+
+    public Settings withCloseToTray(boolean value) {
+        return new Settings(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                tray,
+                value,
+                updateCheck,
+                lastUpdateCheck,
+                recordingDirectory,
+                recordingFormat,
+                encoderPath);
+    }
+
+    public Settings withUpdateCheck(boolean value) {
+        return new Settings(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                tray,
+                closeToTray,
+                value,
+                lastUpdateCheck,
+                recordingDirectory,
+                recordingFormat,
+                encoderPath);
+    }
+
+    public Settings withRecordingDirectory(String directory) {
+        return new Settings(
+                frequencyHz,
+                region,
+                band,
+                volume,
+                stereo,
+                daylight,
+                tray,
+                closeToTray,
+                updateCheck,
+                lastUpdateCheck,
+                directory,
+                recordingFormat,
+                encoderPath);
     }
 
     public Settings withRecordingFormat(String format) {
