@@ -15,6 +15,20 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   and a new test checks the standard's zero-crossing rule directly. Verified against off-air captures of
   four local stations: the difference channel now lies within 0–7° of the reference, against 83–90°
   before.
+- **A chosen recording format reverted to WAV.** Ticking Daylight, changing the recordings folder or
+  simply pressing Stop saved the settings through an old constructor that predated recording formats and
+  filled them in as WAV, while the Settings window still showed FLAC or MP3. That constructor is gone;
+  every change now names the one field it sets.
+- **Pressing Stop switched off scheduled recordings** until the next launch, because stopping the
+  receiver and shutting the application down were the same method.
+- **After a fault the dongle stayed claimed.** An unplugged dongle or a lost rtl_tcp server stopped the
+  receiver without releasing the device, so the next Listen fell back to rtl_tcp until a restart, and a
+  recording in progress was never finalised. The receiver now releases everything, the status line says
+  where the recording was saved, and the tray turns coral.
+- **A European listener's station moved one channel on every launch** (98.8 → 98.9). The saved band was
+  rebuilt for the Americas grid before the saved region was applied.
+- **The daily update check ran on every launch**, because a stale copy of the settings wrote the old
+  check time back over the new one.
 
 ## [1.2.0] - 2026-08-11
 
