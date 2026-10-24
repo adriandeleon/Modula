@@ -77,4 +77,19 @@ class BandPlanTest {
         assertTrue(air.minHz() > 24_000_000L, "airband must clear the R820T2 tuner floor");
         assertEquals(137_000_000L, air.maxHz());
     }
+
+    /** What startup does with the saved band, region and frequency: none of them may move it. */
+    @Test
+    void aSavedStationSurvivesTheReloadInItsOwnRegion() {
+        assertEquals(98_800_000L, BandPlan.named("FM", Region.EUROPE).snap(98_800_000L), "European FM");
+        assertEquals(98_900_000L, BandPlan.named("FM", Region.AMERICAS).snap(98_900_000L), "American FM");
+        assertEquals(1_215_000L, BandPlan.named("AM", Region.EUROPE).snap(1_215_000L), "European MW");
+        assertEquals(1_010_000L, BandPlan.named("AM", Region.AMERICAS).snap(1_010_000L), "American MW");
+        assertEquals(118_025_000L, BandPlan.named("AIR", Region.EUROPE).snap(118_025_000L), "airband");
+    }
+
+    @Test
+    void anUnknownBandNameIsFm() {
+        assertEquals(BandPlan.fm(Region.EUROPE), BandPlan.named("SW", Region.EUROPE));
+    }
 }
