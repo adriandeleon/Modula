@@ -304,7 +304,9 @@
     -fx-font-size: 10px;
 }
 
-/* The status line changes constantly, so it gets its own ground and never moves the layout. */
+/* The status line changes constantly, so it gets its own ground. The live readout is one line and never
+ * moves the layout; a message — said once, and held until read (see StatusHold) — may wrap to a second,
+ * because the advice that runs long is exactly the part that says what to do. */
 .status-line {
     -fx-background-color: -ground;
     -fx-text-fill: -ink-faint;

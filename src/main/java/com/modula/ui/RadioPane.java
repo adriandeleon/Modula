@@ -79,6 +79,8 @@ public final class RadioPane extends StackPane {
     private final Slider volumeSlider = new Slider(0, 1, 0.7);
     private final CheckBox stereoCheck = new CheckBox("Stereo");
     private final Label statusLine = new Label();
+    private final Tooltip statusTip = new Tooltip();
+    private final StatusHold statusHold = new StatusHold();
 
     // Status arrives on the receive thread; coalesce to at most one FX repaint pending at a time.
     private final AtomicReference<RadioEngine.Status> latestStatus = new AtomicReference<>();
@@ -137,6 +139,10 @@ public final class RadioPane extends StackPane {
 
         statusLine.getStyleClass().add("status-line");
         statusLine.setMaxWidth(Double.MAX_VALUE);
+        statusLine.setMinHeight(javafx.scene.layout.Region.USE_PREF_SIZE); // grow to a wrapped message
+        statusTip.setWrapText(true);
+        statusTip.setMaxWidth(420);
+        statusLine.setTooltip(statusTip);
 
         // The setting stores gain, so a configuration written before the taper existed loads to the
         // same loudness rather than jumping.
@@ -691,8 +697,8 @@ public final class RadioPane extends StackPane {
         String both = Readouts.volumePercent(position) + "  \u00b7  " + Readouts.volumeDecibels(gain);
         Tooltip.install(volumeSlider, new Tooltip("Volume — " + both));
         Tooltip.install(volumeValue, new Tooltip("Volume — " + both));
-        if (volumeSlider.isValueChanging() || volumeSlider.isFocused()) {
-            setStatusText("Volume " + both, false);
+        if (volumeSlider.isValueChanging()) {
+            setStatusText("Volume " + both, false, VOLUME_FEEDBACK);
         }
     }
 
@@ -915,8 +921,17 @@ public final class RadioPane extends StackPane {
 
     private void nudgeVolume(KeyEvent e, double delta) {
         volumeSlider.setValue(Math.clamp(volumeSlider.getValue() + delta, 0.0, 1.0));
+        double position = volumeSlider.getValue();
+        setStatusText(
+                "Volume " + Readouts.volumePercent(position) + "  \u00b7  "
+                        + Readouts.volumeDecibels(com.modula.audio.VolumeTaper.gain(position)),
+                false,
+                VOLUME_FEEDBACK);
         e.consume();
     }
+
+    /** Volume feedback answers the key press in hand; it should not hold the readout off for long. */
+    private static final java.time.Duration VOLUME_FEEDBACK = java.time.Duration.ofMillis(1_500);
 
     /**
      * A digit opens the inline entry, seeded with it. A frequency then tunes on Enter, and so does a
@@ -1277,7 +1292,7 @@ public final class RadioPane extends StackPane {
             return;
         }
         if (state == ReceiverState.SEEKING) {
-            setStatusText("Seeking…", false);
+            showReadout("Seeking…", false);
         } else {
             // Quieting is the honest signal-quality figure; the blend and the offset appear only when
             // they have something to say. A fault is *appended* rather than substituted: replacing the
@@ -1291,7 +1306,7 @@ public final class RadioPane extends StackPane {
                     status.rdsDiagnostic(),
                     Readouts.carrierOffset(status.carrierOffsetHz(), status.frequencyHz()));
             boolean fault = state == ReceiverState.FAULT;
-            setStatusText(fault ? join(signal, status.losses().describe()) : signal, fault);
+            showReadout(fault ? join(signal, status.losses().describe()) : signal, fault);
         }
     }
 
@@ -1325,8 +1340,30 @@ public final class RadioPane extends StackPane {
                 .formatted(RtlSdrNativeSource.unavailableReason());
     }
 
+    /** Says something once, and keeps the live readout off the line until it has been read. */
     private void setStatusText(String text, boolean fault) {
+        setStatusText(text, fault, StatusHold.readingTime(text));
+    }
+
+    private void setStatusText(String text, boolean fault, java.time.Duration hold) {
+        // A message may run long — the driver advice does — so it wraps rather than ellipsizing away
+        // the part that says what to do. The readout never wraps, which keeps the line steady while
+        // listening; only a message, briefly, makes it taller.
+        paintStatus(text, fault, true);
+        statusHold.hold(hold, System.nanoTime());
+    }
+
+    /** The live readout: shown unless a message still owns the line. See {@link StatusHold}. */
+    private void showReadout(String text, boolean fault) {
+        if (!statusHold.isHeld(System.nanoTime())) {
+            paintStatus(text, fault, false);
+        }
+    }
+
+    private void paintStatus(String text, boolean fault, boolean wrap) {
         statusLine.setText(text);
+        statusLine.setWrapText(wrap);
+        statusTip.setText(text);
         if (fault && !statusLine.getStyleClass().contains("fault")) {
             statusLine.getStyleClass().add("fault");
         } else if (!fault) {
