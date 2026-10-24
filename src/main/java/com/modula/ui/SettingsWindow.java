@@ -62,19 +62,7 @@ public final class SettingsWindow {
         body.getChildren().add(heading("Appearance"));
         CheckBox daylight = new CheckBox("Daylight — invert the ground for a lit room");
         daylight.setSelected(current.daylight());
-        daylight.selectedProperty()
-                .addListener((o, was, now) -> holder.update(s -> new Settings(
-                        s.frequencyHz(),
-                        s.region(),
-                        s.band(),
-                        s.volume(),
-                        s.stereo(),
-                        now,
-                        s.tray(),
-                        s.closeToTray(),
-                        s.updateCheck(),
-                        s.lastUpdateCheck(),
-                        s.recordingDirectory())));
+        daylight.selectedProperty().addListener((o, was, now) -> holder.update(s -> s.withDaylight(now)));
         body.getChildren().addAll(daylight, gap());
 
         body.getChildren().add(heading("Recording"));
@@ -90,18 +78,7 @@ public final class SettingsWindow {
                 directory.setText(chosen.toString());
             }
         });
-        Runnable commitDirectory = () -> holder.update(s -> new Settings(
-                s.frequencyHz(),
-                s.region(),
-                s.band(),
-                s.volume(),
-                s.stereo(),
-                s.daylight(),
-                s.tray(),
-                s.closeToTray(),
-                s.updateCheck(),
-                s.lastUpdateCheck(),
-                directory.getText()));
+        Runnable commitDirectory = () -> holder.update(s -> s.withRecordingDirectory(directory.getText()));
         directory.setOnAction(e -> commitDirectory.run());
         directory.focusedProperty().addListener((o, was, has) -> {
             if (!has) {
@@ -172,33 +149,8 @@ public final class SettingsWindow {
         } else {
             closeToTray.setDisable(true);
         }
-        tray.selectedProperty()
-                .addListener((o, was, now) -> holder.update(s -> new Settings(
-                        s.frequencyHz(),
-                        s.region(),
-                        s.band(),
-                        s.volume(),
-                        s.stereo(),
-                        s.daylight(),
-                        now,
-                        s.closeToTray(),
-                        s.updateCheck(),
-                        s.lastUpdateCheck(),
-                        s.recordingDirectory())));
-        closeToTray
-                .selectedProperty()
-                .addListener((o, was, now) -> holder.update(s -> new Settings(
-                        s.frequencyHz(),
-                        s.region(),
-                        s.band(),
-                        s.volume(),
-                        s.stereo(),
-                        s.daylight(),
-                        s.tray(),
-                        now,
-                        s.updateCheck(),
-                        s.lastUpdateCheck(),
-                        s.recordingDirectory())));
+        tray.selectedProperty().addListener((o, was, now) -> holder.update(s -> s.withTray(now)));
+        closeToTray.selectedProperty().addListener((o, was, now) -> holder.update(s -> s.withCloseToTray(now)));
         Label trayNote = note(
                 trayAvailable
                         ? "A tray change takes effect next launch."
@@ -213,19 +165,7 @@ public final class SettingsWindow {
         CheckBox updates = new CheckBox("Check for new releases");
         updates.setSelected(current.updateCheck());
         updates.setDisable(!AppInfo.RELEASES_API.startsWith("https://"));
-        updates.selectedProperty()
-                .addListener((o, was, now) -> holder.update(s -> new Settings(
-                        s.frequencyHz(),
-                        s.region(),
-                        s.band(),
-                        s.volume(),
-                        s.stereo(),
-                        s.daylight(),
-                        s.tray(),
-                        s.closeToTray(),
-                        now,
-                        s.lastUpdateCheck(),
-                        s.recordingDirectory())));
+        updates.selectedProperty().addListener((o, was, now) -> holder.update(s -> s.withUpdateCheck(now)));
         body.getChildren()
                 .addAll(
                         updates,

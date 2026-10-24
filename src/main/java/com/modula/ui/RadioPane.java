@@ -170,18 +170,13 @@ public final class RadioPane extends StackPane {
 
     /** The live settings, so every save carries the whole record rather than four of its fields. */
     private Settings currentSettings() {
-        return new Settings(
+        return settings.withSession(
                 frequencyHz,
                 region,
                 band.name(),
                 com.modula.audio.VolumeTaper.gain(volumeSlider.getValue()),
                 stereoCheck.isSelected(),
-                getStyleClass().contains(DAYLIGHT),
-                settings.tray(),
-                settings.closeToTray(),
-                settings.updateCheck(),
-                settings.lastUpdateCheck(),
-                settings.recordingDirectory());
+                getStyleClass().contains(DAYLIGHT));
     }
 
     private static BandPlan bandNamed(String name) {
