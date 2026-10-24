@@ -41,15 +41,18 @@ public final class SettingsWindow {
 
     /** Shows the window, reusing it if already open. {@code onApply} receives each change. */
     public static void show(Window owner, Settings current, Consumer<Settings> onApply) {
-        show(owner, current, onApply, true);
+        show(owner, current, onApply, true, null);
     }
 
     /**
      * @param trayAvailable whether a tray icon actually appeared; when it did not, the tray options
      *     are shown disabled with the reason, because ticking a box that cannot do anything and then
      *     watching the window close the application is the confusing case this page exists to avoid
+     * @param onAbout opens the About window; null leaves the button out rather than showing one that
+     *     does nothing
      */
-    public static void show(Window owner, Settings current, Consumer<Settings> onApply, boolean trayAvailable) {
+    public static void show(
+            Window owner, Settings current, Consumer<Settings> onApply, boolean trayAvailable, Runnable onAbout) {
         if (stage != null && stage.isShowing()) {
             stage.toFront();
             return;
@@ -174,10 +177,25 @@ public final class SettingsWindow {
                                         ? "No release endpoint is configured for this build."
                                         : "Contacts the releases page over HTTPS once a day. Sends nothing."));
 
+        // The version where someone filing a report will look for it, and a way to the rest of the
+        // identity. The spacer is the only elastic child, so the buttons can never be squeezed.
+        Label version = new Label(AppInfo.NAME + " " + AppInfo.VERSION);
+        version.getStyleClass().add("settings-version");
+        version.setMinWidth(Region.USE_PREF_SIZE);
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        HBox buttons = new HBox(8, version, spacer);
+        if (onAbout != null) {
+            Button about = new Button("About " + AppInfo.NAME + "…");
+            about.setMinWidth(Region.USE_PREF_SIZE);
+            about.setOnAction(e -> onAbout.run());
+            buttons.getChildren().add(about);
+        }
         Button close = new Button("Close");
+        close.setMinWidth(Region.USE_PREF_SIZE);
         close.setOnAction(e -> stage.close());
-        HBox buttons = new HBox(close);
-        buttons.setAlignment(Pos.CENTER_RIGHT);
+        buttons.getChildren().add(close);
+        buttons.setAlignment(Pos.CENTER_LEFT);
         buttons.setPadding(new Insets(18, 0, 0, 0));
         body.getChildren().add(buttons);
 

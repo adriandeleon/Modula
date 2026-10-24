@@ -461,6 +461,15 @@
     -fx-padding: 4 0 0 0;
 }
 
+/* The version in the settings footer. Faint ink, not amber: About may spend amber on its version
+   because it has no frequency to compete with, but Settings sits beside the dial. Mono because it
+   is a number, and only Plex Mono may show one. */
+.settings-version {
+    -fx-text-fill: -ink-faint;
+    -fx-font-family: "IBM Plex Mono", monospace;
+    -fx-font-size: 11px;
+}
+
 .about-name {
     -fx-text-fill: -ink;
     -fx-font-size: 21px;
