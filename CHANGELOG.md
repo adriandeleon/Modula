@@ -3,6 +3,19 @@
 Notable changes to Modula. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Stereo stations played in mono.** The 38 kHz reference was rebuilt as cos(2θ) from the pilot loop's
+  cosine, which is in quadrature with the subcarrier the standard defines (sin(2ωt) against a sine
+  pilot), so the decoder recovered the difference channel's noise rather than its programme. The STEREO
+  indicator still lit, because the pilot itself was locked. Every test passed because the synthetic
+  multiplex they decode used the same wrong convention; it is now phased per FCC §73.322 / ITU-R BS.450,
+  and a new test checks the standard's zero-crossing rule directly. Verified against off-air captures of
+  four local stations: the difference channel now lies within 0–7° of the reference, against 83–90°
+  before.
+
 ## [1.2.0] - 2026-08-11
 
 A follow-up to 1.1.0, and mostly a list of things 1.1.0's own work exposed: a threshold written without

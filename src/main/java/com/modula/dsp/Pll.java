@@ -124,7 +124,11 @@ public final class Pll {
         return phaseNow;
     }
 
-    /** Cosine of the NCO phase at the last {@link #advance}. */
+    /**
+     * Cosine of the NCO phase at the last {@link #advance} — once locked, a replica of the input
+     * sinusoid in phase with it. Note what that makes the phase itself: against an input of sin(ωt)
+     * it is ωt − π/2, so a harmonic of the <i>input</i> is not simply a harmonic of this cosine.
+     */
     public double cosOut() {
         return cosOut;
     }
@@ -132,18 +136,6 @@ public final class Pll {
     /** Sine of the NCO phase at the last {@link #advance}. */
     public double sinOut() {
         return sinOut;
-    }
-
-    /**
-     * Cosine of <b>twice</b> the NCO phase, via the double-angle identity.
-     *
-     * <p>This is the 38 kHz stereo subcarrier reconstructed from the 19 kHz pilot, and it is exactly
-     * what the standard defines the subcarrier to be — the pilot's second harmonic, in phase. Doing
-     * it by identity rather than a second {@link Math#cos} both halves the trigonometry and makes
-     * the phase relationship exact by construction rather than by arithmetic that could drift.
-     */
-    public double cosDoubleOut() {
-        return 2.0 * cosOut * cosOut - 1.0;
     }
 
     /**

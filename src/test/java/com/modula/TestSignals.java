@@ -38,14 +38,20 @@ public final class TestSignals {
     }
 
     /**
-     * A composite stereo multiplex:
+     * A composite stereo multiplex, phased as the standard defines it:
      *
      * <pre>
-     *   0.45·(L+R)  +  0.45·(L−R)·cos(2π·38k·t)  +  0.1·cos(2π·19k·t)
+     *   0.45·(L+R)  +  0.45·(L−R)·sin(2π·38k·t)  +  0.1·sin(2π·19k·t)
      * </pre>
      *
-     * <p>The 38 kHz subcarrier is generated as the exact second harmonic of the pilot, in phase,
-     * which is what the standard specifies and what {@code Pll.cosDoubleOut} reconstructs.
+     * <p><b>Sines, not cosines, and that is the whole point.</b> FCC §73.322 and ITU-R BS.450 require
+     * the subcarrier to cross the time axis with positive slope at every such crossing of the pilot,
+     * which two sines starting at zero do and two cosines do not — cos(2x) is at its <i>minimum</i>
+     * where cos(x) crosses upward. This helper once used cosines, the decoder was written to the same
+     * convention, and every stereo test passed while real broadcasts decoded the difference channel
+     * in quadrature: STEREO lit and the audio was mono plus the difference channel's noise. A test
+     * signal that only agrees with the decoder proves nothing; this one has to agree with the
+     * transmitter. {@code StereoDecoderTest} also pins the convention without going through here.
      */
     public static float[] stereoMpx(int count, double sampleRate, Tone left, Tone right) {
         float[] mpx = new float[count];
@@ -54,8 +60,8 @@ public final class TestSignals {
             double r = right.at(sampleRate, n);
             double pilotPhase = 2.0 * Math.PI * PILOT_HZ * n / sampleRate;
             mpx[n] = (float) (0.45 * (l + r)
-                    + 0.45 * (l - r) * Math.cos(2.0 * pilotPhase)
-                    + PILOT_AMPLITUDE * Math.cos(pilotPhase));
+                    + 0.45 * (l - r) * Math.sin(2.0 * pilotPhase)
+                    + PILOT_AMPLITUDE * Math.sin(pilotPhase));
         }
         return mpx;
     }
@@ -70,8 +76,9 @@ public final class TestSignals {
      *
      * <p>Mirrors the transmitter: differentially encode the data, shape each bit as a bi-phase symbol
      * (positive half then negative half, or the reverse), and amplitude-modulate the pilot's third
-     * harmonic with it. Generated in phase with the pilot; the decoder must also cope with the
-     * quadrature convention, which {@link #quadrature} switches to.
+     * harmonic with it — sin(3·19k·t), against the sine pilot of {@link #stereoMpx}. Generated in
+     * phase with the pilot; the decoder must also cope with the quadrature convention, which
+     * {@code quadrature} switches to.
      *
      * <p>The symbols are ideal squares rather than the standard's shaped pulses — enough to exercise
      * timing recovery and everything above it, but not a substitute for real RF.
@@ -88,7 +95,7 @@ public final class TestSignals {
             double biphase = (within < 0.5 ? 1.0 : -1.0) * (bit ? 1.0 : -1.0);
 
             double pilotPhase = 2.0 * Math.PI * PILOT_HZ * n / sampleRate;
-            double carrier = quadrature ? Math.sin(3.0 * pilotPhase) : Math.cos(3.0 * pilotPhase);
+            double carrier = quadrature ? Math.cos(3.0 * pilotPhase) : Math.sin(3.0 * pilotPhase);
             out[n] += (float) (RDS_AMPLITUDE * biphase * carrier);
         }
         return out;

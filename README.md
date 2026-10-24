@@ -19,7 +19,8 @@ instrumentation around it, dimmed until it has something to say. No demodulator 
 filter-bandwidth slider, no gain or AGC controls, no FFT settings.
 
 **Status:** complete. FM in stereo with RDS, seek, presets, a ±600 kHz spectrum strip, and direct
-hardware access. Measured channel separation is 33 dB flat from 100 Hz to 10 kHz; RDS is verified
+hardware access. Channel separation is 33 dB flat from 100 Hz to 10 kHz against a synthesised
+multiplex, and the stereo subcarrier's phase is verified against off-air captures; RDS is verified
 against an off-air recording.
 
 <p align="center">
