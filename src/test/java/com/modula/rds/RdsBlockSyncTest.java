@@ -92,6 +92,41 @@ class RdsBlockSyncTest {
         assertTrue(received.getFirst().isVersionB());
     }
 
+    /**
+     * Acquisition must not throw away the group it locks inside. It used to mark every acquisition's
+     * group broken — dropping one that arrived whole — and, when the confirming block was a D, carry
+     * that mark into the next group too and drop it as well. Each group here is distinct, which is
+     * what makes a dropped one visible; the repeated-group tests above cannot see it.
+     *
+     * @see RdsBlockSync
+     */
+    @Test
+    void keepsTheFirstWholeGroupAfterLockingOn() {
+        // {bits skipped, the first group that arrives whole}
+        int[][] cases = {
+            {0, 0}, // locks on A then B: group 0 is entire
+            {52, 1}, // locks on C then D: group 0 is partial, group 1 is entire
+            {78, 1}, // locks on D then A: group 1 begins with the confirming block
+        };
+        for (int[] each : cases) {
+            received.clear();
+            sync.reset();
+
+            List<boolean[]> groups = new ArrayList<>();
+            for (int i = 0; i < 6; i++) {
+                groups.add(group(0x4321, 0x0002, 0x1111, i));
+            }
+            boolean[] stream = RdsGroups.stream(groups);
+            boolean[] shifted = new boolean[stream.length - each[0]];
+            System.arraycopy(stream, each[0], shifted, 0, shifted.length);
+            feed(shifted);
+
+            assertFalse(received.isEmpty(), "no groups after skipping " + each[0] + " bits");
+            assertEquals(each[1], received.getFirst().d(), "first group delivered after skipping " + each[0] + " bits");
+            assertEquals(6 - each[1], received.size(), "every whole group after skipping " + each[0] + " bits");
+        }
+    }
+
     @Test
     void countsGroupsForAHealthSignal() {
         feed(repeat(group(0x1234, 0x0000, 0x1111, 0x2222), 10));
