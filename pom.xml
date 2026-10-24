@@ -197,6 +197,10 @@
                 <jpackage.icon>${project.basedir}/branding/modula.icns</jpackage.icon>
                 <jpackage.resourceDir>${project.basedir}/packaging/mac</jpackage.resourceDir>
                 <jpackage.installerArgs>@${project.basedir}/packaging/mac/jpackage.args</jpackage.installerArgs>
+                <!-- A directory named Resources, so it lands in Contents/Resources. Loose files in
+                     Contents itself fail even ad-hoc signing: "code object is not signed at all,
+                     in subcomponent Contents/LICENSE". -->
+                <jpackage.appContent>${project.build.directory}/app-content/Resources</jpackage.appContent>
             </properties>
         </profile>
         <profile>
@@ -211,6 +215,7 @@
                 <jpackage.icon>${project.basedir}/branding/modula.ico</jpackage.icon>
                 <jpackage.resourceDir>${project.basedir}/packaging/windows</jpackage.resourceDir>
                 <jpackage.installerArgs>@${project.basedir}/packaging/windows/jpackage.args</jpackage.installerArgs>
+                <jpackage.appContent>${project.basedir}/LICENSE,${project.basedir}/NOTICE,${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt,${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt</jpackage.appContent>
             </properties>
         </profile>
         <profile>
@@ -225,6 +230,7 @@
                 <jpackage.icon>${project.basedir}/branding/modula-icon-512.png</jpackage.icon>
                 <jpackage.resourceDir>${project.basedir}/packaging/linux</jpackage.resourceDir>
                 <jpackage.installerArgs>@${project.basedir}/packaging/linux/jpackage.args</jpackage.installerArgs>
+                <jpackage.appContent>${project.basedir}/LICENSE,${project.basedir}/NOTICE,${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt,${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt</jpackage.appContent>
             </properties>
         </profile>
 
@@ -329,6 +335,14 @@
                                             <fileset dir="${project.build.directory}/modules"
                                                      includes="javafx-*-${javafx.version}.jar"/>
                                         </delete>
+                                        <!-- The licences as a directory named Resources, for macOS:
+                                             see jpackage.appContent in the os-mac profile. -->
+                                        <copy todir="${project.build.directory}/app-content/Resources">
+                                            <fileset file="${project.basedir}/LICENSE"/>
+                                            <fileset file="${project.basedir}/NOTICE"/>
+                                            <fileset file="${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt"/>
+                                            <fileset file="${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt"/>
+                                        </copy>
                                         <!-- jpackage refuses to overwrite its destination, so a
                                              rebuild without a clean would fail on the second run. -->
                                         <delete dir="${project.build.directory}/dist" quiet="true"/>
@@ -380,7 +394,7 @@
                                             legal/ directory covers only the JDK's own modules.
                                         -->
                                         <argument>--app-content</argument>
-                                        <argument>${project.basedir}/LICENSE,${project.basedir}/NOTICE,${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt,${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt</argument>
+                                        <argument>${jpackage.appContent}</argument>
                                         <argument>--dest</argument>
                                         <argument>${project.build.directory}/dist</argument>
                                         <argument>--java-options</argument>
