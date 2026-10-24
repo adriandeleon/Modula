@@ -330,8 +330,7 @@ frequency — the classic centre spike.
   single threshold did not merely flicker an indicator — it changed the audio path several times a
   second, heard as spottiness, while the status line reported *"no pilot"*, i.e. the station cutting
   out. `Pll` acquires at 0.01 and releases at 0.004; acquisition is unchanged, so the pull-in time below
-  is untouched and only the decision to give up is slower. Same reasoning as the RDS subcarrier's
-  in-phase-versus-quadrature hysteresis.
+  is untouched and only the decision to give up is slower.
 - **Stereo is blended, not switched.** `demod/StereoBlend` scales the difference channel by 0–1 rather
   than choosing between the matrix and mono, so a marginal station narrows its image *and* attenuates
   the difference channel's noise by the same factor. Hysteresis alone only moves the cliff; either side
@@ -729,11 +728,28 @@ span control: the span is the sample rate, which is a fact of the front end rath
 
 ## RDS notes
 
-**The subcarrier phase is ambiguous by design.** The standard locks 57 kHz to the pilot's third
-harmonic but permits *either* in phase *or* in quadrature, and transmitters differ. Both branches
-are demodulated and the one carrying more energy wins, with hysteresis so a marginal signal cannot
-flap between them and destroy symbol timing. `RdsEndToEndTest` covers both conventions — a decoder
-tested against only one will appear to work and then fail on half the stations it meets.
+**The subcarrier is tracked, not chosen — because the standard is not what is on air.** The standard
+locks 57 kHz to the pilot's third harmonic, in phase *or* in quadrature, and the receiver used to rely
+on that: demodulate both branches, keep the one with more energy. Off air, one station's subcarrier
+turned steadily against the harmonic at ~0.03 Hz (an RDS encoder on its own crystal, ~0.5 ppm), so
+every few seconds it sat between the branches, both lost half the signal, and the choice flapped: 30 of
+~340 groups in 30 s, and the station name never once. The pilot now only gets the carrier close and a
+Costas loop on the complex baseband tracks the rest — 340 groups, the name in 0.9 s. A station that
+does lock to the pilot leaves the loop sitting still. `RdsEndToEndTest` covers both conventions, an
+angle between them, and a drifting carrier, **with noise around 57 kHz** — without it every one of
+those passed even with the loop frozen, because a noiseless subcarrier at half amplitude still
+decodes. The loop's pull is bounded to ±1 Hz: a squaring loop on bi-phase data can otherwise wander
+into a false lock offset by a fraction of the symbol rate.
+
+**Bi-phase timing has a false lock half a symbol away, and starting in it was luck.** Between two equal
+symbols there is a crossing at the boundary too, so a timing loop whose boundaries start on the
+mid-symbol crossings has an error that averages to zero and stays there. One 94.9 capture decoded 214
+groups or none depending only on where in it decoding began — which reads as a marginal station rather
+than a deterministic bug. At the right phase the two half-symbol sums are always opposite; half a
+symbol off they agree as often as not, so when their sum rivals their difference the clock slips half
+a symbol. **Only while block sync is lost**: valid CRCs prove the timing, and on a weak station the
+shape is too noisy to read and the check would otherwise slip a decoding signal back and forth.
+`RdsDemodulatorTest` starts a clean signal half a symbol out.
 
 **Only groups 0 and 2 are read.** Those carry the station name, programme type and radio text; the
 other fourteen types are clock, alternative frequencies, traffic messages and open data. Unknown
@@ -771,7 +787,7 @@ re-validated against the capture together.
 **Field debugging beats reading the code.** The path that worked, in order: measure the multiplex
 spectrum against a noise reference at a comparable frequency (FM noise rises as f², so 57 kHz is
 ~9 dB noisier than 19 kHz and comparing them directly misleads); confirm the pilot locks and the
-subcarrier branch is stable; then measure the offset-word hit rate on the recovered bits — a sliding
+subcarrier's angle against `PilotTracker.subcarrier57()` is steady or turning slowly; then measure the offset-word hit rate on the recovered bits — a sliding
 26-bit window matches a valid offset word 0.49% of the time by chance and about 3.85% on a correctly
 demodulated stream, which grades bit recovery **without knowing what was transmitted**. That last
 number went 0.17% → 3.95% the moment the polynomial was fixed. The probes live in the scratchpad;
@@ -782,4 +798,12 @@ data-modulated signal to zero, so a power spectrum must be averaged across short
 fixed symbol clock drifts 2.6 whole symbols across a 30 s capture at the 72 ppm the dongle's crystal
 was off, so any fixed-phase decode over a whole capture fails whatever else is true. Both produced
 confident, wrong conclusions before being corrected.
+
+*Two more, from the carrier work:* a pilot phase estimated independently in numpy (a brick-wall FFT
+band-pass, unwrapped) read 18959.6 Hz against the PLL's 18999 and made a pilot-locked subcarrier look
+3.4 Hz off — check any home-made reference against `PilotTracker`'s own before believing what it says.
+And a symbol-SNR figure (mean over spread of the half-symbol difference) barely moved, 6.2 → 6.5 dB,
+for a change that took group yield from 43% to 100%; **count groups decoded on a capture** rather than
+trusting a proxy. The harness for that is twenty lines: feed `DemodChain.process` the capture block by
+block and read `rdsDiagnostic()` and `stationInfo()` at the end.
 

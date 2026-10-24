@@ -38,8 +38,6 @@ public final class Pll {
      *
      * <p>2.5:1 against the acquire level. Acquisition is unchanged, so the pull-in time that this
      * receiver treats as a product constraint is untouched; only the decision to give up is slower.
-     * The same reasoning, and roughly the same ratio, already guards the RDS subcarrier's
-     * in-phase-versus-quadrature choice for exactly this reason.
      */
     private static final double LOCK_RELEASE = 0.004;
 

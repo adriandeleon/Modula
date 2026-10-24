@@ -84,6 +84,19 @@ public final class TestSignals {
      * timing recovery and everything above it, but not a substitute for real RF.
      */
     public static float[] withRds(float[] mpx, double sampleRate, boolean[] dataBits, boolean quadrature) {
+        return withRds(mpx, sampleRate, dataBits, 0.0, quadrature ? Math.PI / 2.0 : 0.0);
+    }
+
+    /**
+     * As above, with the subcarrier wherever a real encoder puts it: {@code phase} radians from the
+     * pilot's third harmonic, and drifting from it at {@code offsetHz}.
+     *
+     * <p>The standard says the subcarrier is locked to the pilot, in phase or in quadrature, and the
+     * two-argument form generates exactly that. Not every transmitter does it — one local station's
+     * RDS turned against the pilot at about 0.03 Hz, an encoder on its own crystal — and a test signal
+     * that only ever obeys the standard cannot catch a receiver that relies on it.
+     */
+    public static float[] withRds(float[] mpx, double sampleRate, boolean[] dataBits, double offsetHz, double phase) {
         boolean[] transmitted = differentiallyEncode(dataBits, symbolsFor(mpx.length, sampleRate));
         float[] out = mpx.clone();
         for (int n = 0; n < out.length; n++) {
@@ -95,8 +108,42 @@ public final class TestSignals {
             double biphase = (within < 0.5 ? 1.0 : -1.0) * (bit ? 1.0 : -1.0);
 
             double pilotPhase = 2.0 * Math.PI * PILOT_HZ * n / sampleRate;
-            double carrier = quadrature ? Math.cos(3.0 * pilotPhase) : Math.sin(3.0 * pilotPhase);
+            double drift = 2.0 * Math.PI * offsetHz * n / sampleRate;
+            double carrier = Math.sin(3.0 * pilotPhase + drift + phase);
             out[n] += (float) (RDS_AMPLITUDE * biphase * carrier);
+        }
+        return out;
+    }
+
+    /**
+     * Adds Gaussian noise confined to {@code lowHz}–{@code highHz}, at {@code rms}, from a fixed seed.
+     *
+     * <p>Band-limited because white noise across the whole multiplex puts almost none of itself where
+     * a narrow subcarrier lives: the RDS tests passed with the carrier fixed at the wrong phase until
+     * the noise was put around 57 kHz, at a level like the off-air capture's.
+     */
+    public static float[] withBandNoise(
+            float[] mpx, double sampleRate, double lowHz, double highHz, double rms, long seed) {
+        java.util.Random random = new java.util.Random(seed);
+        float[] white = new float[mpx.length];
+        for (int n = 0; n < white.length; n++) {
+            white[n] = (float) random.nextGaussian();
+        }
+        float[] taps = com.modula.dsp.FirDesign.bandPass(
+                com.modula.dsp.FirDesign.tapsForTransition(2_000.0 / sampleRate),
+                lowHz / sampleRate,
+                highHz / sampleRate);
+        float[] band = new float[white.length];
+        new com.modula.dsp.FirFilter(taps, 1).filter(white, white.length, band);
+
+        double energy = 0.0;
+        for (float v : band) {
+            energy += v * v;
+        }
+        double scale = rms / Math.sqrt(energy / band.length);
+        float[] out = mpx.clone();
+        for (int n = 0; n < out.length; n++) {
+            out[n] += (float) (scale * band[n]);
         }
         return out;
     }

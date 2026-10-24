@@ -508,8 +508,7 @@ public final class DemodChain {
         if (groups == 0) {
             return "pilot, no RDS";
         }
-        return "RDS %d groups @ %.1f bps%s"
-                .formatted(groups, rdsReceiver.symbolRateHz(), rdsReceiver.isUsingQuadrature() ? " (Q)" : "");
+        return "RDS %d groups @ %.1f bps".formatted(groups, rdsReceiver.symbolRateHz());
     }
 
     /**

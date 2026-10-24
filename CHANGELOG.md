@@ -16,6 +16,19 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **RDS decoded a fraction of what stations sent, and often never showed a name.** Three faults, found
+  by decoding off-air captures of eight local stations rather than by synthesis:
+  - The receiver assumed the 57 kHz subcarrier sits exactly in phase or in quadrature with the pilot's
+    third harmonic, as the standard says, and picked whichever branch carried more energy. One station's
+    encoder runs on its own crystal and turns against the pilot, so the subcarrier kept passing between
+    the branches. A Costas loop now tracks the carrier: on that station 30 of ~340 groups became 340,
+    and the name appears in under a second instead of never.
+  - The symbol clock could lock half a symbol out and stay there, so whether a station decoded at all
+    depended on where decoding happened to begin. It now detects that and slips back, but only while
+    block sync is lost.
+  - Locking on to the group structure discarded the first complete group, and sometimes the one after.
+  Across the captures: 102.9 went from no RDS to 225 groups and its name in 0.8 s, 94.9 from 46 groups
+  (or none) to 225, and 90.5 from 136 to 226; weak stations are no worse.
 - **Status messages vanished before they could be read.** While listening, the readout rewrote the
   status line about nine times a second, so every message was gone within about 110 ms — the driver
   advice when the receiver falls back to rtl_tcp, "ffmpeg not found, recording as WAV", the file a

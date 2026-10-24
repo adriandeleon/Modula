@@ -24,6 +24,8 @@ public final class RdsReceiver {
 
     /** Runs one multiplex block through the whole RDS path. */
     public void process(PilotTracker tracker) {
+        // Sync is the only stage that can tell good bits from bad, so it vouches for the timing.
+        demodulator.setTimingTrusted(sync.isSynced());
         demodulator.process(tracker);
     }
 
@@ -38,11 +40,6 @@ public final class RdsReceiver {
 
     public long groupsDecoded() {
         return sync.groupsDecoded();
-    }
-
-    /** Which side of the 57 kHz reference the subcarrier turned out to be on. Diagnostic only. */
-    public boolean isUsingQuadrature() {
-        return demodulator.isUsingQuadrature();
     }
 
     /** The recovered symbol clock in bits per second; should sit very near 1187.5. Diagnostic only. */
