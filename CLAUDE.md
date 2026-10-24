@@ -148,15 +148,15 @@ u8 IQ @ 1.2 MSPS  (16384-pair blocks, ~13.6 ms)
  └ SampleFormat.u8ToFloat       →  float i[], q[]      1.2 MSPS
    └ FirFilter ×2, ÷5           →  float i[], q[]      240 kHz  (channel select)
      └ FmDiscriminator          →  float mpx[]         240 kHz  (real, the multiplex)
-       ├ PilotTracker           →  cos(2t) 38 kHz, cos(3t)/sin(3t) 57 kHz, aligned mpx
+       ├ PilotTracker           →  sin(2ωt) 38 kHz, cos(3θ)/sin(3θ) 57 kHz, aligned mpx
        │   └ bandPass 17–21 kHz →  Pll locked to the 19 kHz pilot
        ├ Delay → FirFilter ÷5   →  float sum[]         48 kHz   (L+R)
        ├ StereoDecoder          →  float difference[]  48 kHz   (L−R)
-       │   └ × 2·cos(2t), ÷5
+       │   └ × 2·sin(2ωt), ÷5
        │  → matrix + Deemphasis ×2  →  short pcm[]  interleaved stereo
        │    → ShortRing → sound card
        └ RdsReceiver            →  station name, radio text, programme type
-           ├ × 2·cos(3t) and 2·sin(3t), ÷10  →  24 kHz baseband
+           ├ × 2·cos(3θ) and 2·sin(3θ), ÷10  →  24 kHz baseband
            ├ bi-phase integrate-and-dump + timing NCO  →  1187.5 bps
            ├ RdsBlockSync  →  offset-word hunt, CRC
            └ RdsDecoder    →  groups 0 and 2
@@ -166,7 +166,10 @@ Both decimations are exactly ÷5, so every stage stays integer. 240 kHz is wide 
 57 kHz RDS subcarrier too, so RDS can be added **without touching the front end**.
 
 Measured channel separation is **33 dB, flat from 100 Hz to 10 kHz** (`SeparationProbe`; broadcast
-transmitters are only required to manage about 29 dB).
+transmitters are only required to manage about 29 dB). That is against **synthesis** — and until the
+38 kHz reference was corrected (see *Invariants*), the synthesis shared the decoder's mistake, so the
+figure held while real stations decoded as mono. Off air, the difference channel now lies within 0–7°
+of the reference on four local stations, against 83–90° before.
 
 ### Threading
 
@@ -230,6 +233,21 @@ that scales the recovered difference channel by cos(45°) and drops separation f
 and `DemodChain` delays the sum path by `groupDelaySamples()` to match. **Mix against
 `alignedMpx()`, never the raw input, and never add a filter to one path only.** Nothing errors when
 this is wrong; the stereo image just quietly narrows.
+
+**The 38 kHz reference is sin(2ωt) against a pilot of sin(ωt) — not the second harmonic of the loop's
+cosine.** The standard (FCC §73.322, ITU-R BS.450) has the subcarrier cross zero with positive slope
+wherever the pilot does, which two sines do. `Pll` locks its *cosine* to the pilot, so its phase θ sits a
+quarter-cycle behind, and cos(2θ) — the obvious double-angle, and what shipped through 1.2.0 — is in
+**quadrature** with the real subcarrier. It survived every test because `TestSignals.stereoMpx` built its
+multiplex from cosines too, so decoder and signal agreed with each other and not with any transmitter:
+33 dB separation in synthesis, while on air the STEREO badge lit over mono plus the difference channel's
+noise. `PilotTracker` now emits −sin(2θ), and
+`StereoDecoderTest.subcarrierRisesThroughZeroWhereThePilotDoes` checks the standard's sentence directly,
+from a pilot written inline rather than borrowed from the helper. The sign matters as much as the phase:
+inverting it swaps left and right. This is the RDS CRC lesson again, one layer down — **a constant taken
+from a standard needs a test against the standard**, and for stereo the honest check is off air (see
+*Field debugging* under RDS notes for the method: demodulate a capture and measure which axis the
+difference channel's energy lies on).
 
 **A slightly negative symbol phase is meaningful — do not wrap it.** In `RdsDemodulator` the timing
 correction can push the phase just below zero, which correctly says "this symbol ended early, start

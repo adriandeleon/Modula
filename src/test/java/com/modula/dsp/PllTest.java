@@ -53,26 +53,25 @@ class PllTest {
      * loudly — it quietly collapses stereo separation.
      */
     @Test
-    void reconstructsTheSubcarrierInPhaseWithThePilot() {
+    void locksItsCosineInPhaseWithTheInput() {
+        // A sine, because that is how a pilot is broadcast — and the loop's guarantee is about the
+        // input's waveform, not about its phase being zero at t = 0. What the 38 kHz subcarrier is
+        // made from that cosine is PilotTracker's business, pinned in StereoDecoderTest.
         Pll pll = newPll();
-        drive(pll, PILOT_HZ, PILOT_AMPLITUDE, SETTLE_SAMPLES);
-
         int count = 24_000;
         double correlation = 0.0;
         double reference = 0.0;
-        for (int n = 0; n < count; n++) {
-            int sample = SETTLE_SAMPLES + n;
-            double phase = 2.0 * Math.PI * PILOT_HZ * sample / IF_RATE;
-            pll.advance(PILOT_AMPLITUDE * Math.cos(phase));
-            double expected = Math.cos(2.0 * phase);
-            correlation += pll.cosDoubleOut() * expected;
-            reference += expected * expected;
+        for (int n = 0; n < SETTLE_SAMPLES + count; n++) {
+            double input = Math.sin(2.0 * Math.PI * PILOT_HZ * n / IF_RATE);
+            pll.advance(PILOT_AMPLITUDE * input);
+            if (n >= SETTLE_SAMPLES) {
+                correlation += pll.cosOut() * input;
+                reference += input * input;
+            }
         }
 
         double normalised = correlation / reference;
-        assertTrue(
-                normalised > 0.99,
-                "reconstructed subcarrier correlated only %.4f with the true one".formatted(normalised));
+        assertTrue(normalised > 0.99, "the loop's cosine correlated only %.4f with its input".formatted(normalised));
     }
 
     /**

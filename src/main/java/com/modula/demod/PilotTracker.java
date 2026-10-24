@@ -83,9 +83,10 @@ public final class PilotTracker {
             double cos = pll.cosOut();
             double sin = pll.sinOut();
 
-            // cos(2t) = 2cos²t − 1
-            second[n] = (float) (2.0 * cos * cos - 1.0);
-            // cos(3t) = 4cos³t − 3cos t, sin(3t) = 3sin t − 4sin³t
+            // The loop locks its cosine to the pilot, so against a pilot of sin(ωt) its phase is
+            // θ = ωt − π/2, and the standard's subcarrier sin(2ωt) = −sin(2θ) = −2·sinθ·cosθ.
+            second[n] = (float) (-2.0 * sin * cos);
+            // cos(3θ) = 4cos³θ − 3cosθ, sin(3θ) = 3sinθ − 4sin³θ
             third[n] = (float) (4.0 * cos * cos * cos - 3.0 * cos);
             thirdQuadrature[n] = (float) (3.0 * sin - 4.0 * sin * sin * sin);
         }
@@ -101,18 +102,32 @@ public final class PilotTracker {
         return aligned;
     }
 
-    /** cos(2t) — the 38 kHz stereo subcarrier. */
+    /**
+     * sin(2ωt) for a pilot of sin(ωt) — the 38 kHz stereo subcarrier, phased as the standard defines
+     * it: crossing zero with positive slope at every such crossing of the pilot (FCC §73.322, ITU-R
+     * BS.450).
+     *
+     * <p><b>This was cos(2θ) — the "obvious" second harmonic of the loop's cosine — and that is in
+     * quadrature with the real subcarrier</b>, because the loop's cosine sits a quarter-cycle behind
+     * a sine pilot. Every synthetic test passed, since the test signals were built to the same
+     * convention; on air the difference channel came out as noise, so the STEREO badge lit over
+     * near-mono audio. Off-air captures showed the difference channel's energy 8–9 dB stronger on
+     * the axis this now uses. {@code StereoDecoderTest} pins the zero-crossing rule directly.
+     */
     public float[] subcarrier38() {
         return second;
     }
 
-    /** cos(3t) — the 57 kHz RDS subcarrier. */
+    /**
+     * cos(3θ) = −sin(3ωt) — the 57 kHz RDS subcarrier in phase with the pilot's third harmonic. The
+     * sign is immaterial: RDS is differentially coded, so carrier polarity cannot corrupt it.
+     */
     public float[] subcarrier57() {
         return third;
     }
 
     /**
-     * sin(3t) — the quadrature 57 kHz reference.
+     * sin(3θ) = cos(3ωt) — the quadrature 57 kHz reference.
      *
      * <p>Needed because the standard allows the RDS subcarrier to be locked to the pilot's third
      * harmonic <b>either in phase or in quadrature</b>, and transmitters differ. Demodulating both

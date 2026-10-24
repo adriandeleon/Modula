@@ -122,20 +122,64 @@ class StereoDecoderTest {
 
         float[] second = tracker.subcarrier38();
         float[] third = tracker.subcarrier57();
+        float[] thirdQuadrature = tracker.subcarrier57Quadrature();
         int delay = tracker.groupDelaySamples();
 
         double correlation38 = 0.0;
         double correlation57 = 0.0;
+        double correlation57q = 0.0;
         int from = MPX_SAMPLES - 24_000;
         for (int n = from; n < MPX_SAMPLES; n++) {
             // The tracker's reference belongs to the multiplex as it was `delay` samples ago.
             double phase = 2.0 * Math.PI * PilotTracker.PILOT_HZ * (n - delay) / IF_RATE;
-            correlation38 += second[n] * Math.cos(2.0 * phase);
-            correlation57 += third[n] * Math.cos(3.0 * phase);
+            correlation38 += second[n] * Math.sin(2.0 * phase);
+            correlation57 += third[n] * Math.sin(3.0 * phase);
+            correlation57q += thirdQuadrature[n] * Math.cos(3.0 * phase);
         }
         int count = MPX_SAMPLES - from;
+        // The 38 kHz sign is not negotiable — inverting it swaps left and right. The 57 kHz ones are
+        // checked by magnitude only, because RDS's differential coding makes carrier polarity moot.
         assertTrue(correlation38 / (count * 0.5) > 0.98, "38 kHz reference is out of phase");
-        assertTrue(correlation57 / (count * 0.5) > 0.98, "57 kHz reference is out of phase");
+        assertTrue(Math.abs(correlation57) / (count * 0.5) > 0.98, "57 kHz reference is out of phase");
+        assertTrue(Math.abs(correlation57q) / (count * 0.5) > 0.98, "57 kHz quadrature is out of phase");
+    }
+
+    /**
+     * The standard's own wording, checked directly rather than through {@link TestSignals}: the
+     * subcarrier "shall cross the time axis with a positive slope simultaneously with each crossing
+     * of the time axis by the pilot subcarrier" (FCC §73.322; ITU-R BS.450 says the same).
+     *
+     * <p>This test exists because the decoder once reconstructed cos(2θ) from the loop's cosine and
+     * every other stereo test agreed with it — they were all built on a test signal written to the
+     * same convention. On air that reference was in quadrature with the real subcarrier, and stereo
+     * quietly decoded as mono. A constant taken from a standard needs a test against the standard.
+     */
+    @Test
+    void subcarrierRisesThroughZeroWhereThePilotDoes() {
+        // A bare pilot, written here from the standard rather than borrowed from the helper.
+        float[] mpx = new float[MPX_SAMPLES];
+        for (int n = 0; n < MPX_SAMPLES; n++) {
+            mpx[n] = (float) (0.1 * Math.sin(2.0 * Math.PI * PilotTracker.PILOT_HZ * n / IF_RATE));
+        }
+        PilotTracker tracker = newTracker();
+        tracker.process(mpx, MPX_SAMPLES);
+        float[] pilot = tracker.alignedMpx();
+        float[] subcarrier = tracker.subcarrier38();
+
+        int crossings = 0;
+        for (int n = MPX_SAMPLES - 24_000; n < MPX_SAMPLES; n++) {
+            if (!(pilot[n - 1] < 0f && pilot[n] >= 0f)) {
+                continue;
+            }
+            crossings++;
+            // Where between the two samples the pilot crosses, and the subcarrier there. Linear
+            // interpolation is exact enough: a sinusoid is at its straightest through zero.
+            double t = pilot[n - 1] / (double) (pilot[n - 1] - pilot[n]);
+            double atCrossing = subcarrier[n - 1] + t * (subcarrier[n] - subcarrier[n - 1]);
+            assertEquals(0.0, atCrossing, 0.05, "subcarrier must cross zero with the pilot, sample " + n);
+            assertTrue(subcarrier[n] > subcarrier[n - 1], "and with a positive slope, sample " + n);
+        }
+        assertTrue(crossings > 1_000, "expected about 1900 pilot crossings, saw " + crossings);
     }
 
     private static PilotTracker newTracker() {
