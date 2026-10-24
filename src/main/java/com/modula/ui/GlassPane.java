@@ -55,6 +55,7 @@ public final class GlassPane extends VBox {
     private static final int MAX_AF_SHOWN = 16;
 
     private final Label dial = new Label("—");
+    private final Label unit = new Label("MHz");
     private final Label stationLabel = new Label();
     private final Label radioTextLabel = new Label();
 
@@ -118,7 +119,6 @@ public final class GlassPane extends VBox {
 
     private HBox buildDial() {
         dial.getStyleClass().add("dial");
-        Label unit = new Label("MHz");
         unit.getStyleClass().add("dial-unit");
 
         HBox box = new HBox(0, dial, unit);
@@ -164,13 +164,14 @@ public final class GlassPane extends VBox {
 
     private void refreshBandLabels() {
         bandLabel.setText("%s %s".formatted(band.name(), region.name()));
-        scaleLow.setText(Readouts.megahertz(band.minHz()));
-        scaleHigh.setText(Readouts.megahertz(band.maxHz()));
+        scaleLow.setText(com.modula.band.Frequencies.digits(band.minHz()));
+        scaleHigh.setText(com.modula.band.Frequencies.digits(band.maxHz()));
     }
 
     /** The frequency, shown whether or not the receiver is running. */
     public void setFrequency(long hz) {
-        dial.setText(Readouts.megahertz(hz));
+        dial.setText(com.modula.band.Frequencies.digits(hz));
+        unit.setText(com.modula.band.Frequencies.unit(hz));
     }
 
     /** Applies one snapshot. The state drives the styling; this method only supplies values. */
@@ -205,7 +206,8 @@ public final class GlassPane extends VBox {
         StringBuilder text = new StringBuilder();
         int shown = Math.min(all.size(), MAX_AF_SHOWN);
         for (int i = 0; i < shown; i++) {
-            text.append(i > 0 ? (i % 4 == 0 ? "\n" : "   ") : "").append(Readouts.megahertz(all.get(i)));
+            text.append(i > 0 ? (i % 4 == 0 ? "\n" : "   ") : "")
+                    .append(com.modula.band.Frequencies.digits(all.get(i)));
         }
         if (all.size() > shown) {
             text.append("\n\u2026 and ").append(all.size() - shown).append(" more");
