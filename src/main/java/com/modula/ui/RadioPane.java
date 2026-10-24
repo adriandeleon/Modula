@@ -113,7 +113,7 @@ public final class RadioPane extends StackPane {
 
         this.settings = config.loadSettings();
         this.region = settings.region();
-        this.band = bandNamed(settings.band());
+        this.band = BandPlan.named(settings.band(), region);
         this.frequencyHz = band.snap(settings.frequencyHz());
         this.presets = new ArrayList<>(config.loadPresets());
 
@@ -189,14 +189,6 @@ public final class RadioPane extends StackPane {
     public void markUpdateChecked(long epochMillis) {
         settings = currentSettings().withLastUpdateCheck(epochMillis);
         config.saveSettings(settings);
-    }
-
-    private static BandPlan bandNamed(String name) {
-        return switch (name) {
-            case "AM" -> BandPlan.mediumWave(com.modula.band.Region.AMERICAS);
-            case "AIR" -> BandPlan.airband();
-            default -> BandPlan.fm(com.modula.band.Region.AMERICAS);
-        };
     }
 
     // --- commands -------------------------------------------------------------------------------
@@ -1067,11 +1059,7 @@ public final class RadioPane extends StackPane {
      * as a region change does.
      */
     private void setBand(String name) {
-        BandPlan chosen = switch (name) {
-            case "AM" -> BandPlan.mediumWave(region);
-            case "AIR" -> BandPlan.airband();
-            default -> BandPlan.fm(region);
-        };
+        BandPlan chosen = BandPlan.named(name, region);
         applyBand(chosen);
         // Stereo is meaningless outside FM, so the control says so rather than sitting there inert.
         stereoCheck.setDisable(!chosen.modulation().carriesStereo());

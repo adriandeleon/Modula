@@ -50,6 +50,22 @@ public record BandPlan(String name, long anchorHz, int spacingHz, int channelCou
         return new BandPlan("AIR", 118_000_000L, 25_000, 761, Modulation.AM);
     }
 
+    /**
+     * The band a saved or chosen name stands for, in the listener's region. Unknown names are FM.
+     *
+     * <p>The region is a parameter, not an afterthought: startup used to build the band for the
+     * Americas whatever was saved, snap the saved frequency to that grid, and only then apply the
+     * region — so every European station on an even tenth (98.8) moved one channel (98.9) on every
+     * launch, and medium wave drifted from the 9 kHz grid onto the 10 kHz one.
+     */
+    public static BandPlan named(String name, Region region) {
+        return switch (name) {
+            case "AM" -> mediumWave(region);
+            case "AIR" -> airband();
+            default -> fm(region);
+        };
+    }
+
     public long minHz() {
         return anchorHz;
     }
