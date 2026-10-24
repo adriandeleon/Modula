@@ -149,6 +149,18 @@ public final class RadioPane extends StackPane {
         glass.setFrequency(frequencyHz);
         presetBar.setPresets(presets, frequencyHz);
         installKeyboard();
+        keepOutOfFocus(
+                seekDown,
+                tuneDown,
+                powerButton,
+                tuneUp,
+                seekUp,
+                settingsButton,
+                volumeSlider,
+                recordButton,
+                bandCombo,
+                regionCombo,
+                stereoCheck);
         applyTheme();
         setStatusText(describeAvailableSource(), false);
     }
@@ -234,12 +246,39 @@ public final class RadioPane extends StackPane {
         list.add(Command.of("tune.up", "Next channel", "\u2192", () -> tuneTo(band.next(frequencyHz))));
         list.add(Command.of("tune.down", "Previous channel", "\u2190", () -> tuneTo(band.previous(frequencyHz))));
         list.add(Command.of("preset.save", "Save this station", "+", this::savePreset));
+        // Each preset by number and by name, so the palette both finds a station by what it is called
+        // and teaches the number-then-Enter chord that recalls it without the palette.
+        for (int i = 0; i < presets.size(); i++) {
+            Preset preset = presets.get(i);
+            int slot = i + 1;
+            list.add(Command.of(
+                    "preset." + slot,
+                    "Preset %d: %s".formatted(slot, preset.label()),
+                    slot <= 9 ? slot + " ⏎" : "",
+                    () -> tuneTo(preset.frequencyHz())));
+        }
         list.add(
                 Command.of("record", isRecording() ? "Stop recording" : "Record to a file", "", this::toggleRecording));
+        // The footer's controls take no keyboard focus, so everything they set has to be reachable here.
+        if (!stereoCheck.isDisabled()) {
+            list.add(Command.of(
+                    "stereo",
+                    stereoCheck.isSelected() ? "Mono — force it" : "Stereo — allow it",
+                    "",
+                    () -> stereoCheck.setSelected(!stereoCheck.isSelected())));
+        }
         for (String name : new String[] {"FM", "AM", "AIR"}) {
             list.add(Command.of("band." + name.toLowerCase(java.util.Locale.ROOT), "Band: " + name, "", () -> {
                 bandCombo.setValue(name);
             }));
+        }
+        for (com.modula.band.Region each : com.modula.band.Region.values()) {
+            list.add(Command.of(
+                    "region." + each.name().toLowerCase(java.util.Locale.ROOT),
+                    "Region: " + each.name().charAt(0)
+                            + each.name().substring(1).toLowerCase(java.util.Locale.ROOT),
+                    "",
+                    () -> regionCombo.setValue(each)));
         }
         list.add(Command.of(
                 "theme",
@@ -590,13 +629,13 @@ public final class RadioPane extends StackPane {
         tuneEntry.setManaged(false);
         tuneEntry.setOnAction(e -> commitTuneEntry());
         tuneEntry.focusedProperty().addListener((o, was, has) -> {
-            if (!has) {
-                hideTuneEntry();
+            if (!has && tuneEntry.isVisible()) {
+                hideTuneEntry(false); // focus has already gone somewhere; leave it there
             }
         });
         tuneEntry.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.ESCAPE) {
-                hideTuneEntry();
+                hideTuneEntry(true);
                 e.consume();
             }
         });
@@ -793,15 +832,31 @@ public final class RadioPane extends StackPane {
 
     // --- keyboard ------------------------------------------------------------------------------
 
+    /**
+     * One keyboard model for the whole window: the shortcuts.
+     *
+     * <p>A <b>filter</b>, not a handler, so it sees each key before whichever control was last
+     * clicked. As a handler it ran only for keys nothing else wanted, which in practice meant the
+     * shortcuts worked until the mouse touched something: after a click on a preset chip Space pressed
+     * the chip instead of Listen, after dragging the volume ←/→ moved the slider instead of tuning, and
+     * a band combo left focused took ↑/↓ and restarted the receiver on every press. The controls are
+     * also kept out of the focus order (see {@link #keepOutOfFocus}), because a focus that has no
+     * visible ring and no keys of its own only ever explained the wrong thing happening.
+     *
+     * <p>Text fields keep their keys — the tune entry, a preset rename, the palette's search.
+     */
     private void installKeyboard() {
-        addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+        addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.P && e.isControlDown() && e.isShiftDown()) {
+                if (tuneEntry.isVisible()) {
+                    hideTuneEntry(false); // the palette takes focus next; do not pull it back here
+                }
                 palette.show();
                 e.consume();
                 return;
             }
-            if (palette.isShowing() || e.getTarget() instanceof TextField) {
-                return; // the inline tune entry or a preset rename owns the keys
+            if (ownsItsKeys(e)) {
+                return;
             }
             switch (e.getCode()) {
                 case LEFT -> step(e, Scanner.Direction.DOWN, band.previous(frequencyHz));
@@ -820,6 +875,33 @@ public final class RadioPane extends StackPane {
                 }
             }
         });
+        // "+" is a character, not a key: shift+= on one layout, its own key on another, and the
+        // keypad's on every one. Matching what was typed rather than which key made it is the only way
+        // the chord the menu advertises works everywhere. It was advertised and never bound.
+        addEventFilter(KeyEvent.KEY_TYPED, e -> {
+            if ("+".equals(e.getCharacter()) && !ownsItsKeys(e)) {
+                savePreset();
+                e.consume();
+            }
+        });
+    }
+
+    /** Whether this key belongs to something other than the shortcuts. */
+    private boolean ownsItsKeys(KeyEvent e) {
+        return palette.isShowing()
+                || e.getTarget() instanceof TextField
+                || (e.getTarget() instanceof javafx.scene.control.ComboBoxBase<?> combo && combo.isShowing());
+    }
+
+    /**
+     * Keeps a control out of the keyboard's way: not reachable by Tab, and — since the toolkit's
+     * buttons, sliders and combos only take focus on a click when they are traversable — not left
+     * holding focus after one either. Everything these controls do has a shortcut or a palette entry.
+     */
+    static void keepOutOfFocus(javafx.scene.Node... nodes) {
+        for (javafx.scene.Node node : nodes) {
+            node.setFocusTraversable(false);
+        }
     }
 
     private void step(KeyEvent e, Scanner.Direction direction, long next) {
@@ -836,18 +918,22 @@ public final class RadioPane extends StackPane {
         e.consume();
     }
 
-    /** A digit recalls a preset; typing a number opens the inline entry, which is the same gesture. */
+    /**
+     * A digit opens the inline entry, seeded with it. A frequency then tunes on Enter, and so does a
+     * lone 1–9, which recalls that preset.
+     *
+     * <p>A digit used to recall its preset <i>immediately</i>, and only fall through to the entry when
+     * there was no such preset. With one preset saved, "1" — the first key of 100.1 to 107.9 — jumped
+     * to it; with nine, every digit but 0 did, and no FM frequency could be typed at all. Making the
+     * preset wait for Enter costs one key and removes the ambiguity rather than guessing at it.
+     */
     private boolean handleDigit(KeyEvent e) {
         String typed = e.getText();
         if (typed == null || typed.length() != 1 || !Character.isDigit(typed.charAt(0))) {
             return false;
         }
-        if (e.isShiftDown() || e.isControlDown() || e.isAltDown()) {
+        if (e.isShiftDown() || e.isControlDown() || e.isAltDown() || e.isMetaDown()) {
             return false;
-        }
-        int digit = typed.charAt(0) - '0';
-        if (digit >= 1 && presetBar.recall(digit)) {
-            return true;
         }
         showTuneEntry(typed);
         return true;
@@ -863,18 +949,37 @@ public final class RadioPane extends StackPane {
         tuneEntry.positionCaret(tuneEntry.getText().length());
     }
 
-    private void hideTuneEntry() {
+    /**
+     * @param refocus whether to hand the keyboard back to the pane. Not when the entry is closing
+     *     because something else just took focus: pulling it back from the command palette left the
+     *     keyboard dead, since the palette was showing but no longer had the keys.
+     */
+    private void hideTuneEntry(boolean refocus) {
         tuneEntry.setVisible(false);
         tuneEntry.setManaged(false);
         powerButton.setVisible(true);
         powerButton.setManaged(true);
-        requestFocus();
+        if (refocus) {
+            requestFocus();
+        }
     }
 
     private void commitTuneEntry() {
         String text = tuneEntry.getText();
-        hideTuneEntry();
+        hideTuneEntry(true);
         if (text == null || text.isBlank()) {
+            return;
+        }
+        String entered = text.strip();
+        if (entered.length() == 1 && entered.charAt(0) >= '1' && entered.charAt(0) <= '9') {
+            int slot = entered.charAt(0) - '0';
+            if (!presetBar.recall(slot)) {
+                setStatusText(
+                        presets.isEmpty()
+                                ? "No presets yet — press + to save the tuned station."
+                                : "There is no preset %d; %d are saved.".formatted(slot, presets.size()),
+                        false);
+            }
             return;
         }
         try {

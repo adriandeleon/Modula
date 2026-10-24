@@ -63,12 +63,12 @@ Press **Listen**, then:
 |---|---|
 | ◀ ▶ or **←** **→** | step one channel |
 | ◀◀ ▶▶ or **shift+←/→** | seek to the next real station (press again to cancel) |
-| type a number, **Enter** | tune directly — the entry opens as you type |
-| **1**–**9** | recall that preset |
+| type a frequency, **Enter** | tune directly — the entry opens as you type |
+| **1**–**9**, **Enter** | recall that preset |
 | **↑** **↓** | volume |
 | **Space** | listen / stop |
 | **+** | save the tuned station, then name it inline |
-| right-click a chip | rename or remove it (**Delete** also removes) |
+| right-click a chip | rename or remove it |
 | **ctrl+shift+P** | the command palette — everything, searchable, with its shortcut beside it |
 | **right-click** anywhere | the same actions as a menu, each showing its shortcut |
 

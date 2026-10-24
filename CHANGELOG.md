@@ -5,8 +5,24 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **A preset is recalled by its number then Enter**, not by the number alone. A bare digit now always
+  opens the tune entry, so typing a frequency works however many presets are saved; a lone 1–9 followed by
+  Enter recalls that preset. The palette lists every preset by number and name.
+- **The window's controls no longer take keyboard focus.** Everything they do has a shortcut or a palette
+  entry, including stereo/mono and the region, which the palette now offers. Delete no longer removes a
+  preset chip; right-click it instead.
+
 ### Fixed
 
+- **Typing a frequency was impossible with presets saved.** "1", the first key of 100.1–107.9, recalled
+  preset 1 instead; with nine presets every digit but 0 did.
+- **The shortcuts stopped working after a click.** Space pressed the last-clicked chip instead of
+  Listen, ←/→ moved the volume after a drag instead of tuning, and a band selector left focused took ↑/↓
+  and restarted the receiver on each press. Shortcuts are now seen before the focused control.
+- **+ did nothing**, though the menu, the palette and the README all advertised it.
+- **Opening the palette from the tune entry left the keyboard dead** until a mouse click.
 - **Stereo stations played in mono.** The 38 kHz reference was rebuilt as cos(2θ) from the pilot loop's
   cosine, which is in quadrature with the subcarrier the standard defines (sin(2ωt) against a sine
   pilot), so the decoder recovered the difference channel's noise rather than its programme. The STEREO
