@@ -16,6 +16,11 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Seek could never find an AM or airband station.** It stops when the FM multiplex noise drops, and AM
+  has no multiplex, so it reported none and every seek walked the whole band muted and gave up where it
+  began. AM now seeks on the envelope's ripple: noise alone holds it at a fixed −5.6 dB whatever its
+  level, and a carrier pulls it well below. Calibrated by synthesis only, since medium wave is out of a
+  stock dongle's reach and the airband is quiet most of the time.
 - **RDS decoded a fraction of what stations sent, and often never showed a name.** Three faults, found
   by decoding off-air captures of eight local stations rather than by synthesis:
   - The receiver assumed the 57 kHz subcarrier sits exactly in phase or in quadrature with the pilot's

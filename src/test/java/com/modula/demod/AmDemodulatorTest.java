@@ -101,6 +101,40 @@ class AmDemodulatorTest {
         assertEquals(0.0, demodulator.carrierLevel(), 1e-9);
     }
 
+    /**
+     * Noise alone has a Rayleigh envelope, whose spread over its mean is fixed — √(4/π − 1), or
+     * −5.6 dB — at any level. That constancy is what lets seek use one threshold whatever the gain.
+     */
+    @Test
+    void anEmptyChannelReadsTheRayleighRippleAtAnyLevel() {
+        for (double level : new double[] {1e-3, 0.05, 0.3}) {
+            java.util.Random random = new java.util.Random(3);
+            float[] i = new float[48_000];
+            float[] q = new float[48_000];
+            for (int n = 0; n < i.length; n++) {
+                i[n] = (float) (level * random.nextGaussian());
+                q[n] = (float) (level * random.nextGaussian());
+            }
+            AmDemodulator demodulator = new AmDemodulator(RATE);
+            demodulator.demodulate(i, q, i.length, new float[i.length]);
+
+            double expected = 10.0 * Math.log10(4.0 / Math.PI - 1.0);
+            assertEquals(expected, demodulator.rippleDb(), 0.2, "noise at level " + level);
+        }
+    }
+
+    /** A sine at depth m moves the envelope by m/√2 rms: 30% reads −13.5 dB, well clear of noise. */
+    @Test
+    void aModulatedCarrierReadsItsModulationAsRipple() {
+        AmDemodulator demodulator = new AmDemodulator(RATE);
+        float[] i = new float[48_000];
+        float[] q = new float[48_000];
+        fill(i, q, 0.3, 0.5);
+        demodulator.demodulate(i, q, i.length, new float[i.length]);
+
+        assertEquals(20.0 * Math.log10(0.3 / Math.sqrt(2.0)), demodulator.rippleDb(), 0.2);
+    }
+
     private static double amplitudeOf(float[] audio) {
         return TestSignals.measure(audio, audio.length - ANALYSIS, ANALYSIS, TONE_HZ, RATE)
                 .amplitude();
