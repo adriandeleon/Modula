@@ -155,17 +155,42 @@ public final class RadioPane extends StackPane {
 
     /** Stops the receiver, releases the device and persists the session. */
     public void dispose() {
-        RadioEngine e = engine;
-        engine = null;
-        sink = null;
-        if (e != null) {
-            e.stop();
-        }
-        stopRecording();
+        stopReceiver();
         if (scheduleWatch != null) {
             scheduleWatch.stop();
         }
         config.saveSettings(currentSettings());
+    }
+
+    /**
+     * Stops the receiver and everything it was feeding — the device, the sound card, any recording —
+     * and leaves the rest of the application running. Safe whether the engine is running, has stopped
+     * itself after a fault, or was never started.
+     *
+     * <p>Separate from {@link #dispose} because the two were once the same method, and Stop called it:
+     * pressing Stop also stopped the schedule watch, so no scheduled recording fired again until the
+     * application was restarted.
+     *
+     * @return the file a recording in progress was finalised into, or null if none was
+     */
+    private java.nio.file.Path stopReceiver() {
+        RadioEngine e = engine;
+        RecordingSink r = recorder;
+        java.nio.file.Path recording = r == null ? null : r.file();
+        engine = null;
+        sink = null;
+        recorder = null;
+        if (e != null) {
+            // Joins both threads before closing the sink chain, so the recording is finalised with
+            // nothing still writing into it, and the device is released even if the engine had
+            // already stopped itself.
+            e.stop();
+        }
+        if (r != null) {
+            r.stop(); // already finalised by the engine in every normal case; harmless then
+        }
+        recordButton.getStyleClass().remove("recording");
+        return recording;
     }
 
     /** The live settings, so every save carries the whole record rather than four of its fields. */
@@ -539,15 +564,6 @@ public final class RadioPane extends StackPane {
         }
     }
 
-    private void stopRecording() {
-        RecordingSink r = recorder;
-        if (r != null) {
-            r.stop();
-        }
-        recordButton.getStyleClass().remove("recording");
-        publishTray();
-    }
-
     /** Names the file after the station when RDS has told us one, else after the frequency. */
     private String recordingLabel() {
         RadioEngine.Status status = latestStatus.get();
@@ -880,7 +896,8 @@ public final class RadioPane extends StackPane {
 
     public void togglePower() {
         if (engine != null && engine.isRunning()) {
-            dispose();
+            stopReceiver();
+            config.saveSettings(currentSettings());
             powerButton.setText("Listen");
             powerButton.getStyleClass().remove("running");
             faulted = false;
@@ -906,21 +923,46 @@ public final class RadioPane extends StackPane {
     private RadioEngine restartOn(IqSource source, JavaSoundSink audio, RecordingSink recording, RadioEngine failed) {
         failed.stop();
         RadioEngine retry = new RadioEngine(source, recording, region, band);
-        retry.setStereoEnabled(stereoCheck.isSelected());
-        retry.setListener(this::onStatus);
-        retry.setErrorListener(error -> Platform.runLater(() -> {
-            faulted = true;
-            powerButton.setText("Listen");
-            powerButton.getStyleClass().remove("running");
-            glass.apply(ReceiverState.FAULT, latestStatus.get(), frequencyHz);
-            setStatusText("Stopped: " + describe(error), true);
-        }));
+        attach(retry);
         try {
             retry.start(frequencyHz);
             return retry;
         } catch (Exception ex) {
+            retry.stop();
             return null;
         }
+    }
+
+    /** Wires an engine to this pane: its settings, its status and its faults. */
+    private void attach(RadioEngine e) {
+        e.setStereoEnabled(stereoCheck.isSelected());
+        e.setListener(this::onStatus);
+        e.setErrorListener(error -> Platform.runLater(() -> onFault(e, error)));
+    }
+
+    /**
+     * The engine stopped itself — an unplugged dongle, a dead rtl_tcp server.
+     *
+     * <p>Its threads have ended, but an engine only releases the device and the sound card in
+     * {@link RadioEngine#stop}, and this used to restyle the UI and nothing else. The dead engine
+     * therefore kept the dongle claimed, so the next Listen could not open it and fell back to
+     * rtl_tcp until a restart, and a recording in progress was never finalised — which for a
+     * compressed format leaves a file that will not open.
+     */
+    private void onFault(RadioEngine failed, Throwable error) {
+        if (engine != failed) {
+            return; // already stopped or replaced — and both threads may report the same failure
+        }
+        java.nio.file.Path recording = stopReceiver();
+        faulted = true;
+        powerButton.setText("Listen");
+        powerButton.getStyleClass().remove("running");
+        glass.apply(ReceiverState.FAULT, latestStatus.get(), frequencyHz);
+        setStatusText(
+                "Stopped: " + describe(error)
+                        + (recording == null ? "" : " — the recording was saved as " + recording.getFileName()),
+                true);
+        publishTray();
     }
 
     private IqSource createSource() {
@@ -931,6 +973,9 @@ public final class RadioPane extends StackPane {
     }
 
     private void start() {
+        // An engine that ended without reporting a fault — a source reaching end of stream — still
+        // holds its device and sound card until stopped.
+        stopReceiver();
         IqSource source = createSource();
         // Only refuse what nothing can reach. A frequency *below* the tuner may still be reachable by
         // direct sampling, which the engine arranges after the device is open — so refusing here on
@@ -947,15 +992,7 @@ public final class RadioPane extends StackPane {
         audio.setVolume(com.modula.audio.VolumeTaper.gain(volumeSlider.getValue()));
         RecordingSink recording = new RecordingSink(audio, DemodChain.AUDIO_RATE, DemodChain.CHANNELS);
         RadioEngine e = new RadioEngine(source, recording, region, band);
-        e.setStereoEnabled(stereoCheck.isSelected());
-        e.setListener(this::onStatus);
-        e.setErrorListener(error -> Platform.runLater(() -> {
-            faulted = true;
-            powerButton.setText("Listen");
-            powerButton.getStyleClass().remove("running");
-            glass.apply(ReceiverState.FAULT, latestStatus.get(), frequencyHz);
-            setStatusText("Stopped: " + describe(error), true);
-        }));
+        attach(e);
         try {
             e.start(frequencyHz);
         } catch (Exception ex) {
@@ -964,6 +1001,7 @@ public final class RadioPane extends StackPane {
             // radio instead of an error, and any other cause still reports itself below.
             IqSource fallback = fallbackFor(source);
             if (fallback == null) {
+                e.stop(); // releases the sound card the half-started engine may have opened
                 faulted = true;
                 setStatusText("Could not start: " + describe(ex), true);
                 return;
@@ -1079,10 +1117,9 @@ public final class RadioPane extends StackPane {
 
     private void restartIfRunning() {
         if (engine != null && engine.isRunning()) {
-            RadioEngine e = engine;
-            engine = null;
-            sink = null;
-            e.stop();
+            // Through stopReceiver, so a recording in progress is finalised and the button says so,
+            // rather than the old engine closing it silently while the button stayed lit.
+            stopReceiver();
             start();
         }
     }
