@@ -144,4 +144,19 @@ class ScannerTest {
         }
         return scanner.onBlock(tuned, noiseDbfs);
     }
+
+    /**
+     * AM's measure is envelope ripple, where noise alone reads a fixed −5.6 dB. The AM threshold must
+     * reject that and accept a carrier modulated as hard as a loud, processed station is — and each
+     * band must get its own threshold, since FM's −20 is a different quantity.
+     */
+    @Test
+    void amSeekTellsACarrierFromAnEmptyChannel() {
+        double emptyChannel = 10.0 * Math.log10(4.0 / Math.PI - 1.0);
+        assertFalse(SeekPolicy.AM_DEFAULT.isStation(emptyChannel), "an empty channel is not a station");
+        assertTrue(SeekPolicy.AM_DEFAULT.isStation(20.0 * Math.log10(0.40)), "40% rms modulation is a station");
+
+        assertEquals(SeekPolicy.AM_DEFAULT, SeekPolicy.defaultFor(com.modula.band.Modulation.AM));
+        assertEquals(SeekPolicy.DEFAULT, SeekPolicy.defaultFor(com.modula.band.Modulation.FM));
+    }
 }

@@ -89,6 +89,42 @@ class RadioEngineSeekTest {
         }
     }
 
+    /**
+     * AM had no seek measure at all: it reported zero multiplex noise, which "below −20" never
+     * meets, so a seek walked the whole band muted and gave up where it began. It now keys on the
+     * envelope's ripple, which a carrier holds down and noise cannot.
+     */
+    @Test
+    @Timeout(30)
+    void seekingTheAirbandStopsOnACarrier() throws Exception {
+        long start = 118_000_000L;
+        long station = 118_075_000L; // three 25 kHz channels up
+        FakeDongle dongle = new FakeDongle(station, amStation());
+        RadioEngine engine = new RadioEngine(dongle, new CountingSink(), Region.AMERICAS, BandPlan.airband());
+
+        try {
+            engine.start(start);
+            engine.seek(Scanner.Direction.UP);
+            awaitSeekFinished(engine);
+
+            assertEquals(station, engine.frequencyHz(), "seek should stop on the carrier");
+        } finally {
+            engine.stop();
+        }
+    }
+
+    /** An AM carrier at the tuned frequency, 50% modulated by a 1 kHz tone, as the dongle's bytes. */
+    private static byte[] amStation() {
+        int pairs = DemodChain.BLOCK_PAIRS;
+        byte[] raw = new byte[pairs * 2];
+        for (int n = 0, b = 0; n < pairs; n++, b += 2) {
+            double envelope = 0.4 * (1.0 + 0.5 * Math.sin(2.0 * Math.PI * 1_000.0 * n / DemodChain.INPUT_RATE));
+            raw[b] = (byte) Math.round(envelope * 127.5 + 127.5);
+            raw[b + 1] = (byte) Math.round(127.5);
+        }
+        return raw;
+    }
+
     private static void awaitSeekFinished(RadioEngine engine) throws InterruptedException {
         long deadline = System.nanoTime() + 25_000_000_000L;
         // The seek has to start before it can finish, so wait for it to be observed running first.
@@ -111,12 +147,22 @@ class RadioEngineSeekTest {
         private volatile long frequency;
 
         FakeDongle(long stationHz) {
+            this(
+                    stationHz,
+                    TestSignals.fmModulate(
+                            TestSignals.stereoMpx(
+                                    DemodChain.BLOCK_PAIRS,
+                                    DemodChain.INPUT_RATE,
+                                    new Tone(1_000.0, 0.5),
+                                    Tone.SILENCE),
+                            DemodChain.INPUT_RATE,
+                            TestSignals.DEVIATION_HZ));
+        }
+
+        FakeDongle(long stationHz, byte[] station) {
             this.stationHz = stationHz;
+            this.station = station;
             int pairs = DemodChain.BLOCK_PAIRS;
-            this.station = TestSignals.fmModulate(
-                    TestSignals.stereoMpx(pairs, DemodChain.INPUT_RATE, new Tone(1_000.0, 0.5), Tone.SILENCE),
-                    DemodChain.INPUT_RATE,
-                    TestSignals.DEVIATION_HZ);
 
             Random random = new Random(7);
             this.noise = new byte[pairs * 2];

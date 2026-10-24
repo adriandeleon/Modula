@@ -220,7 +220,7 @@ public final class RadioEngine implements AutoCloseable {
     private Thread dspThread;
 
     public RadioEngine(IqSource source, AudioSink sink, Region region, BandPlan band) {
-        this(source, sink, region, band, SeekPolicy.DEFAULT);
+        this(source, sink, region, band, SeekPolicy.defaultFor(band.modulation()));
     }
 
     public RadioEngine(IqSource source, AudioSink sink, Region region, BandPlan band, SeekPolicy seekPolicy) {
@@ -478,7 +478,7 @@ public final class RadioEngine implements AutoCloseable {
      */
     private boolean advanceSeek() {
         retuneRequested = false;
-        Scanner.Step step = scanner.onBlock(currentHz, chain.noiseDbfs());
+        Scanner.Step step = scanner.onBlock(currentHz, chain.squelchDb());
         switch (step.action()) {
             case WAIT -> {
                 return false;

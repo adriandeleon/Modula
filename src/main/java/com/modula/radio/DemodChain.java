@@ -450,6 +450,20 @@ public final class DemodChain {
         return noiseDbfs;
     }
 
+    /**
+     * What seek thresholds on, for this chain's modulation — <b>lower means a station</b>.
+     *
+     * <p>FM: {@link #noiseDbfs}. AM has no discriminator and so no multiplex noise; it reported zero
+     * there, which seek's "below −20" could never meet, so an AM or airband seek walked the whole band
+     * muted and gave up. AM's measure is the envelope's ripple instead (see
+     * {@link AmDemodulator#rippleDb}). Kept apart from {@code noiseDbfs} because that zero is
+     * deliberate: the weak-signal state and the quieting readout treat it as "no measurement", and a
+     * ripple figure there would call every AM station weak.
+     */
+    public double squelchDb() {
+        return modulation == Modulation.AM ? amDemodulator.rippleDb() : noiseDbfs;
+    }
+
     /** Whether the station is broadcasting a stereo pilot, regardless of {@link #setStereoEnabled}. */
     public boolean isPilotLocked() {
         return pilotLocked;
