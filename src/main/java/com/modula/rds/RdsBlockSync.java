@@ -47,6 +47,7 @@ public final class RdsBlockSync {
     private boolean candidatePending;
     private int bitsSinceCandidate;
     private RdsCrc.Offset candidateOffset;
+    private int candidateData;
 
     public RdsBlockSync(Consumer<RdsGroup> onGroup) {
         this.onGroup = onGroup;
@@ -113,6 +114,7 @@ public final class RdsBlockSync {
             candidatePending = true;
             bitsSinceCandidate = 0;
             candidateOffset = offset;
+            candidateData = RdsCrc.dataOf(block);
         }
     }
 
@@ -129,19 +131,30 @@ public final class RdsBlockSync {
     /**
      * Locks on, having just seen the block <em>after</em> {@code firstOffset}. Both are kept: the
      * confirming pair is real data and throwing it away would lose a group for no reason.
+     *
+     * <p>The group being assembled is intact exactly when nothing before the confirming block is
+     * missing from it: it began with the candidate (an A), or it begins with the confirming block
+     * itself (an A after a D). This used to keep neither — it zeroed the candidate and marked every
+     * acquisition's group broken, so a group that arrived whole was dropped. And when the confirming
+     * block was a D, the group index wrapped with that "broken" mark still set, so the next group,
+     * received complete, was dropped too.
      */
     private void acquire(RdsCrc.Offset firstOffset) {
         synced = true;
         badGroups = 0;
-        groupIntact = true;
 
         int firstIndex = indexOf(firstOffset);
-        blocks[firstIndex] = 0; // the first block has already slid out of the window
-        groupIntact = false; // ... so this group is incomplete by construction
+        int confirmIndex = (firstIndex + 1) % GROUP_BLOCKS;
+        blocks[firstIndex] = candidateData;
+        blocks[confirmIndex] = RdsCrc.dataOf((int) window);
+        groupIntact = firstIndex == 0 || confirmIndex == 0;
 
-        blockIndex = (firstIndex + 1) % GROUP_BLOCKS;
-        blocks[blockIndex] = RdsCrc.dataOf((int) window);
-        blockIndex = (blockIndex + 1) % GROUP_BLOCKS;
+        blockIndex = confirmIndex + 1;
+        if (blockIndex == GROUP_BLOCKS) {
+            // The confirming block ended a group we joined partway through; the next one starts clean.
+            blockIndex = 0;
+            groupIntact = true;
+        }
         bitsSeen = 0;
     }
 
