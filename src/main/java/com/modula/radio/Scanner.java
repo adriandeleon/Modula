@@ -85,7 +85,7 @@ public final class Scanner {
      * Consults the state machine with one block's worth of measurement.
      *
      * @param currentHz the channel currently tuned
-     * @param noiseDbfs this block's multiplex noise level
+     * @param noiseDbfs this block's squelch measure, {@link DemodChain#squelchDb} — lower means a station
      */
     public Step onBlock(long currentHz, double noiseDbfs) {
         if (!scanning) {

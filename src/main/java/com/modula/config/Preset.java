@@ -21,7 +21,7 @@ public record Preset(long frequencyHz, String name) {
 
     /** How this preset reads in a list: "101.5 — The Current", or just the frequency if unnamed. */
     public String label() {
-        String megahertz = "%.1f".formatted(frequencyHz / 1_000_000.0);
-        return name.isEmpty() ? megahertz : megahertz + " — " + name;
+        String frequency = com.modula.band.Frequencies.digits(frequencyHz);
+        return name.isEmpty() ? frequency : frequency + " — " + name;
     }
 }
