@@ -16,6 +16,12 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Status messages vanished before they could be read.** While listening, the readout rewrote the
+  status line about nine times a second, so every message was gone within about 110 ms — the driver
+  advice when the receiver falls back to rtl_tcp, "ffmpeg not found, recording as WAV", the file a
+  recording went to, "Seek cancelled", the update notice. A message now holds the line for as long as it
+  takes to read (4–15 s, by length), long ones wrap instead of being cut off at the window's edge, and
+  the full text is on hover. Volume changes from the keyboard now say the new level, briefly.
 - **Typing a frequency was impossible with presets saved.** "1", the first key of 100.1–107.9, recalled
   preset 1 instead; with nine presets every digit but 0 did.
 - **The shortcuts stopped working after a click.** Space pressed the last-clicked chip instead of
