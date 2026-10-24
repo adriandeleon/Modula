@@ -13,7 +13,6 @@ import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -126,6 +125,7 @@ public final class PresetBar extends HBox {
         addButton.getStyleClass().add("preset-add");
         addButton.setTooltip(new javafx.scene.control.Tooltip("Save the tuned station"));
         addButton.setOnAction(e -> onSave.run());
+        RadioPane.keepOutOfFocus(addButton, scroller);
     }
 
     /** Rebuilds the row. Cheap enough to call on every change; a preset bank is a handful of items. */
@@ -170,12 +170,10 @@ public final class PresetBar extends HBox {
             chip.getStyleClass().add("tuned");
         }
         chip.setOnAction(e -> onRecall.accept(preset.frequencyHz()));
-        chip.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.DELETE) {
-                onRemove.accept(preset);
-                e.consume();
-            }
-        });
+        // Out of the focus order, like every control in the window (see RadioPane.keepOutOfFocus).
+        // That also retires Delete-to-remove, which acted on whichever chip held an invisible focus
+        // and had no undo; removing is a right-click away.
+        RadioPane.keepOutOfFocus(chip);
 
         MenuItem rename = new MenuItem("Rename…");
         rename.setOnAction(e -> beginRename(preset));
