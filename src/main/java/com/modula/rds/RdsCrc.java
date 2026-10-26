@@ -1,5 +1,7 @@
 package com.modula.rds;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * The RDS block error-protection code, and the offset words that identify block position.
  *
@@ -77,7 +79,7 @@ public final class RdsCrc {
      *
      * @return which position it occupies, or null if it is corrupt — the two are the same test
      */
-    public static Offset identify(int block) {
+    public static @Nullable Offset identify(int block) {
         int data = (block >>> 10) & 0xFFFF;
         int syndrome = (block & 0x3FF) ^ checkword(data);
         for (Offset offset : Offset.values()) {

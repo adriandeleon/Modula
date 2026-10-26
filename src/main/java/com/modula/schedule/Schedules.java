@@ -9,6 +9,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Reading and writing the schedule file — one tab-separated record per line.
  *
@@ -43,7 +45,7 @@ public final class Schedules {
         return out;
     }
 
-    private static Recording parseLine(String line) {
+    private static @Nullable Recording parseLine(String line) {
         String[] f = line.split(SEPARATOR, -1);
         if (f.length < 8) {
             return null;

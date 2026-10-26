@@ -7,6 +7,7 @@
  * threads. {@code ui} is the only package that touches JavaFX.
  */
 module com.modula {
+    requires static org.jspecify; // nullness annotations, read by NullAway at compile time only
     requires javafx.controls;
     requires java.desktop; // javax.sound.sampled
     requires java.logging; // config failures are logged, never thrown

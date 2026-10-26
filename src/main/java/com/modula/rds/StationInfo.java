@@ -1,5 +1,7 @@
 package com.modula.rds;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * What RDS has told us about the station currently tuned.
  *
@@ -17,7 +19,7 @@ public record StationInfo(
         int programType,
         boolean trafficProgram,
         boolean trafficAnnouncement,
-        java.time.LocalDateTime clockTime,
+        java.time.@Nullable LocalDateTime clockTime,
         java.util.List<Long> alternativeFrequencies) {
 
     public static final StationInfo NONE = new StationInfo(0, "", "", 0, false, false, null, java.util.List.of());

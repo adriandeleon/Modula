@@ -2,6 +2,8 @@ package com.modula.rds;
 
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Finds group boundaries in the raw bit stream and hands out whole groups.
  *
@@ -46,7 +48,7 @@ public final class RdsBlockSync {
     // While hunting: the position of a candidate A block, so the next one can confirm it.
     private boolean candidatePending;
     private int bitsSinceCandidate;
-    private RdsCrc.Offset candidateOffset;
+    private RdsCrc.@Nullable Offset candidateOffset;
     private int candidateData;
 
     public RdsBlockSync(Consumer<RdsGroup> onGroup) {
@@ -100,8 +102,9 @@ public final class RdsBlockSync {
             bitsSinceCandidate++;
             if (bitsSinceCandidate == BLOCK_BITS) {
                 // Exactly one block on from the candidate: does the next offset word follow it?
-                if (offset != null && follows(candidateOffset, offset)) {
-                    acquire(candidateOffset);
+                RdsCrc.Offset candidate = candidateOffset; // set whenever candidatePending is
+                if (offset != null && candidate != null && follows(candidate, offset)) {
+                    acquire(candidate);
                     return;
                 }
                 candidatePending = false;

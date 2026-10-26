@@ -17,6 +17,7 @@ import com.modula.dsp.PowerMeter;
 import com.modula.rds.RdsReceiver;
 import com.modula.rds.StationInfo;
 import com.modula.source.SampleFormat;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The assembled WBFM receive chain.
@@ -424,7 +425,7 @@ public final class DemodChain {
      *
      * @return {@link #SPECTRUM_BINS} values in dBFS, or null if no block has been processed
      */
-    public float[] captureSpectrum() {
+    public float @Nullable [] captureSpectrum() {
         if (lastPairs < SPECTRUM_BINS) {
             return null;
         }

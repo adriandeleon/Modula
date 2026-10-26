@@ -25,7 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class DependenciesTest {
 
-    private record PomDependency(String artifactId, boolean test) {}
+    /**
+     * {@code shipped} is false for test scope and for provided scope: the dist build copies runtime
+     * scope only, so JSpecify's annotations — read by NullAway at compile time — never reach the image.
+     */
+    private record PomDependency(String artifactId, boolean shipped) {}
 
     private static List<PomDependency> pomDependencies() throws IOException {
         String pom = Files.readString(Path.of("pom.xml"));
@@ -42,7 +46,8 @@ class DependenciesTest {
             String body = m.group(1);
             Matcher id = Pattern.compile("<artifactId>([^<]+)</artifactId>").matcher(body);
             if (id.find()) {
-                found.add(new PomDependency(id.group(1).trim(), body.contains("<scope>test</scope>")));
+                boolean shipped = !body.contains("<scope>test</scope>") && !body.contains("<scope>provided</scope>");
+                found.add(new PomDependency(id.group(1).trim(), shipped));
             }
         }
         assertFalse(found.isEmpty(), "parsed no dependencies from pom.xml");
@@ -55,7 +60,7 @@ class DependenciesTest {
         AppInfo.dependencies().forEach(d -> listed.addAll(d.artifactIds()));
 
         List<String> unaccounted = pomDependencies().stream()
-                .filter(d -> !d.test())
+                .filter(PomDependency::shipped)
                 .map(PomDependency::artifactId)
                 .filter(id -> !listed.contains(id))
                 .toList();
@@ -70,7 +75,7 @@ class DependenciesTest {
     @Test
     void nothingIsListedThatIsNoLongerShipped() throws IOException {
         Set<String> shipped = new HashSet<>();
-        pomDependencies().stream().filter(d -> !d.test()).forEach(d -> shipped.add(d.artifactId()));
+        pomDependencies().stream().filter(PomDependency::shipped).forEach(d -> shipped.add(d.artifactId()));
         // JavaFX pulls base and graphics in transitively, so they are legitimately absent from the pom.
         shipped.addAll(List.of("javafx-base", "javafx-graphics"));
 
@@ -82,14 +87,14 @@ class DependenciesTest {
         assertTrue(stale.isEmpty(), "About lists artifacts the build no longer has: " + stale);
     }
 
-    /** Test-scope libraries are not distributed, so naming them in About would be wrong. */
+    /** Test- and provided-scope libraries are not distributed, so naming them in About would be wrong. */
     @Test
     void testOnlyLibrariesAreNotClaimedAsDependencies() throws IOException {
         Set<String> listed = new HashSet<>();
         AppInfo.dependencies().forEach(d -> listed.addAll(d.artifactIds()));
         for (PomDependency d : pomDependencies()) {
-            if (d.test()) {
-                assertFalse(listed.contains(d.artifactId()), d.artifactId() + " is test scope, not shipped");
+            if (!d.shipped()) {
+                assertFalse(listed.contains(d.artifactId()), d.artifactId() + " is not shipped");
             }
         }
     }

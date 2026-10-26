@@ -5,6 +5,8 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Plays mono 16-bit PCM through {@code javax.sound.sampled}.
  *
@@ -28,8 +30,8 @@ public final class JavaSoundSink implements AudioSink {
     private final int channels;
     private final ShortRing ring;
 
-    private SourceDataLine line;
-    private Thread thread;
+    private @Nullable SourceDataLine line;
+    private @Nullable Thread thread;
     private volatile boolean running;
     private volatile float volume = 0.7f;
 

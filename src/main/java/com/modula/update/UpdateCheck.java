@@ -2,6 +2,8 @@ package com.modula.update;
 
 import java.time.Duration;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Deciding whether an update exists, and whether it is time to look. Pure — no network, no clock.
  *
@@ -22,7 +24,7 @@ public final class UpdateCheck {
      * @return the release, or null for a draft, a pre-release, or anything unparseable — none of
      *     which is an error worth telling a listener about
      */
-    public static ReleaseInfo parseLatest(String json) {
+    public static @Nullable ReleaseInfo parseLatest(String json) {
         if (json == null || json.isBlank()) {
             return null;
         }
@@ -102,7 +104,7 @@ public final class UpdateCheck {
         return out;
     }
 
-    private static String stringField(String json, String name) {
+    private static @Nullable String stringField(String json, String name) {
         int key = json.indexOf('"' + name + '"');
         if (key < 0) {
             return null;

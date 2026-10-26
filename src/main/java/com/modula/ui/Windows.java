@@ -3,6 +3,8 @@ package com.modula.ui;
 import javafx.scene.Scene;
 import javafx.stage.Window;
 
+import org.jspecify.annotations.Nullable;
+
 /** Shared window plumbing, so every secondary window looks like the one that opened it. */
 public final class Windows {
 
@@ -15,7 +17,7 @@ public final class Windows {
      * would come up in the toolkit's default look while the main one is in Night Dial, which reads as
      * a different application rather than as the same one.
      */
-    public static void styleLike(Window owner, Scene scene) {
+    public static void styleLike(@Nullable Window owner, Scene scene) {
         if (owner == null || owner.getScene() == null) {
             return;
         }

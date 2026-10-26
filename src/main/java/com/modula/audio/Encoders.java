@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Finding and driving the external encoder.
  *
@@ -24,7 +26,7 @@ public final class Encoders {
 
     private static final long DETECT_TIMEOUT_SECONDS = 5;
 
-    private static volatile Boolean available;
+    private static volatile @Nullable Boolean available;
 
     private Encoders() {}
 

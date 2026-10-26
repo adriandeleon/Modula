@@ -11,11 +11,12 @@ import org.freedesktop.dbus.interfaces.Properties;
 import org.freedesktop.dbus.messages.DBusSignal;
 import org.freedesktop.dbus.types.UInt32;
 import org.freedesktop.dbus.types.Variant;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The exported com.canonical.dbusmenu object backing the SNI tray menu — the protocol
  * KDE and GNOME's AppIndicator extension pull menus through. Layout: a disabled live
- * status line, "Open Nux", a separator, "Quit Nux" (see {@link SniMenuModel}).
+ * status line, Listen, Record, "Show Modula", a separator, Quit (see {@link SniMenuModel}).
  */
 @DBusInterfaceName("com.canonical.dbusmenu")
 public interface SniMenu extends DBusInterface {
@@ -167,7 +168,7 @@ public interface SniMenu extends DBusInterface {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <A> A Get(String interfaceName, String propertyName) {
+        public <A> @Nullable A Get(String interfaceName, String propertyName) {
             return (A) GetAll(interfaceName).get(propertyName);
         }
 

@@ -7,6 +7,8 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * An {@link IqSource} speaking the {@code rtl_tcp} protocol over a socket.
  *
@@ -42,9 +44,9 @@ public final class RtlTcpSource implements IqSource {
     private final String host;
     private final int port;
 
-    private Socket socket;
-    private InputStream in;
-    private DataOutputStream out;
+    private @Nullable Socket socket;
+    private @Nullable InputStream in;
+    private @Nullable DataOutputStream out;
     private int tunerType;
     private volatile boolean directSampling;
 

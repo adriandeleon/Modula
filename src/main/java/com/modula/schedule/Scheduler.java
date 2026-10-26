@@ -3,6 +3,8 @@ package com.modula.schedule;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Which scheduled recording, if any, should be running.
  *
@@ -23,7 +25,7 @@ public final class Scheduler {
      *
      * @return the active recording, or null when nothing should be running
      */
-    public static Recording activeAt(List<Recording> schedules, LocalDateTime now) {
+    public static @Nullable Recording activeAt(List<Recording> schedules, LocalDateTime now) {
         if (schedules == null) {
             return null;
         }
@@ -49,7 +51,7 @@ public final class Scheduler {
     }
 
     /** The soonest upcoming start across every schedule, for telling the user what is queued. */
-    public static LocalDateTime nextStart(List<Recording> schedules, LocalDateTime from) {
+    public static @Nullable LocalDateTime nextStart(List<Recording> schedules, LocalDateTime from) {
         LocalDateTime soonest = null;
         if (schedules == null) {
             return null;

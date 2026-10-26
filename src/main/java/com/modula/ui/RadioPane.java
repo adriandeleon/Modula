@@ -41,6 +41,7 @@ import com.modula.radio.Scanner;
 import com.modula.source.IqSource;
 import com.modula.source.RtlSdrNativeSource;
 import com.modula.source.RtlTcpSource;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The shell: three bands — {@link GlassPane} reports, the transport acts, the footer holds what is
@@ -89,25 +90,25 @@ public final class RadioPane extends StackPane {
     private final ConfigStore config;
     private List<Preset> presets;
 
-    private java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
+    private java.util.function.@Nullable BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
     private boolean trayAvailable;
-    private javafx.application.HostServices links;
+    private javafx.application.@Nullable HostServices links;
     private java.util.List<com.modula.schedule.Recording> schedules = java.util.List.of();
-    private String activeScheduleId;
+    private @Nullable String activeScheduleId;
     private javafx.animation.Timeline scheduleWatch;
-    private ContextMenu contextMenu;
-    private com.modula.update.ReleaseInfo update;
+    private @Nullable ContextMenu contextMenu;
+    private com.modula.update.@Nullable ReleaseInfo update;
     private com.modula.band.Region region;
     private BandPlan band;
     private long frequencyHz;
     private boolean faulted;
 
     /** What {@link ReceiverState#of} said last time, which is what gives its weak threshold hysteresis. */
-    private ReceiverState lastState;
+    private @Nullable ReceiverState lastState;
 
-    private RadioEngine engine;
-    private JavaSoundSink sink;
-    private RecordingSink recorder;
+    private @Nullable RadioEngine engine;
+    private @Nullable JavaSoundSink sink;
+    private @Nullable RecordingSink recorder;
     private Settings settings;
 
     public RadioPane(ConfigStore config) {
@@ -191,7 +192,7 @@ public final class RadioPane extends StackPane {
      *
      * @return the file a recording in progress was finalised into, or null if none was
      */
-    private java.nio.file.Path stopReceiver() {
+    private java.nio.file.@Nullable Path stopReceiver() {
         RadioEngine e = engine;
         RecordingSink r = recorder;
         java.nio.file.Path recording = r == null ? null : r.file();
@@ -585,7 +586,10 @@ public final class RadioPane extends StackPane {
         if (r.isRecording()) {
             java.nio.file.Path file = r.stop();
             recordButton.getStyleClass().remove("recording");
-            setStatusText("Recorded " + file.getFileName(), false);
+            // Null when a failed write ended the recording between the check above and the stop.
+            setStatusText(
+                    file != null ? "Recorded " + file.getFileName() : "Recording stopped: " + r.failure(),
+                    file == null);
             publishTray();
             return;
         }
@@ -1042,12 +1046,13 @@ public final class RadioPane extends StackPane {
      * attached.
      */
     /** What to try when the dongle itself would not open, or null when it was rtl_tcp already. */
-    private IqSource fallbackFor(IqSource failed) {
+    private @Nullable IqSource fallbackFor(IqSource failed) {
         return failed instanceof RtlSdrNativeSource ? RtlTcpSource.localhost() : null;
     }
 
     /** Rebuilds the engine on another source, keeping the audio path. Null when that fails too. */
-    private RadioEngine restartOn(IqSource source, JavaSoundSink audio, RecordingSink recording, RadioEngine failed) {
+    private @Nullable RadioEngine restartOn(
+            IqSource source, JavaSoundSink audio, RecordingSink recording, RadioEngine failed) {
         failed.stop();
         RadioEngine retry = new RadioEngine(source, recording, region, band);
         attach(retry);

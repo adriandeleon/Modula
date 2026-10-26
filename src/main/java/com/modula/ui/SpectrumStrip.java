@@ -6,6 +6,7 @@ import javafx.scene.paint.Color;
 
 import com.modula.band.BandPlan;
 import com.modula.radio.DemodChain;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A ±600 kHz view of the band around the tuned frequency. Not a waterfall, and not a panel.
@@ -40,7 +41,7 @@ public final class SpectrumStrip extends Canvas {
     /** Below this the strip stops reading as a shape and starts reading as a line. */
     private static final double MIN_HEIGHT = 46;
 
-    private float[] bins;
+    private float @Nullable [] bins;
     private long centerHz;
     private BandPlan band = BandPlan.fm(com.modula.band.Region.AMERICAS);
     private boolean seeking;
@@ -103,8 +104,9 @@ public final class SpectrumStrip extends Canvas {
 
         drawChannelTicks(g, w, h);
 
-        if (bins != null && bins.length > 1) {
-            drawTrace(g, w, h);
+        float[] trace = bins;
+        if (trace != null && trace.length > 1) {
+            drawTrace(g, w, h, trace);
         }
 
         // The centre marker: the one place the accent leaves the dial, because it means
@@ -139,7 +141,7 @@ public final class SpectrumStrip extends Canvas {
         g.setGlobalAlpha(1.0);
     }
 
-    private void drawTrace(GraphicsContext g, double w, double h) {
+    private void drawTrace(GraphicsContext g, double w, double h, float[] bins) {
         int n = bins.length;
         double[] xs = new double[n + 2];
         double[] ys = new double[n + 2];

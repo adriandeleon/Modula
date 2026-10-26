@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Replays raw interleaved u8 IQ from a file, as written by {@code rtl_sdr -f … -s … capture.iq}.
  *
@@ -23,7 +25,7 @@ public final class FileReplaySource implements IqSource {
     private final boolean paced;
     private final boolean loop;
 
-    private InputStream in;
+    private @Nullable InputStream in;
     private long samplesDelivered;
     private long startNanos;
 

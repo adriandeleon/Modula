@@ -18,6 +18,7 @@ import com.modula.AppInfo;
 import com.modula.config.ConfigStore;
 import com.modula.source.RtlSdrNativeSource;
 import com.modula.update.ReleaseInfo;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What this is, which version, and where its files live.
@@ -28,21 +29,25 @@ import com.modula.update.ReleaseInfo;
  */
 public final class AboutWindow {
 
-    private static Stage stage;
+    private static @Nullable Stage stage;
 
     private AboutWindow() {}
 
     /** Shows the dialog, reusing the window if it is already open. */
-    public static void show(Window owner, ConfigStore config, ReleaseInfo update) {
+    public static void show(@Nullable Window owner, ConfigStore config, @Nullable ReleaseInfo update) {
         show(owner, config, update, null);
     }
 
     /** @param links opens the home page in a browser; null degrades the link to plain text */
-    public static void show(Window owner, ConfigStore config, ReleaseInfo update, HostServices links) {
+    public static void show(
+            @Nullable Window owner, ConfigStore config, @Nullable ReleaseInfo update, @Nullable HostServices links) {
         if (stage != null && stage.isShowing()) {
             stage.toFront();
             return;
         }
+        // Built first and named locally, so the handlers below close over a window that exists.
+        Stage window = new Stage();
+        stage = window;
         VBox body = new VBox(3);
         body.setPadding(new Insets(22, 26, 18, 26));
         body.setAlignment(Pos.CENTER_LEFT);
@@ -106,21 +111,20 @@ public final class AboutWindow {
         body.getChildren().addAll(gap(10), copyright);
 
         Button close = new Button("Close");
-        close.setOnAction(e -> stage.close());
+        close.setOnAction(e -> window.close());
         HBox buttons = new HBox(close);
         buttons.setAlignment(Pos.CENTER_RIGHT);
         buttons.setPadding(new Insets(16, 0, 0, 0));
         body.getChildren().add(buttons);
 
-        stage = new Stage();
-        stage.initOwner(owner);
-        stage.initModality(Modality.NONE);
-        stage.setTitle("About " + AppInfo.NAME);
-        stage.setResizable(false);
+        window.initOwner(owner);
+        window.initModality(Modality.NONE);
+        window.setTitle("About " + AppInfo.NAME);
+        window.setResizable(false);
         Scene scene = new Scene(body);
         Windows.styleLike(owner, scene);
-        stage.setScene(scene);
-        stage.show();
+        window.setScene(scene);
+        window.show();
     }
 
     /** The most common support question, answered without a log file. */
@@ -145,7 +149,7 @@ public final class AboutWindow {
      * <p>Falls back to a plain label rather than a dead hyperlink: a link that looks like a link and
      * does nothing is worse than text you can read and type.
      */
-    private static HBox homeRow(HostServices links) {
+    private static HBox homeRow(@Nullable HostServices links) {
         if (links == null || AppInfo.HOMEPAGE.isBlank()) {
             return row("Home", AppInfo.HOMEPAGE.isBlank() ? "not set for this build" : AppInfo.HOMEPAGE);
         }

@@ -6,6 +6,8 @@ import java.util.List;
 
 import javafx.scene.image.Image;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * The application mark, at the sizes a window manager might ask for.
  *
@@ -20,7 +22,7 @@ public final class AppIcons {
 
     private static final int[] SIZES = {16, 24, 32, 48, 64, 128, 256, 512};
 
-    private static List<Image> cached;
+    private static @Nullable List<Image> cached;
 
     private AppIcons() {}
 
@@ -40,11 +42,11 @@ public final class AppIcons {
     }
 
     /** One size, for a place that wants a specific one — the About panel, say. Null if missing. */
-    public static Image at(int size) {
+    public static @Nullable Image at(int size) {
         return load(size);
     }
 
-    private static Image load(int size) {
+    private static @Nullable Image load(int size) {
         try (InputStream in = AppIcons.class.getResourceAsStream("/com/modula/icons/icon-" + size + ".png")) {
             return in == null ? null : new Image(in);
         } catch (Exception e) {

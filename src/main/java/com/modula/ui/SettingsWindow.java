@@ -20,6 +20,7 @@ import javafx.stage.Window;
 
 import com.modula.AppInfo;
 import com.modula.config.Settings;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The preferences that are not worth a control in the footer.
@@ -35,12 +36,12 @@ import com.modula.config.Settings;
  */
 public final class SettingsWindow {
 
-    private static Stage stage;
+    private static @Nullable Stage stage;
 
     private SettingsWindow() {}
 
     /** Shows the window, reusing it if already open. {@code onApply} receives each change. */
-    public static void show(Window owner, Settings current, Consumer<Settings> onApply) {
+    public static void show(@Nullable Window owner, Settings current, Consumer<Settings> onApply) {
         show(owner, current, onApply, true, null);
     }
 
@@ -52,11 +53,18 @@ public final class SettingsWindow {
      *     does nothing
      */
     public static void show(
-            Window owner, Settings current, Consumer<Settings> onApply, boolean trayAvailable, Runnable onAbout) {
+            @Nullable Window owner,
+            Settings current,
+            Consumer<Settings> onApply,
+            boolean trayAvailable,
+            @Nullable Runnable onAbout) {
         if (stage != null && stage.isShowing()) {
             stage.toFront();
             return;
         }
+        // Built first and named locally, so the handlers below close over a window that exists.
+        Stage window = new Stage();
+        stage = window;
         Holder holder = new Holder(current, onApply);
 
         VBox body = new VBox(4);
@@ -76,7 +84,7 @@ public final class SettingsWindow {
         browse.setOnAction(e -> {
             DirectoryChooser chooser = new DirectoryChooser();
             chooser.setTitle("Where should recordings go?");
-            java.io.File chosen = chooser.showDialog(stage);
+            java.io.File chosen = chooser.showDialog(window);
             if (chosen != null) {
                 directory.setText(chosen.toString());
             }
@@ -193,21 +201,20 @@ public final class SettingsWindow {
         }
         Button close = new Button("Close");
         close.setMinWidth(Region.USE_PREF_SIZE);
-        close.setOnAction(e -> stage.close());
+        close.setOnAction(e -> window.close());
         buttons.getChildren().add(close);
         buttons.setAlignment(Pos.CENTER_LEFT);
         buttons.setPadding(new Insets(18, 0, 0, 0));
         body.getChildren().add(buttons);
 
-        stage = new Stage();
-        stage.initOwner(owner);
-        stage.setTitle("Modula Settings");
-        stage.setResizable(false);
+        window.initOwner(owner);
+        window.setTitle("Modula Settings");
+        window.setResizable(false);
         Scene scene = new Scene(body);
         Windows.styleLike(owner, scene);
-        stage.setScene(scene);
-        stage.show();
-        stage.sizeToScene();
+        window.setScene(scene);
+        window.show();
+        window.sizeToScene();
     }
 
     /** Threads the current settings through each control so they compose rather than clobber. */

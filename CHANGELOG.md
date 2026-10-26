@@ -5,6 +5,20 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Stopping a recording could crash the window's handler** if a failed write (a full disk) ended the
+  recording at the same moment. The status line now says why it stopped.
+- **A failed write could end the next recording as it began.** When one recording handed over to
+  another, a write still in flight to the old file failed on the closed file and stopped the new one —
+  and reported an error for a Stop that had worked.
+- **The Linux tray introduced itself as "Nux"**, the project its code came from. KDE showed that name.
+
+### Changed
+
+- **The build checks nullness.** NullAway runs on every compile and fails it on a possible null
+  dereference; every package is `@NullMarked`, and what may be null says so with `@Nullable`.
+
 ## [1.3.0] - 2026-10-24
 
 A field release. Most of it came from listening to real stations rather than synthesis: stereo that

@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.modula.AppInfo;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Asks once, off the receive path, whether a newer release exists.
@@ -69,7 +70,7 @@ public final class UpdateService {
         });
     }
 
-    private ReleaseInfo fetch() throws Exception {
+    private @Nullable ReleaseInfo fetch() throws Exception {
         try (HttpClient client = HttpClient.newBuilder().connectTimeout(TIMEOUT).build()) {
             HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint))
                     .timeout(TIMEOUT)

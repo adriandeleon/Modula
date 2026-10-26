@@ -3,6 +3,8 @@ package com.modula.rds;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Clock-time and date, from group 4A.
  *
@@ -32,7 +34,7 @@ final class RdsClockTime {
      *
      * @return the local time the station is describing, or null when the group is not a valid 4A
      */
-    static LocalDateTime decode(RdsGroup group) {
+    static @Nullable LocalDateTime decode(RdsGroup group) {
         if (group == null || group.type() != 4 || group.isVersionB()) {
             return null;
         }
