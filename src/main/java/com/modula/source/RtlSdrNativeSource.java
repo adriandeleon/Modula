@@ -6,6 +6,8 @@ import java.lang.foreign.ValueLayout;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * An {@link IqSource} talking to the dongle directly through {@code librtlsdr}, with no
  * {@code rtl_tcp} in between.
@@ -42,10 +44,13 @@ public final class RtlSdrNativeSource implements IqSource {
     private final int deviceIndex;
     private final int bufferBytes;
 
-    private MemorySegment device;
-    private MemorySegment buffer;
-    private MemorySegment readSlot;
-    private volatile boolean open;
+    /**
+     * The device and its buffers, present exactly while open. One field rather than three and a flag,
+     * so there is no state in which the source reads as open but a handle is missing.
+     */
+    private record Handle(MemorySegment device, MemorySegment buffer, MemorySegment readSlot) {}
+
+    private volatile @Nullable Handle handle;
     private volatile boolean directSampling;
     private volatile int gainTenths;
 
@@ -77,13 +82,11 @@ public final class RtlSdrNativeSource implements IqSource {
 
     @Override
     public void open() throws IOException {
-        if (open) {
+        if (handle != null) {
             return;
         }
-        device = RtlSdr.open(deviceIndex);
-        buffer = RtlSdr.allocate(bufferBytes);
-        readSlot = RtlSdr.allocateInt();
-        open = true;
+        MemorySegment device = RtlSdr.open(deviceIndex);
+        handle = new Handle(device, RtlSdr.allocate(bufferBytes), RtlSdr.allocateInt());
 
         // No AGC at all: not the tuner's, and not the RTL2832U's digital one. Two loops used to be
         // enabled at once, hunting the same signal; see TunerGain for why even one is the wrong answer
@@ -94,7 +97,7 @@ public final class RtlSdrNativeSource implements IqSource {
 
     @Override
     public void setFrequency(long hz) throws IOException {
-        checkOpen();
+        MemorySegment device = device();
         if (RtlSdr.setCenterFrequency(device, (int) hz) != 0) {
             throw new IOException("could not tune to " + hz + " Hz");
         }
@@ -102,7 +105,7 @@ public final class RtlSdrNativeSource implements IqSource {
 
     @Override
     public void setSampleRate(int samplesPerSecond) throws IOException {
-        checkOpen();
+        MemorySegment device = device();
         if (RtlSdr.setSampleRate(device, samplesPerSecond) != 0) {
             throw new IOException("device rejected a sample rate of " + samplesPerSecond);
         }
@@ -119,7 +122,7 @@ public final class RtlSdrNativeSource implements IqSource {
      */
     @Override
     public void applyDefaultGain() throws IOException {
-        checkOpen();
+        MemorySegment device = device();
         int[] supported = RtlSdr.tunerGains(device);
         if (supported.length == 0) {
             LOG.log(Level.INFO, "tuner gains unavailable; leaving the front end on its own AGC");
@@ -153,7 +156,7 @@ public final class RtlSdrNativeSource implements IqSource {
      */
     @Override
     public boolean setDirectSampling(boolean enabled) throws IOException {
-        checkOpen();
+        MemorySegment device = device();
         RtlSdr.setDirectSampling(device, enabled ? DIRECT_SAMPLING_Q : 0);
         directSampling = enabled;
         return enabled;
@@ -161,15 +164,13 @@ public final class RtlSdrNativeSource implements IqSource {
 
     @Override
     public int read(byte[] into) throws IOException {
-        if (!open) {
-            throw new IOException("source is not open");
-        }
+        Handle h = opened();
         int wanted = Math.min(into.length, bufferBytes);
-        int result = RtlSdr.readSync(device, buffer, wanted, readSlot);
+        int result = RtlSdr.readSync(h.device(), h.buffer(), wanted, h.readSlot());
         if (result < 0) {
             throw new IOException("read failed (librtlsdr returned " + result + ")");
         }
-        MemorySegment.copy(buffer, ValueLayout.JAVA_BYTE, 0, into, 0, result);
+        MemorySegment.copy(h.buffer(), ValueLayout.JAVA_BYTE, 0, into, 0, result);
         return result;
     }
 
@@ -180,20 +181,24 @@ public final class RtlSdrNativeSource implements IqSource {
 
     @Override
     public void close() {
-        if (!open) {
+        Handle h = handle;
+        if (h == null) {
             return;
         }
-        open = false;
-        RtlSdr.close(device);
-        device = null;
+        handle = null;
         // The buffers belong to an automatic arena, so they are simply dropped; nothing to free.
-        buffer = null;
-        readSlot = null;
+        RtlSdr.close(h.device());
     }
 
-    private void checkOpen() throws IOException {
-        if (!open) {
+    private Handle opened() throws IOException {
+        Handle h = handle;
+        if (h == null) {
             throw new IOException("source is not open");
         }
+        return h;
+    }
+
+    private MemorySegment device() throws IOException {
+        return opened().device();
     }
 }

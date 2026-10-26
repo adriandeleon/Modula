@@ -14,6 +14,7 @@ import com.modula.band.BandPlan;
 import com.modula.radio.RadioEngine;
 import com.modula.rds.ProgramType;
 import com.modula.rds.StationInfo;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The inset panel carrying everything the receiver knows, in a fixed reading order: where you are,
@@ -215,7 +216,7 @@ public final class GlassPane extends VBox {
         return text.toString();
     }
 
-    public void apply(ReceiverState newState, RadioEngine.Status status, long frequencyHz) {
+    public void apply(ReceiverState newState, RadioEngine.@Nullable Status status, long frequencyHz) {
         if (newState != state) {
             getStyleClass().remove(state.styleClass());
             state = newState;
@@ -263,7 +264,7 @@ public final class GlassPane extends VBox {
         radioTextLabel.setText(station.radioText());
     }
 
-    private void applyMeter(ReceiverState newState, RadioEngine.Status status) {
+    private void applyMeter(ReceiverState newState, RadioEngine.@Nullable Status status) {
         if (status == null || !newState.isReceiving()) {
             meterFill.setPrefWidth(0);
             readout.setText("—");

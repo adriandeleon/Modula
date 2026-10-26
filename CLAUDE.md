@@ -419,6 +419,16 @@ frequency — the classic centre spike.
   a list of numbers; `RadioEngineSeekTest` drives the real engine against a fake dongle that carries
   a station on one frequency. "The logic is right" and "the engine actually calls it" are different
   failure modes and the pure test cannot see the second.
+- **Nullness is checked at compile time.** NullAway runs as an Error Prone plugin on the main compile,
+  as an error, with Editora's configuration. Every package has a `package-info.java` marking it
+  `@NullMarked` — **a new package needs one too**, or `OnlyNullMarked` leaves it silently unchecked.
+  Anything that may be null says `@Nullable` (JSpecify, `requires static`, so nothing ships). Prefer
+  restructuring to suppressing: pass a value the caller already holds rather than reading a nullable
+  field back, and copy a field into a local before testing it. That last one is not only for the
+  checker: NullAway reasons one thread at a time, so a check-then-use on a field another thread clears
+  passes it and still fails at run time — the `RecordingSink` race below was exactly that shape.
+  Unannotated libraries (JavaFX, the JDK) are trusted as non-null, so `getParent()`, `getScene()` and
+  `getResource()` still need a reader's care.
 - **Parsing user-facing files is lenient, per field.** A corrupt preset line costs that preset; a
   corrupt setting costs that setting. Nothing in `config` throws on bad input, because a radio that
   will not start because of a stray character in a text file is a worse outcome than any amount of
@@ -484,7 +494,11 @@ in makes a recording made at a low listening level unrecoverable, while leaving 
 
 **A recording failure never interrupts listening.** A full disk stops the recording, records the
 reason, and leaves the audio playing; the alternative — a receiver that goes silent because a file
-could not be written — is the wrong failure for a radio.
+could not be written — is the wrong failure for a radio. Two threads end recordings — Stop on the FX thread, a failed write on the
+receive thread — so the writer is an `AtomicReference` and a failed write ends only **the recording it
+was writing to** (`compareAndSet`). A plain `stop()` there once ended the *next* recording as it began,
+whenever a write in flight to the old file failed on the closed file during a hand-over; and `stop()`
+returns null when the other thread got there first, which the caller must handle.
 
 `WavWriter` streams, because a recording runs until the listener stops it and `AudioSystem.write`
 wants the whole thing up front. A WAV header carries two byte counts that are unknown until the end,

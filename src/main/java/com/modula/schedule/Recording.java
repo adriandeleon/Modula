@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * One scheduled recording: a station, a time, and how long for.
  *
@@ -24,7 +26,7 @@ public record Recording(
         LocalTime start,
         Duration duration,
         Set<DayOfWeek> days,
-        java.time.LocalDate date,
+        java.time.@Nullable LocalDate date,
         boolean enabled) {
 
     public Recording {
@@ -39,7 +41,7 @@ public record Recording(
     }
 
     /** When this next starts at or after {@code from}, or null when it never will again. */
-    public LocalDateTime nextStart(LocalDateTime from) {
+    public @Nullable LocalDateTime nextStart(LocalDateTime from) {
         if (!enabled) {
             return null;
         }

@@ -5,8 +5,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.jspecify.annotations.Nullable;
 
 /**
  * An {@link AudioSink} that tees what it plays into a WAV file.
@@ -33,7 +36,13 @@ public final class RecordingSink implements AudioSink {
     private final int sampleRate;
     private final int channels;
 
-    private volatile RecordingWriter writer;
+    /**
+     * The file being written, if any. Atomic rather than volatile because two threads end recordings:
+     * the listener's Stop on the FX thread, and a failed write on the receive thread. Each must end
+     * only the recording it saw — see {@link #write}.
+     */
+    private final AtomicReference<@Nullable RecordingWriter> writer = new AtomicReference<>();
+
     private volatile String failure = "";
 
     public RecordingSink(AudioSink delegate, int sampleRate, int channels) {
@@ -76,42 +85,52 @@ public final class RecordingSink implements AudioSink {
 
         Path file = directory.resolve(
                 "%s_%s.%s".formatted(sanitise(label), LocalDateTime.now().format(STAMP), effective.extension()));
-        writer = effective.needsEncoder()
-                ? new EncodedWriter(
-                        Encoders.argv(Encoders.command(encoderCommand), effective, sampleRate, channels, file),
-                        file,
-                        channels)
-                : new WavWriter(file, sampleRate, channels);
-        failure = note;
+        begin(
+                effective.needsEncoder()
+                        ? new EncodedWriter(
+                                Encoders.argv(Encoders.command(encoderCommand), effective, sampleRate, channels, file),
+                                file,
+                                channels)
+                        : new WavWriter(file, sampleRate, channels),
+                note);
         return file;
     }
 
-    /** Stops and finalises the file. Safe to call when not recording. */
-    public Path stop() {
-        RecordingWriter w = writer;
-        writer = null;
+    /**
+     * Begins writing to {@code w}. The caller has already stopped any previous recording; {@link
+     * #start} does, and a test supplies a writer that misbehaves on cue.
+     */
+    void begin(RecordingWriter w, String note) {
+        writer.set(w);
+        failure = note;
+    }
+
+    /**
+     * Stops and finalises the file. Safe to call when not recording.
+     *
+     * @return the file just finalised, or null when nothing was recording — which includes a recording
+     *     a failed write has ended since the caller last asked {@link #isRecording()}
+     */
+    public @Nullable Path stop() {
+        RecordingWriter w = writer.getAndSet(null);
         if (w == null) {
             return null;
         }
-        try {
-            w.close();
-        } catch (IOException e) {
-            LOG.log(Level.WARNING, "could not finalise " + w.path(), e);
-        }
+        finish(w);
         return w.path();
     }
 
     public boolean isRecording() {
-        return writer != null;
+        return writer.get() != null;
     }
 
-    public Path file() {
-        RecordingWriter w = writer;
+    public @Nullable Path file() {
+        RecordingWriter w = writer.get();
         return w == null ? null : w.path();
     }
 
     public double seconds() {
-        RecordingWriter w = writer;
+        RecordingWriter w = writer.get();
         return w == null ? 0 : w.seconds(sampleRate);
     }
 
@@ -128,17 +147,30 @@ public final class RecordingSink implements AudioSink {
     @Override
     public void write(short[] pcm, int count) {
         delegate.write(pcm, count);
-        RecordingWriter w = writer;
+        RecordingWriter w = writer.get();
         if (w == null) {
             return;
         }
         try {
             w.write(pcm, count);
         } catch (IOException e) {
-            // Stop recording, keep playing.
-            failure = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-            LOG.log(Level.WARNING, "recording stopped", e);
-            stop();
+            // Stop recording, keep playing — but only the recording this write belonged to. The FX
+            // thread may have stopped it meanwhile (the write then fails on a closed file, which is
+            // no failure at all), or stopped it and started the next: a scheduled recording handing
+            // over to another. A plain stop() here ended that new recording as it began.
+            if (writer.compareAndSet(w, null)) {
+                failure = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                LOG.log(Level.WARNING, "recording stopped", e);
+                finish(w);
+            }
+        }
+    }
+
+    private static void finish(RecordingWriter w) {
+        try {
+            w.close();
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "could not finalise " + w.path(), e);
         }
     }
 

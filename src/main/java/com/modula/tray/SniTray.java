@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.Map;
 
+import com.modula.AppInfo;
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.connections.impl.DBusConnection;
 import org.freedesktop.dbus.connections.impl.DBusConnectionBuilder;
@@ -12,6 +13,7 @@ import org.freedesktop.dbus.interfaces.DBus;
 import org.freedesktop.dbus.interfaces.Properties;
 import org.freedesktop.dbus.types.UInt32;
 import org.freedesktop.dbus.types.Variant;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The Linux tray backend: a StatusNotifierItem exported on the session bus.
@@ -111,9 +113,12 @@ public final class SniTray implements ModulaTray {
     /** The exported D-Bus object: SNI methods + the Properties the host reads. */
     public static final class Item implements StatusNotifierItem, Properties {
 
+        /** The item's stable identifier, which a host may key saved preferences on: not translated. */
+        static final String ID = "modula";
+
         private final Runnable onActivate;
         private volatile List<SniPixmap> pixmaps = List.of();
-        private volatile SniTooltip tooltip = new SniTooltip("", List.of(), "Nux", "");
+        private volatile SniTooltip tooltip = new SniTooltip("", List.of(), AppInfo.NAME, "");
         private volatile String status = "Active";
 
         Item(Runnable onActivate) {
@@ -123,7 +128,7 @@ public final class SniTray implements ModulaTray {
         /** Returns whether the status value changed (the caller then signals NewStatus). */
         boolean setState(List<SniPixmap> pixmaps, String tooltipText, String status) {
             this.pixmaps = pixmaps;
-            this.tooltip = new SniTooltip("", List.of(), "Nux", tooltipText);
+            this.tooltip = new SniTooltip("", List.of(), AppInfo.NAME, tooltipText);
             boolean changed = !this.status.equals(status);
             this.status = status;
             return changed;
@@ -154,7 +159,7 @@ public final class SniTray implements ModulaTray {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <A> A Get(String interfaceName, String propertyName) {
+        public <A> @Nullable A Get(String interfaceName, String propertyName) {
             // Return the Variant itself: it carries an explicit signature, which dbus-java
             // needs for struct lists (a raw List can't be wrapped — generics are erased).
             return (A) GetAll(interfaceName).get(propertyName);
@@ -169,8 +174,9 @@ public final class SniTray implements ModulaTray {
         public Map<String, Variant<?>> GetAll(String interfaceName) {
             return Map.ofEntries(
                     Map.entry("Category", new Variant<>("Hardware")),
-                    Map.entry("Id", new Variant<>("nux")),
-                    Map.entry("Title", new Variant<>("Nux")),
+                    // Carried over from Nux with the rest of this backend, and shown by KDE until 1.3.0.
+                    Map.entry("Id", new Variant<>(ID)),
+                    Map.entry("Title", new Variant<>(AppInfo.NAME)),
                     Map.entry("Status", new Variant<>(status)),
                     Map.entry("WindowId", new Variant<>(new UInt32(0))),
                     Map.entry("IconName", new Variant<>("")),

@@ -12,6 +12,7 @@ import com.modula.band.Region;
 import com.modula.rds.StationInfo;
 import com.modula.source.ByteRing;
 import com.modula.source.IqSource;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Owns the receive path: a reader thread that does nothing but pull blocks off the dongle, and a DSP
@@ -185,7 +186,7 @@ public final class RadioEngine implements AutoCloseable {
             boolean seeking,
             StationInfo station,
             String rdsDiagnostic,
-            float[] spectrum,
+            float @Nullable [] spectrum,
             double noiseDbfs,
             double adcHeadroomDb,
             double stereoBlend,
@@ -201,7 +202,7 @@ public final class RadioEngine implements AutoCloseable {
     private final ByteRing ring;
 
     private final AtomicLong requestedHz = new AtomicLong(-1);
-    private final AtomicReference<Scanner.Direction> requestedSeek = new AtomicReference<>();
+    private final AtomicReference<Scanner.@Nullable Direction> requestedSeek = new AtomicReference<>();
     private final AtomicBoolean requestedCancel = new AtomicBoolean();
 
     /** Nanoseconds with no transfer outstanding, accumulated by the reader, read by the publisher. */
@@ -216,8 +217,8 @@ public final class RadioEngine implements AutoCloseable {
     /** Whether {@link #advanceSeek} actually parked a retune request. DSP thread only. */
     private boolean retuneRequested;
 
-    private Thread readerThread;
-    private Thread dspThread;
+    private @Nullable Thread readerThread;
+    private @Nullable Thread dspThread;
 
     public RadioEngine(IqSource source, AudioSink sink, Region region, BandPlan band) {
         this(source, sink, region, band, SeekPolicy.defaultFor(band.modulation()));
@@ -552,7 +553,7 @@ public final class RadioEngine implements AutoCloseable {
         return t;
     }
 
-    private static void join(Thread t) {
+    private static void join(@Nullable Thread t) {
         if (t == null) {
             return;
         }

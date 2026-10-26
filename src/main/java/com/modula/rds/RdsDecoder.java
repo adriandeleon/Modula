@@ -1,5 +1,7 @@
 package com.modula.rds;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Turns decoded groups into what a listener sees: station name, radio text, programme type.
  *
@@ -35,7 +37,7 @@ public final class RdsDecoder {
     private int programType;
     private boolean trafficProgram;
     private boolean trafficAnnouncement;
-    private java.time.LocalDateTime clockTime;
+    private java.time.@Nullable LocalDateTime clockTime;
 
     private final AlternativeFrequencies alternatives = new AlternativeFrequencies();
     private boolean radioTextFlag;

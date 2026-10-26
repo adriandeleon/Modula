@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Foreign-function bindings to {@code librtlsdr}, so the dongle can be driven without {@code rtl_tcp}.
  *
@@ -63,7 +65,7 @@ public final class RtlSdr {
      */
     private static volatile boolean openFailed;
 
-    private static final Bindings BINDINGS = load();
+    private static final @Nullable Bindings BINDINGS = load();
 
     private RtlSdr() {}
 
@@ -132,10 +134,10 @@ public final class RtlSdr {
      * @throws java.io.IOException if the device cannot be opened
      */
     static MemorySegment open(int index) throws java.io.IOException {
-        require();
+        Bindings bindings = require();
         // rtlsdr_open takes a pointer-to-pointer and writes the handle into it.
         MemorySegment slot = ARENA.allocate(ValueLayout.ADDRESS);
-        int result = call(BINDINGS.open, slot, index);
+        int result = call(bindings.open, slot, index);
         if (result != 0) {
             openFailed = true;
             throw new java.io.IOException(describeOpenFailure(result));
@@ -162,32 +164,32 @@ public final class RtlSdr {
 
     static void close(MemorySegment device) {
         try {
-            int ignored = (int) BINDINGS.close.invokeExact(device);
+            int ignored = (int) bound().close.invokeExact(device);
         } catch (Throwable t) {
             LOG.log(Level.FINE, "rtlsdr_close failed", t);
         }
     }
 
     static int setCenterFrequency(MemorySegment device, int hz) {
-        return call(BINDINGS.setCenterFreq, device, hz);
+        return call(bound().setCenterFreq, device, hz);
     }
 
     static int setSampleRate(MemorySegment device, int rate) {
-        return call(BINDINGS.setSampleRate, device, rate);
+        return call(bound().setSampleRate, device, rate);
     }
 
     /** {@code manual} false hands gain to the tuner's own AGC. */
     static int setTunerGainMode(MemorySegment device, boolean manual) {
-        return call(BINDINGS.setTunerGainMode, device, manual ? 1 : 0);
+        return call(bound().setTunerGainMode, device, manual ? 1 : 0);
     }
 
     static int setAgcMode(MemorySegment device, boolean on) {
-        return call(BINDINGS.setAgcMode, device, on ? 1 : 0);
+        return call(bound().setAgcMode, device, on ? 1 : 0);
     }
 
     /** Front-end gain in tenths of a decibel. Only honoured once the tuner is in manual mode. */
     static int setTunerGain(MemorySegment device, int tenthsOfDb) {
-        return call(BINDINGS.setTunerGain, device, tenthsOfDb);
+        return call(bound().setTunerGain, device, tenthsOfDb);
     }
 
     /**
@@ -199,12 +201,12 @@ public final class RtlSdr {
      */
     static int[] tunerGains(MemorySegment device) {
         try {
-            int count = (int) BINDINGS.getTunerGains.invokeExact(device, MemorySegment.NULL);
+            int count = (int) bound().getTunerGains.invokeExact(device, MemorySegment.NULL);
             if (count <= 0) {
                 return new int[0];
             }
             MemorySegment out = ARENA.allocate(ValueLayout.JAVA_INT, count);
-            int written = (int) BINDINGS.getTunerGains.invokeExact(device, out);
+            int written = (int) bound().getTunerGains.invokeExact(device, out);
             int n = Math.clamp(written, 0, count);
             int[] gains = new int[n];
             for (int k = 0; k < n; k++) {
@@ -219,13 +221,13 @@ public final class RtlSdr {
 
     /** Mode 2 selects the Q branch, the only way an RTL-SDR Blog V3 reaches HF and medium wave. */
     static int setDirectSampling(MemorySegment device, int mode) {
-        return call(BINDINGS.setDirectSampling, device, mode);
+        return call(bound().setDirectSampling, device, mode);
     }
 
     /** Must be called before the first read, or the first buffer is stale. */
     static int resetBuffer(MemorySegment device) {
         try {
-            return (int) BINDINGS.resetBuffer.invokeExact(device);
+            return (int) bound().resetBuffer.invokeExact(device);
         } catch (Throwable t) {
             throw new IllegalStateException("rtlsdr_reset_buffer failed", t);
         }
@@ -238,7 +240,7 @@ public final class RtlSdr {
      */
     static int readSync(MemorySegment device, MemorySegment buffer, int length, MemorySegment readSlot) {
         try {
-            int result = (int) BINDINGS.readSync.invokeExact(device, buffer, length, readSlot);
+            int result = (int) bound().readSync.invokeExact(device, buffer, length, readSlot);
             return result != 0 ? result : readSlot.get(ValueLayout.JAVA_INT, 0);
         } catch (Throwable t) {
             throw new IllegalStateException("rtlsdr_read_sync failed", t);
@@ -261,10 +263,22 @@ public final class RtlSdr {
         }
     }
 
-    private static void require() throws java.io.IOException {
+    private static Bindings require() throws java.io.IOException {
         if (BINDINGS == null) {
             throw new java.io.IOException(unavailableReason());
         }
+        return BINDINGS;
+    }
+
+    /**
+     * The bindings, for a call that takes a device handle. Only {@link #open} hands one out, and it
+     * requires the library, so holding a handle means this cannot throw.
+     */
+    private static Bindings bound() {
+        if (BINDINGS == null) {
+            throw new IllegalStateException("librtlsdr is not loaded");
+        }
+        return BINDINGS;
     }
 
     // --- loading -------------------------------------------------------------------------------
@@ -284,7 +298,7 @@ public final class RtlSdr {
             MethodHandle resetBuffer,
             MethodHandle readSync) {}
 
-    private static Bindings load() {
+    private static @Nullable Bindings load() {
         Optional<SymbolLookup> lookup = findLibrary();
         if (lookup.isEmpty()) {
             LOG.log(Level.INFO, "librtlsdr not found; direct hardware access unavailable");

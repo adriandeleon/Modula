@@ -18,6 +18,7 @@ import com.modula.ui.RadioPane;
 import com.modula.ui.Themes;
 import com.modula.update.UpdateCheck;
 import com.modula.update.UpdateService;
+import org.jspecify.annotations.Nullable;
 
 /** Entry point. */
 public final class ModulaApp extends Application {
@@ -29,9 +30,9 @@ public final class ModulaApp extends Application {
 
     private static final int WINDOW_HEIGHT = 560;
 
-    private RadioPane pane;
-    private ModulaTray tray;
-    private UpdateService updates;
+    private @Nullable RadioPane pane;
+    private @Nullable ModulaTray tray;
+    private @Nullable UpdateService updates;
 
     @Override
     public void start(Stage stage) {
@@ -43,7 +44,10 @@ public final class ModulaApp extends Application {
         // the ground, so this reads the saved setting rather than hardcoding night — a daylight user was
         // getting light tokens on a dark control theme. Settings load first purely so this can.
         Themes.apply(settings.daylight());
-        pane = new RadioPane(config);
+        // A local as well as the field: everything below closes over it, and the field exists only so
+        // stop() can reach a pane that start() may never have got as far as building.
+        RadioPane pane = new RadioPane(config);
+        this.pane = pane;
         pane.setHostServices(getHostServices());
         Scene scene = new Scene(pane, WINDOW_WIDTH, WINDOW_HEIGHT);
         scene.getStylesheets().add(ModulaApp.class.getResource("modula.css").toExternalForm());
@@ -56,16 +60,16 @@ public final class ModulaApp extends Application {
         stage.show();
         pane.requestFocus(); // so the arrow keys tune straight away
 
-        installTray(stage, settings);
-        installCloseBehaviour(stage);
-        checkForUpdates(settings);
+        installTray(stage, settings, pane);
+        installCloseBehaviour(stage, pane);
+        checkForUpdates(settings, pane);
     }
 
     /**
      * Brings up the tray off the FX thread, because both backends can block on D-Bus or AWT
      * initialisation and neither is worth a stalled first frame.
      */
-    private void installTray(Stage stage, Settings settings) {
+    private void installTray(Stage stage, Settings settings, RadioPane pane) {
         if (!settings.tray()) {
             return;
         }
@@ -89,8 +93,8 @@ public final class ModulaApp extends Application {
                                 // exists: with no icon to click, a hidden window would be unreachable and
                                 // the process a zombie.
                                 javafx.application.Platform.setImplicitExit(false);
-                                tray.setOnListen(() -> javafx.application.Platform.runLater(pane::togglePower));
-                                tray.setOnRecord(() -> javafx.application.Platform.runLater(pane::toggleRecording));
+                                created.setOnListen(() -> javafx.application.Platform.runLater(pane::togglePower));
+                                created.setOnRecord(() -> javafx.application.Platform.runLater(pane::toggleRecording));
                                 pane.setTraySink(this::updateTray);
                             }),
                             // Silence here is the bug the user actually hits: the setting is on, the
@@ -115,7 +119,7 @@ public final class ModulaApp extends Application {
      * <p>Hiding a window that leaves no icon behind is how an application becomes unreachable, so the
      * behaviour is conditional on a tray actually having appeared.
      */
-    private void installCloseBehaviour(Stage stage) {
+    private void installCloseBehaviour(Stage stage, RadioPane pane) {
         stage.setOnCloseRequest(e -> {
             // The live setting, not the one captured at startup: this is a checkbox a user can
             // change while the window is open, and it would otherwise need a restart to take effect.
@@ -130,7 +134,7 @@ public final class ModulaApp extends Application {
         });
     }
 
-    private void checkForUpdates(Settings settings) {
+    private void checkForUpdates(Settings settings, RadioPane pane) {
         if (!settings.updateCheck() || !UpdateCheck.isDue(settings.lastUpdateCheck(), System.currentTimeMillis())) {
             return;
         }

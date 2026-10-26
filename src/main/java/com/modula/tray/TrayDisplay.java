@@ -1,5 +1,7 @@
 package com.modula.tray;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Pure description of what the tray icon should show.
  *
@@ -10,10 +12,10 @@ package com.modula.tray;
  * @param listening whether audio is playing
  * @param attention whether something has gone wrong and needs saying
  */
-public record TrayDisplay(String text, boolean listening, boolean attention, boolean recording) {
+public record TrayDisplay(@Nullable String text, boolean listening, boolean attention, boolean recording) {
 
     /** Back-compatible: not recording. */
-    public TrayDisplay(String text, boolean listening, boolean attention) {
+    public TrayDisplay(@Nullable String text, boolean listening, boolean attention) {
         this(text, listening, attention, false);
     }
 

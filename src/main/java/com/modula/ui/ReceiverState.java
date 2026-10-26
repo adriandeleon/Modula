@@ -1,6 +1,7 @@
 package com.modula.ui;
 
 import com.modula.radio.RadioEngine;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The seven states a listener can actually be in, as one function of {@link RadioEngine.Status}.
@@ -117,7 +118,7 @@ public enum ReceiverState {
      * @param previous the state this returned last time, or null for no hysteresis (a first
      *     classification, or a caller that does not track it)
      */
-    public static ReceiverState of(RadioEngine.Status status, boolean faulted, ReceiverState previous) {
+    public static ReceiverState of(RadioEngine.Status status, boolean faulted, @Nullable ReceiverState previous) {
         if (status == null) {
             return NOT_LISTENING;
         }
