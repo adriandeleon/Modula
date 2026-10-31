@@ -30,14 +30,13 @@ against an off-air recording.
 ## Installing it
 
 Installers for Linux, macOS (Apple silicon and Intel) and Windows are on the
-[releases page](https://github.com/adriandeleon/Modula/releases). None of them is signed, so each
-platform asks once:
+[releases page](https://github.com/adriandeleon/Modula/releases). The macOS app is signed and
+notarized by Apple; the Windows and Linux installers are not signed.
 
 - **Linux** — `sudo apt install ./Modula-<version>-linux-x64.deb`. Installing through `apt` rather
   than `dpkg -i` also brings in `librtlsdr`, which the package recommends for direct dongle access.
-- **macOS** — drag Modula to Applications and open it. macOS refuses the first launch of an
-  unnotarized app; open **System Settings → Privacy & Security**, find Modula near the bottom, and
-  choose **Open Anyway**. Install `librtlsdr` with `brew install librtlsdr`.
+- **macOS** — drag Modula to Applications and open it. Install `librtlsdr` with
+  `brew install librtlsdr`.
 - **Windows** — SmartScreen stops an unsigned installer: choose **More info → Run anyway**. The dongle
   then needs its driver replaced with WinUSB using [Zadig](https://zadig.akeo.ie/), on *Interface 0*;
   Modula says so if it finds the dongle unusable.
@@ -122,6 +121,31 @@ test skips itself when no dongle is attached, which on a runner is always.
 `release.yml` runs on a `v*` tag: it builds an installer per target, refuses to proceed if the tag
 disagrees with the pom version, and opens a **draft** release with checksums for a human to publish.
 A manual dispatch builds everything and publishes nothing, which is the dry run.
+
+### Signing
+
+Both macOS legs sign the app with the **Developer ID Application** certificate of team `8JKSF797L8`
+(Adrian De Leon Saldivar), sign the dmg, have Apple notarize it and staple the ticket, so Gatekeeper
+opens a downloaded Modula with no warning. The same certificate and API key sign Editora, Torrenta
+and Termina.
+
+- **Import signing certificate (macOS)** puts the `.p12` into a throw-away keychain and writes
+  jpackage's signing options to an @file: `--mac-sign`, the identity, that keychain, and
+  `packaging/mac/Modula.entitlements` (JIT, plus library validation off, because librtlsdr is
+  Homebrew's and not signed with our team ID). The build passes it as `-Djpackage.signArgs`;
+  everywhere else that property points at the empty `packaging/no-signing.args`. On a tag, missing
+  secrets fail the leg; a dry run without them builds ad-hoc signed and warns.
+- **Notarize the dmg (macOS)** signs the dmg, checks the app inside it is Developer ID signed with
+  the hardened runtime and verifies, runs `notarytool submit --wait` with the App Store Connect API
+  key, staples, checks the dmg and app with `spctl`, and starts the notarized app, which must still
+  be running 20 seconds later.
+
+Repository secrets, the same values as the other apps: `MACOS_CERT_P12` (base64 of a `.p12` with
+the certificate, its key and Apple's Developer ID G2 intermediate, exported with
+`openssl pkcs12 -export -legacy`), `MACOS_CERT_PASSWORD`, `APPLE_API_KEY_P8` (base64 of the team
+API key, Developer role), `APPLE_API_KEY_ID` (10 characters) and `APPLE_API_ISSUER` (a UUID). The
+certificate expires **2027-11-30** and the Apple Developer Program membership **2027-10-31**: renew
+the membership, make a new certificate, and replace the first two secrets in every repository.
 
 ## Tests
 

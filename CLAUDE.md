@@ -627,11 +627,13 @@ An unhelpful message here is not cosmetic: "fell back to rtl_tcp" covered four u
 with four different fixes, and on Windows the two most likely ones are indistinguishable from the
 symptom alone.
 
-**Packaging caveat, not yet hit:** a signed, notarized macOS `.app` running under the hardened
-runtime will refuse to load a Homebrew dylib — that needs
-`com.apple.security.cs.disable-library-validation`, and `com.apple.security.device.usb` if sandboxed.
-It works in development and fails only in the signed build, so it is worth remembering before the
-jpackage work the `.icns` is already waiting for.
+**Signed builds and Homebrew's librtlsdr:** a signed, notarized macOS `.app` running under the
+hardened runtime refuses to load a dylib not signed with its own team ID, and librtlsdr comes from
+Homebrew. `packaging/mac/Modula.entitlements` therefore carries
+`com.apple.security.cs.disable-library-validation` (README, "Signing"). Drop it and the release
+still builds, notarizes and starts, then falls back to rtl_tcp on a Mac with a dongle — it works in
+development and fails only in the signed build. `com.apple.security.device.usb` would matter only
+if the app were sandboxed; it is not.
 
 ## Packaging
 

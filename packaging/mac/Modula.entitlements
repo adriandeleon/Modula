@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Hardened-runtime exceptions for the Developer ID signed Modula.app. The release workflow hands this file
+  to jpackage as its mac-entitlements option when it signs; notarization requires the hardened runtime,
+  and Modula cannot run under it without these three:
+    allow-jit                        HotSpot's JIT maps its code cache with MAP_JIT.
+    allow-unsigned-executable-memory the JVM writes executable stubs and adapters outside MAP_JIT regions.
+    disable-library-validation       librtlsdr comes from Homebrew (/opt/homebrew/lib, /usr/local/lib) and is
+                                     loaded through FFM; it is not signed with our team ID, and without this
+                                     the signed app refuses it and falls back to rtl_tcp.
+  No com.apple.security.device.usb: that is a sandbox entitlement, and the app is not sandboxed.
+-->
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>

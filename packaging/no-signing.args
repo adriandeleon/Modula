@@ -1,0 +1,4 @@
+# jpackage signing options, passed as @packaging/no-signing.args: none. Every build uses this file
+# except a macOS release leg with the signing secrets, where release.yml writes the Developer ID
+# options (--mac-sign, the identity, its keychain and packaging/mac/Modula.entitlements) to a file
+# of its own and points -Djpackage.signArgs at that instead.

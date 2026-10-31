@@ -5,6 +5,13 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **The macOS app is signed and notarized.** Both dmgs (Apple silicon and Intel) are now signed with
+  a Developer ID certificate and notarized by Apple, so Modula opens on first launch with no
+  Gatekeeper warning and no trip to System Settings → Privacy & Security. The Windows and Linux
+  installers are still unsigned.
+
 ### Fixed
 
 - **Stopping a recording could crash the window's handler** if a failed write (a full disk) ended the
