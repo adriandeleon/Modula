@@ -47,6 +47,9 @@
         <buildhelper.plugin.version>3.6.2</buildhelper.plugin.version>
 
         <jpackage.vendor>Adrian De Leon</jpackage.vendor>
+        <!-- jpackage's signing options as an @file: none, except on a macOS release leg, where
+             release.yml points this at the Developer ID options it writes. -->
+        <jpackage.signArgs>@${project.basedir}/packaging/no-signing.args</jpackage.signArgs>
         <!-- Overridable: -Djpackage.type=app-image gives an unpackaged bundle, which is much faster
              to iterate on than building a real installer. -->
         <jpackage.type>${jpackage.defaultType}</jpackage.type>
@@ -427,6 +430,9 @@
                                         <!-- Per platform: menu entries and shortcuts. See each
                                              packaging/<os>/jpackage.args for why. -->
                                         <argument>${jpackage.installerArgs}</argument>
+                                        <!-- Developer ID signing on a macOS release; empty otherwise.
+                                             See jpackage.signArgs and release.yml. -->
+                                        <argument>${jpackage.signArgs}</argument>
                                         <!--
                                             The licences travel with the app. MIT (AtlantaFX, dbus-java,
                                             SLF4J) requires its notice in every copy, the OFL wants its
