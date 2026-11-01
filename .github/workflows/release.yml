@@ -224,6 +224,15 @@ jobs:
           echo "notarized app ran for 20 s under the hardened runtime"
           echo "- ✅ ${{ matrix.target }}: signed, notarized and stapled" >> "$GITHUB_STEP_SUMMARY"
 
+      # What the deb must contain to list properly in GNOME Software and install on older releases
+      # (scripts/check-linux-package.sh). Each of these once shipped wrong and looked fine.
+      - name: Check the Linux package
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq desktop-file-utils appstream
+          bash scripts/check-linux-package.sh target/dist
+
       # One consistent name per target, since jpackage names its output per-platform and without
       # the architecture.
       - name: Stage
@@ -252,10 +261,78 @@ jobs:
         if: always() && steps.macsign.outputs.enabled == 'true'
         run: security delete-keychain "$RUNNER_TEMP/modula-signing.keychain-db" || true
 
+  # Signs the deb (scripts/sign-linux-packages.sh): an embedded origin signature, and a detached .asc
+  # beside it. In a job of its own so the key is never on a runner that builds, since those execute
+  # whatever Maven resolves. It replaces the build's artifact with the signed files, so the publish job
+  # sees only those. The secrets: README, "Signing".
+  #
+  # On a tag the key is required, and must be the committed packaging/linux/signing-key.asc. A manual
+  # dry run without it signs with a key made for the run, so the step is still exercised, and says so.
+  sign-linux:
+    name: sign Linux package
+    runs-on: ubuntu-latest
+    needs: installers
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Signing tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq debsig-verify
+
+      # One directory per artifact: linux/installer-linux-x64.
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: installer-linux-*
+          path: linux
+
+      - name: Sign
+        env:
+          LINUX_GPG_KEY: ${{ secrets.LINUX_GPG_KEY }}
+          LINUX_GPG_PASSPHRASE: ${{ secrets.LINUX_GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -n "$LINUX_GPG_KEY" ]; then
+            export MODULA_GPG_KEY="$LINUX_GPG_KEY" MODULA_GPG_PASSPHRASE="$LINUX_GPG_PASSPHRASE"
+            export MODULA_GPG_EXPECTED_KEY=packaging/linux/signing-key.asc
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "::error title=Linux signing key missing::LINUX_GPG_KEY is not set; refusing to release an unsigned Linux package"
+            exit 1
+          else
+            echo "::warning title=Linux package signed with a throw-away key::no LINUX_GPG_KEY, so this dry run signs with a key made for it"
+            export GNUPGHOME="$RUNNER_TEMP/throwaway-gnupg"
+            mkdir -m 700 "$GNUPGHOME"
+            gpg --batch --pinentry-mode loopback --passphrase '' --quick-gen-key 'Modula dry run <dry-run@modula.invalid>' rsa4096 sign 1d
+            MODULA_GPG_KEY="$(gpg --batch --armor --export-secret-keys)"
+            export MODULA_GPG_KEY
+            unset GNUPGHOME
+          fi
+          mkdir -p key
+          bash scripts/sign-linux-packages.sh key/modula-signing-key.asc linux/*/
+          bash scripts/check-linux-signatures.sh key/modula-signing-key.asc linux/*/
+          ls -la linux/*/
+          fpr=$(gpg --with-colons --import-options show-only --import key/modula-signing-key.asc | awk -F: '$1 == "fpr" { print $10; exit }')
+          echo "- ✅ Linux: signed with \`$fpr\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload signed (linux-x64)
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-linux-x64
+          path: linux/installer-linux-x64/*
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Upload the public key
+        uses: actions/upload-artifact@v7
+        with:
+          name: signing-key
+          path: key/modula-signing-key.asc
+          if-no-files-found: error
+
   publish:
     name: publish
     runs-on: ubuntu-latest
-    needs: installers
+    needs: [installers, sign-linux]
     if: startsWith(github.ref, 'refs/tags/v') # a manual run is a dry run and publishes nothing
     permissions:
       contents: write # to create the release and attach the installers

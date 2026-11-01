@@ -4,3 +4,7 @@
 --win-menu
 --win-shortcut
 --win-dir-chooser
+# The "About" link Settings → Apps shows for the installed MSI. Must equal modula.homepage in the
+# pom (PackagingTest).
+--about-url
+https://github.com/adriandeleon/Modula

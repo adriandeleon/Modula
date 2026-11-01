@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.adriandeleon.Modula</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Modula</name>
+  <summary>A broadcast radio receiver for RTL-SDR dongles</summary>
+  <developer id="io.github.adriandeleon">
+    <name>Adrian De Leon</name>
+  </developer>
+
+  <description>
+    <p>
+      Modula turns an RTL-SDR dongle into an FM and AM radio. It shows a frequency and a volume
+      knob, not a signal-processing panel: there is no demodulator, filter or gain to choose,
+      because none of them has a right answer a listener should have to supply.
+    </p>
+    <ul>
+      <li>FM stereo, with a blend that narrows a weak station's image rather than dropping it to mono</li>
+      <li>RDS station names, radio text and programme type</li>
+      <li>Seek in either direction, and presets</li>
+      <li>A spectrum strip showing the station between its neighbours</li>
+      <li>Medium-wave and airband AM where the hardware reaches them</li>
+      <li>Recording, immediately or on a schedule</li>
+    </ul>
+    <p>
+      It drives the dongle directly through librtlsdr, or a dongle on another machine over rtl_tcp.
+    </p>
+  </description>
+
+  <!-- The id jpackage installs the menu entry under: <package name>-<launcher name>. -->
+  <launchable type="desktop-id">modula-Modula.desktop</launchable>
+  <!-- Ties this listing to the deb of that name. A distribution's catalogue would add it; a package
+       installed from a download has no catalogue, so it is written here. -->
+  <pkgname>modula</pkgname>
+  <icon type="stock">io.github.adriandeleon.Modula</icon>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+    <category>HamRadio</category>
+  </categories>
+  <keywords>
+    <keyword>radio</keyword>
+    <keyword>FM</keyword>
+    <keyword>AM</keyword>
+    <keyword>RDS</keyword>
+    <keyword>SDR</keyword>
+    <keyword>RTL-SDR</keyword>
+  </keywords>
+
+  <url type="homepage">https://github.com/adriandeleon/Modula</url>
+  <url type="bugtracker">https://github.com/adriandeleon/Modula/issues</url>
+  <url type="vcs-browser">https://github.com/adriandeleon/Modula</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Tuned to an FM station in stereo, with the spectrum strip and four presets</caption>
+      <image>https://raw.githubusercontent.com/adriandeleon/Modula/master/docs/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="1.3.0" date="2026-10-24">
+      <description>
+        <p>
+          Stereo decodes correctly on real transmitters, RDS keeps what stations send, and the
+          keyboard keeps working after a click. The installers carry their licences, and the Linux
+          package installs on Debian 12 and Ubuntu 22.04.
+        </p>
+      </description>
+      <url type="details">https://github.com/adriandeleon/Modula/releases/tag/v1.3.0</url>
+    </release>
+    <release version="1.2.0" date="2026-08-11">
+      <description>
+        <p>
+          Daylight reaches the standard controls, a station on the weak-signal threshold no longer
+          restyles the dial, and an ADC headroom readout says when more gain would clip.
+        </p>
+      </description>
+      <url type="details">https://github.com/adriandeleon/Modula/releases/tag/v1.2.0</url>
+    </release>
+    <release version="1.1.0" date="2026-08-11">
+      <description>
+        <p>
+          No more dropped samples on the USB path, a steady stereo indicator, fixed gain instead of
+          two AGCs, a stereo blend for weak stations and a quieting figure in the status line.
+        </p>
+      </description>
+      <url type="details">https://github.com/adriandeleon/Modula/releases/tag/v1.1.0</url>
+    </release>
+    <release version="1.0.0" date="2026-08-09">
+      <description>
+        <p>The first release: FM stereo with RDS, AM, seek, presets, recording and the tray.</p>
+      </description>
+    </release>
+  </releases>
+</component>

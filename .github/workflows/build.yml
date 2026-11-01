@@ -69,6 +69,34 @@ jobs:
       - name: Build the installer
         run: ./mvnw --batch-mode --no-transfer-progress -Pdist package -DskipTests
 
+      # Asserted against the built deb rather than packaging/linux, because each failure produces a
+      # package that installs and looks fine (scripts/check-linux-package.sh).
+      - name: Check the Linux package
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq desktop-file-utils appstream debsig-verify
+          bash scripts/check-linux-package.sh target/dist
+
+      # The release's signing step, run with a key made for this job and thrown away with it, so a
+      # change that breaks the deb's signature or its check is found here and not on release day.
+      # Into a copy: the uploaded artifact stays unsigned, since a throw-away signature means nothing.
+      - name: Sign the Linux package with a throw-away key
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          export GNUPGHOME="$RUNNER_TEMP/ci-gnupg"
+          mkdir -m 700 "$GNUPGHOME"
+          gpg --batch --pinentry-mode loopback --passphrase '' --quick-gen-key 'Modula CI <ci@modula.invalid>' rsa4096 sign 1d
+          MODULA_GPG_KEY="$(gpg --batch --armor --export-secret-keys)"
+          export MODULA_GPG_KEY
+          unset GNUPGHOME
+          mkdir -p "$RUNNER_TEMP/signed"
+          cp target/dist/*.deb "$RUNNER_TEMP/signed/"
+          bash scripts/sign-linux-packages.sh "$RUNNER_TEMP/ci-key.asc" "$RUNNER_TEMP/signed"
+          bash scripts/check-linux-signatures.sh "$RUNNER_TEMP/ci-key.asc" "$RUNNER_TEMP/signed"
+          bash scripts/check-linux-package.sh "$RUNNER_TEMP/signed"
+
       - name: Upload it
         uses: actions/upload-artifact@v7
         with:

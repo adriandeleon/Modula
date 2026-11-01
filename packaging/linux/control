@@ -6,6 +6,12 @@ Priority: optional
 Architecture: APPLICATION_ARCH
 Provides: APPLICATION_PACKAGE
 Description: APPLICATION_DESCRIPTION
+ Modula turns an RTL-SDR dongle into an FM and AM radio: a frequency and a
+ volume knob, not a signal-processing panel. FM stereo with RDS station names
+ and radio text, seek and presets, a spectrum strip, and recording.
+ .
+ It drives the dongle through librtlsdr, or one on another machine over
+ rtl_tcp.
 Depends: libasound2t64 | libasound2, libc6, libx11-6, libxau6, libxcb1, libxdmcp6, libxext6, libxi6, libxrender1, libxtst6, xdg-utils, zlib1g PACKAGE_CUSTOM_DEPENDENCIES
 Recommends: librtlsdr0 | librtlsdr2, rtl-sdr
 Installed-Size: APPLICATION_INSTALLED_SIZE
