@@ -180,7 +180,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.1</version>
                 <configuration>
                     <!-- Tests run on the classpath as the unnamed module, so setAccessible is
                          unrestricted and test classes need no module-info entries. That also means
