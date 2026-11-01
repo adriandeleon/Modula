@@ -31,10 +31,19 @@ against an off-air recording.
 
 Installers for Linux, macOS (Apple silicon and Intel) and Windows are on the
 [releases page](https://github.com/adriandeleon/Modula/releases). The macOS app is signed and
-notarized by Apple; the Windows and Linux installers are not signed.
+notarized by Apple, and the Linux package is signed with OpenPGP; the Windows installer is not signed.
 
 - **Linux** — `sudo apt install ./Modula-<version>-linux-x64.deb`. Installing through `apt` rather
   than `dpkg -i` also brings in `librtlsdr`, which the package recommends for direct dongle access.
+  To check the download first, fetch `modula-signing-key.asc` and the `.deb.asc` beside it from the
+  same release:
+
+  ```bash
+  gpg --import modula-signing-key.asc
+  gpg --verify Modula-<version>-linux-x64.deb.asc Modula-<version>-linux-x64.deb
+  ```
+
+  It should report a good signature from `8486 A7AF 4FC8 FEE9 3D83  CDB4 EA5F A138 C2C0 9C4A`.
 - **macOS** — drag Modula to Applications and open it. Install `librtlsdr` with
   `brew install librtlsdr`.
 - **Windows** — SmartScreen stops an unsigned installer: choose **More info → Run anyway**. The dongle
@@ -146,6 +155,20 @@ the certificate, its key and Apple's Developer ID G2 intermediate, exported with
 API key, Developer role), `APPLE_API_KEY_ID` (10 characters) and `APPLE_API_ISSUER` (a UUID). The
 certificate expires **2027-11-30** and the Apple Developer Program membership **2027-10-31**: renew
 the membership, make a new certificate, and replace the first two secrets in every repository.
+
+The **Linux** deb is signed by the `sign-linux` job, after the builds and in a job of its own, so the
+key is never on a runner that executes what Maven resolves. `scripts/sign-linux-packages.sh` embeds
+an origin signature in debsigs' format (an `_gpgorigin` member) and writes an armoured `.deb.asc`
+beside it; `scripts/check-linux-signatures.sh` then checks both against the public key alone, with
+`gpgv` and `debsig-verify`. The job replaces the build's artifact with the signed files, and the
+release attaches `modula-signing-key.asc` beside them. CI runs both scripts on every push with a
+throw-away key. On a tag the real key is required and must be the committed
+`packaging/linux/signing-key.asc`; a manual dry run without it signs with a throw-away key and warns.
+
+It is the one key that signs every project's Linux releases — Editora, Torrenta and Termina too:
+`8486A7AF4FC8FEE93D83CDB4EA5FA138C2C09C4A`, "Adrian De Leon (release signing)", RSA because older
+debsig-verify cannot check Ed25519. Repository secrets, the same values in each repository:
+`LINUX_GPG_KEY` (the armoured secret key) and `LINUX_GPG_PASSPHRASE`.
 
 ## Tests
 

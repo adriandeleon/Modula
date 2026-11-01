@@ -680,6 +680,24 @@ What the profile has to get right, each verified rather than assumed:
   **On macOS they go in as a directory named `Resources`**, staged by the antrun step, so they land
   in `Contents/Resources`: loose files in `Contents/` fail even jpackage's ad-hoc signing ("code
   object is not signed at all, in subcomponent Contents/LICENSE"), which broke the macOS build.
+- **The deb is finished after jpackage, because jpackage cannot put anything outside `/opt`.**
+  GNOME Software listed it as a bare package — "modula", a generic icon, no licence — because the
+  AppStream metainfo and a themed icon live under `/usr/share`, and a software centre ties a listing to
+  its package by asking dpkg who **owns** the metainfo. `scripts/finish-deb.sh` (an exec step declared
+  after jpackage, skipped off Linux) unpacks the deb, adds the metainfo, the hicolor icons and a
+  machine-readable copyright as owned files, rewrites `md5sums` and `Installed-Size`, and rebuilds it.
+  `scripts/check-linux-package.sh` asserts the result in CI and the release. **Software's window for a
+  double-clicked `.deb` never shows the listing** — it reads the package's fields only, so a generic
+  icon and "Unknown License" there are every downloaded deb's, not a bug; `--about-url` (the
+  `Homepage`) is the one thing a package can improve. The installed app's page is where the listing
+  shows. Commands for both: `packaging/linux/README.txt`.
+- **The metainfo's `<releases>` is written by hand**, and `LinuxListingTest` fails until its newest
+  entry matches the newest release in `CHANGELOG.md` — add one when cutting a release.
+- **The deb is signed in a job of its own**, never on a runner that builds (README, "Signing"): an
+  embedded `_gpgorigin` member in debsigs' format plus a detached `.asc`. Not with `debsigs` itself,
+  which knows only gzip members and, given dpkg-deb's `.xz`/`.zst` ones, signs `debian-binary` alone and
+  exits 0 — Termina found that out. apt and dpkg check neither signature on a downloaded deb; the
+  `.asc` is what a user can verify.
 - **`--jlink-options` replaces jpackage's defaults** rather than adding to them, so
   `--strip-native-commands` has to be restated — without it the image shipped `bin/java` and
   `keytool`.

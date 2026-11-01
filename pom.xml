@@ -53,6 +53,8 @@
         <!-- Overridable: -Djpackage.type=app-image gives an unpackaged bundle, which is much faster
              to iterate on than building a real installer. -->
         <jpackage.type>${jpackage.defaultType}</jpackage.type>
+        <!-- scripts/finish-deb.sh: run on Linux only, where the installer is a deb. -->
+        <finishDeb.skip>true</finishDeb.skip>
     </properties>
 
     <dependencies>
@@ -273,6 +275,7 @@
                 <jpackage.icon>${project.basedir}/branding/modula-icon-512.png</jpackage.icon>
                 <jpackage.resourceDir>${project.basedir}/packaging/linux</jpackage.resourceDir>
                 <jpackage.installerArgs>@${project.basedir}/packaging/linux/jpackage.args</jpackage.installerArgs>
+                <finishDeb.skip>false</finishDeb.skip>
                 <jpackage.appContent>${project.basedir}/LICENSE,${project.basedir}/NOTICE,${project.basedir}/packaging/legal/THIRD-PARTY-LICENSES.txt,${project.basedir}/src/main/resources/com/modula/fonts/OFL.txt</jpackage.appContent>
             </properties>
         </profile>
@@ -292,6 +295,7 @@
             </activation>
             <properties>
                 <jpackage.installerArgs>@${project.basedir}/packaging/app-image.args</jpackage.installerArgs>
+                <finishDeb.skip>true</finishDeb.skip>
             </properties>
         </profile>
 
@@ -459,6 +463,25 @@
                                              them, so strip-native-commands has to be restated or the
                                              image ships bin/java and keytool. -->
                                         <argument>--strip-debug --strip-native-commands --no-man-pages --no-header-files --compress=zip-6</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                            <!--
+                                After jpackage, in the same phase, so declaration order is run order.
+                                Adds the metainfo, the themed icons and a real copyright to the deb,
+                                which jpackage has no way to put outside /opt: without them GNOME
+                                Software lists a bare package with a generic icon and no licence.
+                            -->
+                            <execution>
+                                <id>finish-deb</id>
+                                <phase>package</phase>
+                                <goals><goal>exec</goal></goals>
+                                <configuration>
+                                    <skip>${finishDeb.skip}</skip>
+                                    <executable>bash</executable>
+                                    <arguments>
+                                        <argument>${project.basedir}/scripts/finish-deb.sh</argument>
+                                        <argument>${project.build.directory}/dist</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

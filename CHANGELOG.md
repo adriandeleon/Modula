@@ -9,11 +9,19 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - **The macOS app is signed and notarized.** Both dmgs (Apple silicon and Intel) are now signed with
   a Developer ID certificate and notarized by Apple, so Modula opens on first launch with no
-  Gatekeeper warning and no trip to System Settings → Privacy & Security. The Windows and Linux
-  installers are still unsigned.
+  Gatekeeper warning and no trip to System Settings → Privacy & Security. The Windows installer is
+  still unsigned.
+- **The Linux package is signed.** Each release carries a detached `.deb.asc` and the public key, and
+  the deb embeds an origin signature that `debsig-verify` checks. The key is the one that signs every
+  project's Linux releases; the README shows how to check a download.
 
 ### Fixed
 
+- **GNOME Software and KDE Discover listed Modula as a bare package**: a generic icon, no licence, no
+  description, and a Project Website button that went nowhere. The package now installs an AppStream
+  listing and the icon into the theme, so the installed app shows its name, icon, MIT licence,
+  homepage, screenshot and release notes; the package itself carries a homepage, a maintainer address
+  and a longer description, and its copyright file names the licence.
 - **Stopping a recording could crash the window's handler** if a failed write (a full disk) ended the
   recording at the same moment. The status line now says why it stopped.
 - **A failed write could end the next recording as it began.** When one recording handed over to

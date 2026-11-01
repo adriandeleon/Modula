@@ -2,7 +2,19 @@
 #
 # No shortcut option: the .deb already installs a menu entry, because jpackage registers the
 # Modula.desktop template it finds in this directory (checked: 1.2.0's postinst runs
-# xdg-desktop-menu install on it). The licence goes in as the package's copyright file, where
-# Debian tools look for it.
---license-file
-LICENSE
+# xdg-desktop-menu install on it).
+#
+# No --license-file: it pastes LICENSE under "License:" as it stands, so the deb's copyright read
+# "License: MIT License" and was not machine-readable. scripts/finish-deb.sh writes a proper one.
+#
+# The deb's Homepage, and the only part of the listing GNOME Software's window for a downloaded
+# .deb shows besides the description: it reads the package's own fields and nothing else. Must
+# equal modula.homepage in the pom (PackagingTest).
+--about-url
+https://github.com/adriandeleon/Modula
+# Without it the Maintainer field reads "Adrian De Leon <Unknown>".
+--linux-deb-maintainer
+adrian.deleon@gmail.com
+# Debian's own section for radio software, in place of jpackage's "misc".
+--linux-app-category
+hamradio
