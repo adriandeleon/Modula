@@ -301,11 +301,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq debsig-verify
 
-      # One directory per artifact: linux/installer-linux-x64.
+      # By name, into the directory the upload below reads back. A pattern that matches a single
+      # artifact extracts it straight into path, with no per-artifact directory, so linux/*/ found
+      # nothing and the first dry run with the real key failed there.
       - uses: actions/download-artifact@v8
         with:
-          pattern: installer-linux-*
-          path: linux
+          name: installer-linux-x64
+          path: linux/installer-linux-x64
 
       - name: Sign
         env:
@@ -329,9 +331,9 @@ jobs:
             unset GNUPGHOME
           fi
           mkdir -p key
-          bash scripts/sign-linux-packages.sh key/modula-signing-key.asc linux/*/
-          bash scripts/check-linux-signatures.sh key/modula-signing-key.asc linux/*/
-          ls -la linux/*/
+          bash scripts/sign-linux-packages.sh key/modula-signing-key.asc linux/installer-linux-x64
+          bash scripts/check-linux-signatures.sh key/modula-signing-key.asc linux/installer-linux-x64
+          ls -la linux/installer-linux-x64
           fpr=$(gpg --with-colons --import-options show-only --import key/modula-signing-key.asc | awk -F: '$1 == "fpr" { print $10; exit }')
           echo "- ✅ Linux: signed with \`$fpr\`" >> "$GITHUB_STEP_SUMMARY"
 
