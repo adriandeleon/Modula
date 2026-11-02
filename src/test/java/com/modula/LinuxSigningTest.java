@@ -39,6 +39,15 @@ class LinuxSigningTest {
                 sign.contains("name: installer-linux-x64\n          path: linux/installer-linux-x64/*\n"
                         + "          overwrite: true"),
                 "the signed files must replace the unsigned build artifact");
+        // A pattern that matches one artifact extracts it without its own directory, and a glob over
+        // per-artifact directories then signs nothing: the first dry run with the real key failed so.
+        assertTrue(
+                sign.contains("name: installer-linux-x64\n          path: linux/installer-linux-x64\n")
+                        && sign.contains(
+                                "sign-linux-packages.sh key/modula-signing-key.asc linux/installer-linux-x64\n")
+                        && sign.contains(
+                                "check-linux-signatures.sh key/modula-signing-key.asc linux/installer-linux-x64\n"),
+                "the deb must be downloaded by name into the directory that is signed, checked and uploaded");
         assertTrue(
                 release.substring(publish).contains("needs: [installers, sign-linux]"),
                 "the publish job must wait for the signed files");
