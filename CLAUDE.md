@@ -715,8 +715,10 @@ unaffected; the mapping only matters if a `0.x` build is ever packaged again.
 
 `build.yml` — tests then packages on Linux, macOS and Windows, for every push and pull request. The
 packaging half is the point: it is what tests cannot check, and what only breaks on the two operating
-systems the author cannot try. `release.yml` — on a `v*` tag, four targets, opens a **draft** release
-with checksums; a manual dispatch is the dry run and publishes nothing.
+systems the author cannot try. `release.yml` — on a `v*` tag, four targets plus a portable Linux
+`.tar.gz`, opens a **draft** release with `checksums_sha256.txt`; a manual dispatch is the dry run and
+publishes nothing. File names and `.instala.yml` follow the app catalog's spec, and
+`notify-catalog.yml` tells the catalog when the draft is published.
 
 **`bash` is pinned as the shell for every step**, because `./mvnw` is a shell script and the Windows
 runner defaults to PowerShell. `fail-fast` is off so one platform cannot hide the other two, and

@@ -5,6 +5,11 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **A portable `.tar.gz` for Linux**, signed like the deb. It runs without installing anything or
+  needing root: unpack it and run `Modula/bin/Modula`.
+
 ### Changed
 
 - **The macOS app is signed and notarized.** Both dmgs (Apple silicon and Intel) are now signed with
@@ -14,6 +19,8 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **The Linux package is signed.** Each release carries a detached `.deb.asc` and the public key, and
   the deb embeds an origin signature that `debsig-verify` checks. The key is the one that signs every
   project's Linux releases; the README shows how to check a download.
+- The checksum file attached to each release is now **`checksums_sha256.txt`** (was `checksums.txt`),
+  the same name the other apps use.
 
 ### Fixed
 
