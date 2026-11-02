@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks what sign-linux-packages.sh produced against the public key alone, the way a user would:
-# the deb has a detached signature by that key, and carries an origin signature over its own contents. Nothing here trusts the keyring
+# the deb and the tar.gz have a detached signature by that key, and the deb carries an origin signature over its own contents. Nothing here trusts the keyring
 # that did the signing — a check run there would pass on a signature by any key it holds.
 #
 # Needs gpgv and ar; debsig-verify if installed.
@@ -48,7 +48,7 @@ checked=0
 for dir in "$@"; do
     # Absolute: the deb is unpacked from inside a directory of its own.
     dir="$(cd "$dir" && pwd)"
-    for file in "$dir"/*.deb; do
+    for file in "$dir"/*.deb "$dir"/*.tar.gz; do
         name=$(basename "$file")
         [ -f "$file.asc" ] || fail "$name has no detached signature"
         gpgv --keyring "$work/key.gpg" "$file.asc" "$file" 2> "$work/gpgv.txt" ||

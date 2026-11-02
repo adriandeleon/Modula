@@ -1,0 +1,17 @@
+# Modula's entry in the app catalog (the home page, install commands and the Instala app).
+# The catalog reads this file at each release tag; the format is the catalog's SPEC.md, section 2.
+id: modula
+name: Modula
+tagline: AM/FM broadcast receiver for RTL-SDR dongles, with stereo and RDS.
+category: radio
+status: active
+color: "#D0661A"
+keywords: [radio, fm, am, rds, sdr, rtl-sdr, receiver]
+icon: branding/modula-icon.svg
+iconPng: branding/modula-icon-256.png
+screenshots:
+  - path: docs/screenshot.png
+    alt: Tuned to 106.9 MHz, with a live spectrum, presets and stereo controls.
+requires:
+  - An RTL-SDR USB dongle.
+  - librtlsdr for direct dongle access (brew install librtlsdr on macOS; the Linux .deb recommends it). Without it, Modula connects to rtl_tcp.

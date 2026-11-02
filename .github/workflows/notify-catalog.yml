@@ -1,0 +1,36 @@
+name: notify-catalog
+
+# Asks the app catalog to rebuild now rather than at its daily run, once a release goes live.
+#
+# On publish rather than at the end of release.yml, because release.yml opens a draft and the catalog
+# skips drafts: the release is visible only when a human publishes it, which is this event. (A release
+# published with the workflow's own token would not fire it; this one is published by hand.)
+#
+# Needs CATALOG_TOKEN, a fine-grained token with Contents read/write on adriandeleon/instala-catalog.
+# Without it, or if the call fails, nothing else is affected and the catalog picks the release up
+# within a day.
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Send repository_dispatch
+        env:
+          GH_TOKEN: ${{ secrets.CATALOG_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::CATALOG_TOKEN is not set; the catalog picks this release up at its daily rebuild"
+            exit 0
+          fi
+          gh api repos/adriandeleon/instala-catalog/dispatches \
+            -f event_type=app-released \
+            -f "client_payload[repo]=${{ github.repository }}" \
+            -f "client_payload[tag]=$TAG"

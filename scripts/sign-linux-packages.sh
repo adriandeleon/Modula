@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Signs the .deb in each directory with the release's OpenPGP key, in place, and writes a detached
-# signature beside it. Run by the release on the finished package, and by CI with a throw-away key so a
-# broken signing step is found on a push rather than on release day.
+# signature beside it and beside the portable .tar.gz. Run by the release on the finished package, and
+# by CI with a throw-away key so a broken signing step is found on a push rather than on release day.
 #
-# Two signatures, because they are checked by different things:
+# Two signatures on the deb, because they are checked by different things (the tar.gz gets only the
+# detached one, having nowhere to carry the other):
 #   embedded   an `_gpgorigin` member, which debsig-verify checks. apt and dpkg check nothing about
 #              a .deb that was downloaded rather than fetched from a repository.
 #   detached   an armoured `<file>.asc`: `gpg --verify <file>.asc <file>`. What a user downloading
@@ -87,7 +88,7 @@ for dir in "$@"; do
         sign_deb "$deb"
     done
     # After the embedded signature, which changes the file it is added to.
-    for file in "$dir"/*.deb; do
+    for file in "$dir"/*.deb "$dir"/*.tar.gz; do
         gpg --armor --detach-sign --local-user "$fpr" --output "$file.asc" "$file"
         echo "signed $(basename "$file")"
         signed=$((signed + 1))

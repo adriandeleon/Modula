@@ -44,6 +44,10 @@ notarized by Apple, and the Linux package is signed with OpenPGP; the Windows in
   ```
 
   It should report a good signature from `8486 A7AF 4FC8 FEE9 3D83  CDB4 EA5F A138 C2C0 9C4A`.
+
+  Without root, take `Modula-<version>-linux-x64.tar.gz` instead (signed the same way, with its own
+  `.tar.gz.asc`): it unpacks to a `Modula` folder, and `Modula/bin/Modula` starts it. Install
+  `librtlsdr` from your distribution for direct dongle access.
 - **macOS** — drag Modula to Applications and open it. Install `librtlsdr` with
   `brew install librtlsdr`.
 - **Windows** — SmartScreen stops an unsigned installer: choose **More info → Run anyway**. The dongle
@@ -128,7 +132,8 @@ tests use JavaFX 27's built-in headless platform, so there is no Xvfb and no dis
 test skips itself when no dongle is attached, which on a runner is always.
 
 `release.yml` runs on a `v*` tag: it builds an installer per target, refuses to proceed if the tag
-disagrees with the pom version, and opens a **draft** release with checksums for a human to publish.
+disagrees with the pom version, and opens a **draft** release with checksums (`checksums_sha256.txt`)
+for a human to publish.
 A manual dispatch builds everything and publishes nothing, which is the dry run.
 
 ### Signing

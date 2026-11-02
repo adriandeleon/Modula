@@ -233,6 +233,23 @@ jobs:
           sudo apt-get install -y -qq desktop-file-utils appstream
           bash scripts/check-linux-package.sh target/dist
 
+      # The portable app as a tar.gz, which Modula/bin/Modula starts. It installs without root, and it
+      # is what the app catalog's installers unpack. Built after the deb check, which wants the deb
+      # alone in target/dist; the tests already ran on this commit in the step that built the deb.
+      # The dist profile empties target/dist before jpackage runs, so the deb is moved out of the way
+      # and back: without that, the release would ship the tar.gz and no deb.
+      - name: Build the portable app (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/deb"
+          mv target/dist/*.deb "$RUNNER_TEMP/deb/"
+          ./mvnw --batch-mode --no-transfer-progress -Pdist package -DskipTests -Djpackage.type=app-image
+          tar -C target/dist -czf target/dist/Modula.tar.gz Modula
+          tar -tzvf target/dist/Modula.tar.gz Modula/bin/Modula
+          mv "$RUNNER_TEMP/deb/"*.deb target/dist/
+          ls -la target/dist
+
       # One consistent name per target, since jpackage names its output per-platform and without
       # the architecture.
       - name: Stage
@@ -242,9 +259,13 @@ jobs:
           [ "$version" = "$GITHUB_REF_NAME" ] && version=$(./mvnw --batch-mode -q help:evaluate \
             -Dexpression=project.version -DforceStdout | tail -1)
           found=0
-          for f in target/dist/*.deb target/dist/*.dmg target/dist/*.msi; do
+          for f in target/dist/*.deb target/dist/*.tar.gz target/dist/*.dmg target/dist/*.msi; do
             [ -e "$f" ] || continue
-            cp "$f" "staged/Modula-$version-${{ matrix.target }}.${f##*.}"
+            case "$f" in
+              *.tar.gz) ext=tar.gz ;;
+              *) ext="${f##*.}" ;;
+            esac
+            cp "$f" "staged/Modula-$version-${{ matrix.target }}.$ext"
             found=1
           done
           [ "$found" = 1 ] || { echo "::error::no installer was produced"; exit 1; }
@@ -344,11 +365,13 @@ jobs:
           path: artifacts
           merge-multiple: true
 
+      # checksums_sha256.txt is the name the app catalog expects, and JReleaser's default, which is
+      # what Termina, Editora and Torrenta ship.
       - name: Checksums
         run: |
           cd artifacts
-          sha256sum * > checksums.txt
-          cat checksums.txt
+          sha256sum * > checksums_sha256.txt
+          cat checksums_sha256.txt
 
       - name: Publish the release
         uses: softprops/action-gh-release@v3
