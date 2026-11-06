@@ -170,6 +170,23 @@ class ByteRingTest {
         assertEquals(-1, ring.read(read, 4, NO_WAIT));
     }
 
+    /**
+     * A source can end on an odd byte — a dying rtl_tcp server's last short read is odd half the
+     * time. That byte can never become a pair, so the stream must still end: the ring used to keep
+     * answering 0 for it, never -1, and the DSP thread spun on it at full priority until restart.
+     */
+    @Test
+    @Timeout(10)
+    void aFinishedRingWithOneStrayByteStillEnds() throws Exception {
+        ByteRing ring = new ByteRing(64);
+        ring.write(new byte[] {1, 2, 3}, 3);
+        ring.finish();
+
+        byte[] read = new byte[4];
+        assertEquals(2, ring.read(read, 4, NO_WAIT), "the whole pair is delivered");
+        assertEquals(-1, ring.read(read, 4, NO_WAIT), "and the unpaired byte ends the stream");
+    }
+
     @Test
     @Timeout(10)
     void aBlockedReadWakesWhenBytesArrive() throws Exception {
