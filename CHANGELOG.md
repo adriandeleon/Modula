@@ -24,6 +24,9 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **The station name could stay faint after RDS supplied it, and the display slowed over a long
+  session.** Every status before the name arrived added another copy of the pending style — about
+  32,000 an hour — and the name's arrival removed only one of them.
 - **Seek over rtl_tcp stopped one channel too early.** rtl_tcp keeps sending the old frequency for about
   40 ms after a retune, and seek judged that tail: from 106.9 it stopped at 107.1 every time instead of
   107.7. The receiver now discards it after every retune over rtl_tcp, which also keeps the old
