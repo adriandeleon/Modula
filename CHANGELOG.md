@@ -24,6 +24,9 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **`volume=NaN` in `settings.properties` meant permanent silence.** The parser accepted "NaN" and the
+  range clamp let it through, so no slider position made a sound. A non-finite volume now falls back to
+  the default.
 - **A save cut short could empty the preset list.** Settings, presets and schedules were written in
   place, which truncates the file first, so a full disk or the shutdown watchdog halting the process
   mid-write left an empty `presets.txt`. Each is now written to a temporary file beside it and renamed

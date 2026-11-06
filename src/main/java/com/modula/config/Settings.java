@@ -31,8 +31,10 @@ public record Settings(
         String recordingFormat,
         String encoderPath) {
 
-    public static final Settings DEFAULTS =
-            new Settings(101_500_000L, Region.AMERICAS, "FM", 0.7, true, false, true, false, true, 0L, "", "WAV", "");
+    private static final double DEFAULT_VOLUME = 0.7;
+
+    public static final Settings DEFAULTS = new Settings(
+            101_500_000L, Region.AMERICAS, "FM", DEFAULT_VOLUME, true, false, true, false, true, 0L, "", "WAV", "");
 
     private static final String KEY_FREQUENCY = "frequency";
     private static final String KEY_REGION = "region";
@@ -49,7 +51,8 @@ public record Settings(
     private static final String KEY_ENCODER = "encoderPath";
 
     public Settings {
-        volume = Math.clamp(volume, 0.0, 1.0);
+        // NaN passes straight through a clamp, and a NaN gain is silence that no slider position fixes.
+        volume = Double.isFinite(volume) ? Math.clamp(volume, 0.0, 1.0) : DEFAULT_VOLUME;
         if (frequencyHz <= 0) {
             frequencyHz = 101_500_000L;
         }
@@ -272,9 +275,11 @@ public record Settings(
         }
     }
 
+    /** A finite number, or the fallback: {@code Double.parseDouble} also accepts "NaN" and "Infinity". */
     private static double parseDouble(String value, double fallback) {
         try {
-            return value == null ? fallback : Double.parseDouble(value.strip());
+            double parsed = value == null ? fallback : Double.parseDouble(value.strip());
+            return Double.isFinite(parsed) ? parsed : fallback;
         } catch (NumberFormatException e) {
             return fallback;
         }

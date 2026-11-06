@@ -54,6 +54,26 @@ class SettingsTest {
         assertEquals(0.0, tuned(101_500_000L, Region.AMERICAS, -3.0, true).volume());
     }
 
+    /**
+     * {@code Double.parseDouble} reads "NaN", and a clamp passes NaN straight through: one edited line
+     * was a radio that played nothing, at every slider position, on every launch.
+     */
+    @Test
+    void aNonFiniteVolumeFallsBackToTheDefault() {
+        for (String value : new String[] {"NaN", "Infinity", "-Infinity"}) {
+            Properties properties = new Properties();
+            properties.setProperty("volume", value);
+            assertEquals(
+                    Settings.DEFAULTS.volume(),
+                    Settings.fromProperties(properties).volume(),
+                    value);
+        }
+        assertEquals(
+                Settings.DEFAULTS.volume(),
+                tuned(101_500_000L, Region.AMERICAS, Double.NaN, true).volume(),
+                "the record itself must not hold a NaN either");
+    }
+
     @Test
     void acceptsANullOrEmptyPropertySet() {
         assertEquals(Settings.DEFAULTS, Settings.fromProperties(null));
