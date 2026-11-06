@@ -256,9 +256,9 @@ public final class GlassPane extends VBox {
         if (name.isBlank()) {
             // Hold the width with middots so the name grows in place rather than jumping.
             stationLabel.setText("·".repeat(PS_WIDTH));
-            stationLabel.getStyleClass().add("station-pending");
+            StyleClasses.set(stationLabel.getStyleClass(), "station-pending", true);
         } else {
-            stationLabel.getStyleClass().remove("station-pending");
+            StyleClasses.set(stationLabel.getStyleClass(), "station-pending", false);
             stationLabel.setText(type.isBlank() ? name : name + "  ·  " + type);
         }
         radioTextLabel.setText(station.radioText());
@@ -268,7 +268,7 @@ public final class GlassPane extends VBox {
         if (status == null || !newState.isReceiving()) {
             meterFill.setPrefWidth(0);
             readout.setText("—");
-            meterFill.getStyleClass().remove("locked");
+            StyleClasses.set(meterFill.getStyleClass(), "locked", false);
             return;
         }
         double normalised = Math.clamp((status.signalDbfs() + 60.0) / 60.0, 0.0, 1.0);
@@ -278,20 +278,11 @@ public final class GlassPane extends VBox {
 
         // The last third of the meter resolves toward lock teal only while the pilot holds, so
         // strength and stereo — two facts a listener conflates anyway — ride one mark.
-        boolean locked = status.pilotLocked();
-        if (locked && !meterFill.getStyleClass().contains("locked")) {
-            meterFill.getStyleClass().add("locked");
-        } else if (!locked) {
-            meterFill.getStyleClass().remove("locked");
-        }
+        StyleClasses.set(meterFill.getStyleClass(), "locked", status.pilotLocked());
     }
 
     private static void setLit(Label badge, boolean lit) {
-        if (lit && !badge.getStyleClass().contains("lit")) {
-            badge.getStyleClass().add("lit");
-        } else if (!lit) {
-            badge.getStyleClass().remove("lit");
-        }
+        StyleClasses.set(badge.getStyleClass(), "lit", lit);
     }
 
     /** Lets the shell hand the strip its theme colours. */

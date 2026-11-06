@@ -24,6 +24,33 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Settings said "No system tray on this desktop" to anyone who had turned the tray off.** A tray
+  that was never asked for and one the desktop could not show were the same `false`, so unticking the
+  box got advice about GNOME extensions and greyed out the close-to-tray option. Settings now tells
+  the two apart.
+- **The band selector could disagree with the band.** A scheduled recording switched band without
+  moving the selector, and a session saved on AM or AIR started with Stereo still offered, because the
+  saved band was set before the selector was listening for changes.
+- **A scheduled recording that switched the receiver on left it playing when the slot ended.** The
+  end stopped only the recording. A receiver the schedule switched on is now switched off again, and
+  one that was already playing, or that the listener pressed Listen or Stop on during the slot, is left
+  as it is.
+- **A quick second press of an arrow key could step from the old frequency.** A status published
+  before the receiver had applied a retune still carried the frequency it was leaving, and the dial
+  followed it back. The dial now waits for the tune it asked for to land; seek still moves it.
+- **A recording that failed part-way through looked as if it were still running.** A full disk ended
+  the recording, but the record button stayed lit, the tray kept its badge, and the next press — meant
+  as Stop — started a new recording. The button now goes out and the status line says why.
+- **`volume=NaN` in `settings.properties` meant permanent silence.** The parser accepted "NaN" and the
+  range clamp let it through, so no slider position made a sound. A non-finite volume now falls back to
+  the default.
+- **A save cut short could empty the preset list.** Settings, presets and schedules were written in
+  place, which truncates the file first, so a full disk or the shutdown watchdog halting the process
+  mid-write left an empty `presets.txt`. Each is now written to a temporary file beside it and renamed
+  into place, so a file holds either the old content or the new.
+- **The station name could stay faint after RDS supplied it, and the display slowed over a long
+  session.** Every status before the name arrived added another copy of the pending style — about
+  32,000 an hour — and the name's arrival removed only one of them.
 - **Seek over rtl_tcp stopped one channel too early.** rtl_tcp keeps sending the old frequency for about
   40 ms after a retune, and seek judged that tail: from 106.9 it stopped at 107.1 every time instead of
   107.7. The receiver now discards it after every retune over rtl_tcp, which also keeps the old
