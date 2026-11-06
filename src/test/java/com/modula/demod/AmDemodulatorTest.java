@@ -89,6 +89,27 @@ class AmDemodulatorTest {
         }
     }
 
+    /**
+     * The first samples after a reset are not a click. The carrier tracker used to start from zero, so
+     * they were divided by almost nothing — measured, the first output sample was 381 times full
+     * scale and it took about 10 ms to come down — on every power-on and every AM retune.
+     */
+    @Test
+    void startingFreshDoesNotClick() {
+        AmDemodulator demodulator = new AmDemodulator(RATE);
+        float[] i = new float[4_800];
+        float[] q = new float[4_800];
+        float[] out = new float[i.length];
+        fill(i, q, 0.3, 0.5);
+        demodulator.demodulate(i, q, i.length, out);
+
+        float peak = 0f;
+        for (float v : out) {
+            peak = Math.max(peak, Math.abs(v));
+        }
+        assertTrue(peak < 0.6f, "the first block peaked at %.1f; a 30%% tone should stay near 0.3".formatted(peak));
+    }
+
     @Test
     void resetForgetsThePreviousStation() {
         AmDemodulator demodulator = new AmDemodulator(RATE);

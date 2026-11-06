@@ -44,6 +44,13 @@ public final class AmDemodulator {
      */
     public void demodulate(float[] i, float[] q, int count, float[] out) {
         float level = carrier;
+        if (level == 0f && count > 0) {
+            // A fresh start — power on, or a retune's reset — has no carrier estimate yet. Starting the
+            // tracker from zero divided the first envelopes by almost nothing: a full-scale click for
+            // the ten-odd milliseconds the 20 Hz tracker takes to climb, on every AM retune. The first
+            // envelope is already a fair estimate of the carrier.
+            level = (float) Math.hypot(i[0], q[0]);
+        }
         double sum = 0.0;
         double sumOfSquares = 0.0;
         for (int n = 0; n < count; n++) {
