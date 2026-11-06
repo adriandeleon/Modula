@@ -145,6 +145,92 @@ class RadioEnginePipelineTest {
         assertTrue(sink.closed, "and the sound card, which is what finalises a recording");
     }
 
+    /**
+     * A dongle stuck inside a read — librtlsdr's synchronous read has no timeout — when the listener
+     * presses Stop. {@code stop()} waits a second for the reader and then used to close the device
+     * anyway, under the read still in progress: a use-after-free inside the library. It must leave
+     * the close to the reader, which does it once the read returns.
+     */
+    @Test
+    @Timeout(30)
+    void stopNeverClosesTheDeviceUnderAReadInProgress() throws Exception {
+        StuckDongle dongle = new StuckDongle();
+        RadioEngine engine = new RadioEngine(dongle, new ClosingSink(), Region.AMERICAS, BandPlan.fm(Region.AMERICAS));
+        engine.start(START_HZ);
+        assertTrue(dongle.inRead.await(10, TimeUnit.SECONDS), "the reader never started a read");
+
+        engine.stop(); // gives up waiting after a second, with the read still in progress
+        assertTrue(!dongle.closedDuringRead, "the device was closed underneath a read");
+        assertTrue(!dongle.closed, "nothing may close it while the read is still in progress");
+
+        dongle.unstick.countDown();
+        long deadline = System.nanoTime() + 10_000_000_000L;
+        while (!dongle.closed && System.nanoTime() < deadline) {
+            Thread.sleep(5);
+        }
+        assertTrue(dongle.closed, "the reader must close the device once its read returns");
+        assertTrue(!dongle.closedDuringRead);
+    }
+
+    /** Its second read hangs until released, as a stalled USB transfer does. */
+    private static final class StuckDongle implements IqSource {
+
+        final CountDownLatch inRead = new CountDownLatch(1);
+        final CountDownLatch unstick = new CountDownLatch(1);
+        private final java.util.concurrent.atomic.AtomicInteger reads = new java.util.concurrent.atomic.AtomicInteger();
+        private volatile boolean reading;
+        volatile boolean closed;
+        volatile boolean closedDuringRead;
+
+        @Override
+        public void open() {}
+
+        @Override
+        public void setFrequency(long hz) {}
+
+        @Override
+        public void setSampleRate(int samplesPerSecond) {}
+
+        @Override
+        public void applyDefaultGain() {}
+
+        @Override
+        public int read(byte[] into) {
+            reading = true;
+            try {
+                if (reads.incrementAndGet() == 2) {
+                    inRead.countDown();
+                    try {
+                        unstick.await(); // deaf to interrupts, like a native call
+                    } catch (InterruptedException e) {
+                        // a native read is not interruptible; carry on waiting
+                        try {
+                            unstick.await();
+                        } catch (InterruptedException again) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+                return into.length;
+            } finally {
+                reading = false;
+            }
+        }
+
+        @Override
+        public Range tunableRange() {
+            return new Range(0L, Long.MAX_VALUE);
+        }
+
+        @Override
+        public void close() {
+            if (reading) {
+                closedDuringRead = true;
+            }
+            closed = true;
+        }
+    }
+
     /** Delivers a few blocks, then fails the way a pulled USB plug does. */
     private static final class UnpluggedDongle implements IqSource {
 
