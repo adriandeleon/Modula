@@ -91,7 +91,7 @@ public final class RadioPane extends StackPane {
     private List<Preset> presets;
 
     private java.util.function.@Nullable BiConsumer<com.modula.tray.TrayDisplay, String> traySink;
-    private boolean trayAvailable;
+    private TrayState trayState;
     private javafx.application.@Nullable HostServices links;
     private java.util.List<com.modula.schedule.Recording> schedules = java.util.List.of();
     private final com.modula.schedule.ScheduleRun scheduleRun = new com.modula.schedule.ScheduleRun();
@@ -116,6 +116,7 @@ public final class RadioPane extends StackPane {
         this.config = config;
 
         this.settings = config.loadSettings();
+        this.trayState = TrayState.atLaunch(settings.tray());
         this.region = settings.region();
         this.band = BandPlan.named(settings.band(), region);
         this.frequencyHz = band.snap(settings.frequencyHz());
@@ -400,7 +401,7 @@ public final class RadioPane extends StackPane {
      * "keep playing in the tray" box is ticked would reasonably call that a bug.
      */
     public void reportNoTray() {
-        trayAvailable = false;
+        trayState = TrayState.UNAVAILABLE;
         if (settings.tray()) {
             setStatusText("No system tray on this desktop — closing the window will quit Modula.", false);
         }
@@ -408,7 +409,7 @@ public final class RadioPane extends StackPane {
 
     /** Whether a tray icon actually appeared. False until one does. */
     public boolean isTrayAvailable() {
-        return trayAvailable;
+        return trayState == TrayState.SHOWN;
     }
 
     /** Whether closing the window should hide it rather than quit. Read live, not captured. */
@@ -419,7 +420,7 @@ public final class RadioPane extends StackPane {
     /** Receives what the tray should show. Set once the tray exists; null until then. */
     public void setTraySink(java.util.function.BiConsumer<com.modula.tray.TrayDisplay, String> sink) {
         this.traySink = sink;
-        this.trayAvailable = true;
+        this.trayState = TrayState.SHOWN;
         publishTray();
     }
 
@@ -572,7 +573,7 @@ public final class RadioPane extends StackPane {
                     setDaylight(applied.daylight());
                     config.saveSettings(applied);
                 },
-                trayAvailable,
+                trayState,
                 this::showAbout);
     }
 

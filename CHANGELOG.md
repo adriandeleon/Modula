@@ -24,6 +24,10 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Settings said "No system tray on this desktop" to anyone who had turned the tray off.** A tray
+  that was never asked for and one the desktop could not show were the same `false`, so unticking the
+  box got advice about GNOME extensions and greyed out the close-to-tray option. Settings now tells
+  the two apart.
 - **The band selector could disagree with the band.** A scheduled recording switched band without
   moving the selector, and a session saved on AM or AIR started with Stereo still offered, because the
   saved band was set before the selector was listening for changes.

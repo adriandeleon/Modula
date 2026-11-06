@@ -42,13 +42,14 @@ public final class SettingsWindow {
 
     /** Shows the window, reusing it if already open. {@code onApply} receives each change. */
     public static void show(@Nullable Window owner, Settings current, Consumer<Settings> onApply) {
-        show(owner, current, onApply, true, null);
+        show(owner, current, onApply, TrayState.SHOWN, null);
     }
 
     /**
-     * @param trayAvailable whether a tray icon actually appeared; when it did not, the tray options
-     *     are shown disabled with the reason, because ticking a box that cannot do anything and then
-     *     watching the window close the application is the confusing case this page exists to avoid
+     * @param tray whether a tray icon actually appeared, and why not; when the desktop has none, the
+     *     tray options are shown disabled with the reason, because ticking a box that cannot do anything
+     *     and then watching the window close the application is the confusing case this page exists to
+     *     avoid — but a tray the listener turned off is not that case, and is not described as it
      * @param onAbout opens the About window; null leaves the button out rather than showing one that
      *     does nothing
      */
@@ -56,7 +57,7 @@ public final class SettingsWindow {
             @Nullable Window owner,
             Settings current,
             Consumer<Settings> onApply,
-            boolean trayAvailable,
+            TrayState tray,
             @Nullable Runnable onAbout) {
         if (stage != null && stage.isShowing()) {
             stage.toFront();
@@ -149,28 +150,24 @@ public final class SettingsWindow {
         body.getChildren().addAll(format, new HBox(8, encoder), encoderStatus, gap());
 
         body.getChildren().add(heading("System tray"));
-        CheckBox tray = new CheckBox("Show a tray icon");
-        tray.setSelected(current.tray());
+        CheckBox trayBox = new CheckBox("Show a tray icon");
+        trayBox.setSelected(current.tray());
         CheckBox closeToTray = new CheckBox("Closing the window keeps playing in the tray");
         closeToTray.setSelected(current.closeToTray());
         // Bound, or set — never both. setDisable on a bound property throws, and doing that here
         // would have crashed Settings for exactly the people with no tray.
-        if (trayAvailable) {
-            closeToTray.disableProperty().bind(tray.selectedProperty().not());
+        if (tray.allowsCloseToTray()) {
+            closeToTray.disableProperty().bind(trayBox.selectedProperty().not());
         } else {
             closeToTray.setDisable(true);
         }
-        tray.selectedProperty().addListener((o, was, now) -> holder.update(s -> s.withTray(now)));
+        trayBox.selectedProperty().addListener((o, was, now) -> holder.update(s -> s.withTray(now)));
         closeToTray.selectedProperty().addListener((o, was, now) -> holder.update(s -> s.withCloseToTray(now)));
-        Label trayNote = note(
-                trayAvailable
-                        ? "A tray change takes effect next launch."
-                        : "No system tray on this desktop, so closing the window will quit Modula. "
-                                + "GNOME needs the AppIndicator extension; KDE has one built in.");
-        if (!trayAvailable) {
+        Label trayNote = note(tray.note());
+        if (tray.isProblem()) {
             trayNote.getStyleClass().setAll("settings-git-missing");
         }
-        body.getChildren().addAll(tray, closeToTray, trayNote, gap());
+        body.getChildren().addAll(trayBox, closeToTray, trayNote, gap());
 
         body.getChildren().add(heading("Updates"));
         CheckBox updates = new CheckBox("Check for new releases");
