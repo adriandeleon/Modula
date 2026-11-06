@@ -24,6 +24,10 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **A save cut short could empty the preset list.** Settings, presets and schedules were written in
+  place, which truncates the file first, so a full disk or the shutdown watchdog halting the process
+  mid-write left an empty `presets.txt`. Each is now written to a temporary file beside it and renamed
+  into place, so a file holds either the old content or the new.
 - **The station name could stay faint after RDS supplied it, and the display slowed over a long
   session.** Every status before the name arrived added another copy of the pending style — about
   32,000 an hour — and the name's arrival removed only one of them.
