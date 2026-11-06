@@ -59,6 +59,18 @@ public interface IqSource extends AutoCloseable {
      */
     Range tunableRange();
 
+    /**
+     * Bytes that keep arriving from the <em>previous</em> frequency after {@link #setFrequency}, which
+     * the reader discards before trusting what it reads.
+     *
+     * <p>Zero for a source whose next read is already at the new frequency. Not zero for one with
+     * samples in flight between the device and here — rtl_tcp — where the old station's tail would
+     * otherwise be smeared into the new one and, worse, be what seek measures.
+     */
+    default int retuneFlushBytes() {
+        return 0;
+    }
+
     @Override
     void close();
 

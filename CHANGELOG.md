@@ -24,6 +24,19 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Seek over rtl_tcp stopped one channel too early.** rtl_tcp keeps sending the old frequency for about
+  40 ms after a retune, and seek judged that tail: from 106.9 it stopped at 107.1 every time instead of
+  107.7. The receiver now discards it after every retune over rtl_tcp, which also keeps the old
+  station's last moment out of the new one.
+- **A seek could stall, muted, until the next manual tune.** If a tune to the current frequency landed
+  just after seek had picked its next channel, seek waited for a retune that never came, and every
+  later seek sat silent without moving.
+- **A tune made during a seek could be ignored** in favour of the seek's next channel.
+- **Stop could close the dongle underneath a read still in progress**, if the dongle had stalled — a
+  crash inside librtlsdr rather than an error. The read now closes it when it returns.
+- **The receiver could spin a core at 100% after rtl_tcp went away**, when the last thing it sent was
+  an odd byte.
+- **AM clicked at full volume on every retune and power-on**, for about 10 ms.
 - **GNOME Software and KDE Discover listed Modula as a bare package**: a generic icon, no licence, no
   description, and a Project Website button that went nowhere. The package now installs an AppStream
   listing and the icon into the theme, so the installed app shows its name, icon, MIT licence,

@@ -220,6 +220,17 @@ public final class RadioEngine implements AutoCloseable {
     private @Nullable Thread readerThread;
     private @Nullable Thread dspThread;
 
+    /**
+     * Who closes the source: whichever of {@link #stop} and the reader finishes last. Guarded by
+     * itself. {@code stop} gives the reader a second to leave, and librtlsdr's synchronous read has no
+     * timeout, so a stalled dongle can outlast that — and closing the device underneath a read in
+     * progress is a use-after-free inside the library, not an exception.
+     */
+    private final Object sourceHandOff = new Object();
+
+    private boolean readerExited;
+    private boolean closeWhenReaderExits;
+
     public RadioEngine(IqSource source, AudioSink sink, Region region, BandPlan band) {
         this(source, sink, region, band, SeekPolicy.defaultFor(band.modulation()));
     }
@@ -300,6 +311,10 @@ public final class RadioEngine implements AutoCloseable {
         gapNanos.set(0L);
         lastLossTotal = 0L;
         running = true;
+        synchronized (sourceHandOff) {
+            readerExited = false;
+            closeWhenReaderExits = false;
+        }
 
         dspThread = thread(this::demodulate, "modula-dsp");
         readerThread = thread(this::readBlocks, "modula-usb");
@@ -320,7 +335,14 @@ public final class RadioEngine implements AutoCloseable {
         join(dsp);
 
         sink.close();
-        source.close();
+        boolean closeNow;
+        synchronized (sourceHandOff) {
+            closeNow = reader == null || readerExited || !reader.isAlive();
+            closeWhenReaderExits = !closeNow;
+        }
+        if (closeNow) {
+            source.close();
+        }
         publish();
     }
 
@@ -340,11 +362,13 @@ public final class RadioEngine implements AutoCloseable {
     private void readBlocks() {
         byte[] raw = new byte[DemodChain.BLOCK_PAIRS * BYTES_PER_PAIR];
         long lastReadEnd = 0L;
+        int flush = 0;
         try {
             while (running) {
                 if (applyPendingRetune()) {
                     // A retune is deliberate dead air while the oscillator moves; not a loss.
                     lastReadEnd = 0L;
+                    flush = source.retuneFlushBytes();
                 }
 
                 long readStart = System.nanoTime();
@@ -361,6 +385,12 @@ public final class RadioEngine implements AutoCloseable {
                 if (n <= 0) {
                     break; // source exhausted or closed
                 }
+                if (flush > 0) {
+                    // Still the previous frequency, arriving late; see IqSource.retuneFlushBytes.
+                    // Reading and dropping it is still only reading.
+                    flush -= n;
+                    continue;
+                }
                 if (ring.write(raw, n) == 0) {
                     // The ring is full, so samples are already being lost whatever we do; pausing
                     // costs nothing and stops us burning a core against a source that cannot be
@@ -376,10 +406,22 @@ public final class RadioEngine implements AutoCloseable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (RuntimeException e) {
-            errorListener.accept(e);
+            // As for IOException: a source closed under a stopping reader can fail in ways that are
+            // not an IOException, and a fault reported after the listener pressed Stop is noise.
+            if (running) {
+                errorListener.accept(e);
+            }
         } finally {
             // Whatever happened, release the DSP thread rather than leaving it waiting for a block.
             ring.finish();
+            boolean close;
+            synchronized (sourceHandOff) {
+                readerExited = true;
+                close = closeWhenReaderExits;
+            }
+            if (close) {
+                source.close(); // stop() gave up waiting and left it to us; see sourceHandOff
+            }
         }
     }
 
@@ -411,7 +453,13 @@ public final class RadioEngine implements AutoCloseable {
         long blocks = 0;
         try {
             while (running) {
-                applyPendingSeekRequest();
+                if (applyPendingSeekRequest()) {
+                    // A seek started or cancelled: any step the previous one parked is moot, and so is
+                    // waiting for it. Waiting on regardless was a permanent stall when the step had
+                    // been overwritten by a tune to where we already were — no retune, so no
+                    // generation bump, so every later seek sat muted and never moved.
+                    awaitingTune = false;
+                }
 
                 int n = ring.read(raw, raw.length, READ_TIMEOUT_MS);
                 if (n < 0) {
@@ -460,15 +508,23 @@ public final class RadioEngine implements AutoCloseable {
         }
     }
 
-    /** Starts or cancels a seek on this thread, where the scanner lives. */
-    private void applyPendingSeekRequest() {
+    /**
+     * Starts or cancels a seek on this thread, where the scanner lives.
+     *
+     * @return whether either happened
+     */
+    private boolean applyPendingSeekRequest() {
+        boolean changed = false;
         if (requestedCancel.getAndSet(false)) {
             scanner.cancel();
+            changed = true;
         }
         Scanner.Direction seek = requestedSeek.getAndSet(null);
         if (seek != null) {
             scanner.start(currentHz, seek);
+            changed = true;
         }
+        return changed;
     }
 
     /**
@@ -485,9 +541,11 @@ public final class RadioEngine implements AutoCloseable {
                 return false;
             }
             case RETUNE, EXHAUSTED -> {
-                // The device belongs to the reader thread, so ask rather than tune.
-                if (step.frequencyHz() != currentHz) {
-                    requestedHz.set(step.frequencyHz());
+                // The device belongs to the reader thread, so ask rather than tune — and only if nothing
+                // is already waiting. The one thing that can be is a tune the listener asked for during
+                // this block, which comes with a cancel this loop has not seen yet; an unconditional set
+                // replaced it, so the receiver landed on the seek's next channel instead.
+                if (step.frequencyHz() != currentHz && requestedHz.compareAndSet(-1L, step.frequencyHz())) {
                     retuneRequested = true;
                 }
                 return true;

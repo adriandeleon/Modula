@@ -156,7 +156,10 @@ public final class ByteRing {
             }
             wait(remaining / 1_000_000L + 1, (int) (remaining % 1_000_000L));
         }
-        if (size == 0) {
+        // Fewer than two bytes is not a pair. Testing for empty instead left a finished ring holding
+        // one stray byte answering 0 for ever — never -1 — so the DSP thread spun at full priority
+        // on a loop that could not end. A dying rtl_tcp server's last short read is odd half the time.
+        if (size < 2) {
             return finished ? -1 : 0;
         }
         int n = Math.min(Math.min(want, size), dst.length);
@@ -175,9 +178,12 @@ public final class ByteRing {
      * Waits up to {@code timeoutMillis} for room to appear.
      *
      * <p>For a source that can be back-pressured — a file replay, a test fake — where pausing beats
-     * dropping. A live dongle must not call this: pausing the reader is the very thing this class
-     * exists to prevent. It is only ever reached once the ring is already full, i.e. once samples are
-     * being lost anyway.
+     * dropping. The engine calls it for a live dongle too, and that is safe for one reason: it only
+     * returns early-and-waits once the ring is already full, i.e. once the DSP has fallen behind and
+     * samples are being lost whatever the reader does. A live reader that paused for any other reason
+     * would be the very loss this class exists to prevent. The refused block that led here is counted
+     * as dropped; what the dongle produces during the pause itself is counted nowhere, which is
+     * acceptable only because the DSP falling behind is already on the record.
      */
     public synchronized void awaitSpace(long timeoutMillis) throws InterruptedException {
         if (size < buf.length || finished) {

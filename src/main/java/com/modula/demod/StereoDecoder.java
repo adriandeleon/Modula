@@ -1,6 +1,5 @@
 package com.modula.demod;
 
-import com.modula.dsp.FirDesign;
 import com.modula.dsp.FirFilter;
 
 /**
@@ -30,23 +29,19 @@ public final class StereoDecoder {
     private final float[] mixed;
 
     /**
-     * @param ifRate multiplex sample rate
-     * @param audioRate output sample rate; {@code ifRate} must be an integer multiple of it
-     * @param audioCutoffHz low-pass applied to the recovered difference signal
+     * @param sumPathTaps the low-pass the caller's sum path uses — the very same taps, not a matching
+     *     design. The two paths must reach the matrix with the same delay and the same sample count,
+     *     and this class used to rebuild its filter from its own arithmetic, which agreed with the sum
+     *     path's only because 24 kHz minus a 15 kHz cutoff happened to equal the 9 kHz transition
+     *     written there. A filter on one path only is the mistake that quietly narrows the image.
+     * @param decimation the sum path's decimation, multiplex rate over audio rate
      * @param maxInput largest multiplex block that will be handed to {@link #decodeDifference}
      */
-    public StereoDecoder(double ifRate, double audioRate, double audioCutoffHz, int maxInput) {
-        int decimation = (int) Math.round(ifRate / audioRate);
-        if (Math.abs(decimation * audioRate - ifRate) > 1e-6) {
-            throw new IllegalArgumentException(
-                    "ifRate %f is not an integer multiple of audioRate %f".formatted(ifRate, audioRate));
+    public StereoDecoder(float[] sumPathTaps, int decimation, int maxInput) {
+        if (decimation < 1) {
+            throw new IllegalArgumentException("decimation must be >= 1, got " + decimation);
         }
-
-        // Matches the sum path's filter, so the two arrive at the matrix with the same delay and the
-        // same sample count.
-        float[] audioTaps = FirDesign.lowPass(
-                FirDesign.tapsForTransition((audioRate / 2.0 - audioCutoffHz) / ifRate), audioCutoffHz / ifRate);
-        this.differenceLowPass = new FirFilter(audioTaps, decimation);
+        this.differenceLowPass = new FirFilter(sumPathTaps, decimation);
         this.mixed = new float[maxInput];
     }
 

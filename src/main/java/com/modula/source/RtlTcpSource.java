@@ -41,6 +41,20 @@ public final class RtlTcpSource implements IqSource {
     /** Bypassing the tuner samples the ADC directly, up to half its 28.8 MHz clock. */
     private static final Range DIRECT_RANGE = new Range(100_000L, 14_400_000L);
 
+    /**
+     * What to throw away after a retune: 256 KB, about 109 ms at 1.2 MSPS.
+     *
+     * <p>Measured, switching between a station at −7 dB and an empty channel at −36 dB: the first
+     * three 32 KB blocks read after the command were still the old frequency, the fourth was mixed,
+     * the fifth was clean — the same on all six switches, over loopback. That is about 41 ms of the old
+     * station, and seek, which judged the third block after a retune, was judging the channel it had
+     * just left — so stepping off a station it stopped one channel up, on the station's own tail.
+     * Double the measured amount, because a dongle served across a network has more in flight than
+     * one on loopback. Retuning over rtl_tcp costs that much more silence; the native path, whose
+     * first block after a retune is the only mixed one, pays nothing.
+     */
+    static final int RETUNE_FLUSH_BYTES = 256 * 1024;
+
     private final String host;
     private final int port;
 
@@ -126,6 +140,11 @@ public final class RtlTcpSource implements IqSource {
             throw new IOException("source is not open");
         }
         return in.readNBytes(into, 0, into.length);
+    }
+
+    @Override
+    public int retuneFlushBytes() {
+        return RETUNE_FLUSH_BYTES;
     }
 
     @Override

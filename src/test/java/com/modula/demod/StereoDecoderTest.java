@@ -187,6 +187,10 @@ class StereoDecoderTest {
     }
 
     private static StereoDecoder newDecoder() {
-        return new StereoDecoder(IF_RATE, AUDIO_RATE, AUDIO_CUTOFF_HZ, MPX_SAMPLES);
+        // The production sum path's design: a 9 kHz transition at the multiplex rate, decimating to audio.
+        float[] taps = com.modula.dsp.FirDesign.lowPass(
+                com.modula.dsp.FirDesign.tapsForTransition((AUDIO_RATE / 2.0 - AUDIO_CUTOFF_HZ) / IF_RATE),
+                AUDIO_CUTOFF_HZ / IF_RATE);
+        return new StereoDecoder(taps, (int) (IF_RATE / AUDIO_RATE), MPX_SAMPLES);
     }
 }

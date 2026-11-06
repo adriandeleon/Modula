@@ -202,7 +202,7 @@ public final class DemodChain {
 
         this.pilotTracker = new PilotTracker(IF_RATE, ifCapacity);
         this.stereoBlend = new StereoBlend((double) INPUT_RATE / maxPairs);
-        this.stereoDecoder = new StereoDecoder(IF_RATE, AUDIO_RATE, AUDIO_CUTOFF_HZ, ifCapacity);
+        this.stereoDecoder = new StereoDecoder(audioTaps, AUDIO_DECIMATION, ifCapacity);
         this.rdsReceiver = new RdsReceiver(IF_RATE, ifCapacity);
 
         // The pilot tracker delays the multiplex to meet its own reference; the sum path must be
