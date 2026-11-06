@@ -94,7 +94,8 @@ public final class RadioPane extends StackPane {
     private boolean trayAvailable;
     private javafx.application.@Nullable HostServices links;
     private java.util.List<com.modula.schedule.Recording> schedules = java.util.List.of();
-    private @Nullable String activeScheduleId;
+    private final com.modula.schedule.ScheduleRun scheduleRun = new com.modula.schedule.ScheduleRun();
+    private final DialFollower dial = new DialFollower();
     private javafx.animation.Timeline scheduleWatch;
     private @Nullable ContextMenu contextMenu;
     private com.modula.update.@Nullable ReleaseInfo update;
@@ -318,29 +319,52 @@ public final class RadioPane extends StackPane {
     }
 
     private void checkSchedule() {
-        if (schedules.isEmpty()) {
-            return;
+        if (schedules.isEmpty() && !scheduleRun.isActive()) {
+            return; // a slot still running when its schedule was deleted must still end
         }
         com.modula.schedule.Recording due =
                 com.modula.schedule.Scheduler.activeAt(schedules, java.time.LocalDateTime.now());
-        if (due != null && !due.id().equals(activeScheduleId)) {
-            activeScheduleId = due.id();
+        com.modula.schedule.ScheduleRun.Change change = scheduleRun.tick(due);
+        if (change == com.modula.schedule.ScheduleRun.Change.BEGIN && due != null) {
             beginScheduled(due);
-        } else if (due == null && activeScheduleId != null) {
-            activeScheduleId = null;
-            if (isRecording()) {
+        } else if (change == com.modula.schedule.ScheduleRun.Change.END
+                || change == com.modula.schedule.ScheduleRun.Change.END_AND_POWER_OFF) {
+            boolean recorded = isRecording();
+            if (recorded) {
                 toggleRecording(); // the window closed; stop where the schedule said to
-                setStatusText("Scheduled recording finished.", false);
+            }
+            // Only a receiver the schedule switched on is switched off; someone listening keeps listening.
+            RadioEngine e = engine;
+            boolean powerOff =
+                    change == com.modula.schedule.ScheduleRun.Change.END_AND_POWER_OFF && e != null && e.isRunning();
+            if (powerOff) {
+                togglePower();
+            }
+            if (recorded || powerOff) {
+                setStatusText(
+                        powerOff
+                                ? "Scheduled recording finished; the receiver is off again."
+                                : "Scheduled recording finished.",
+                        false);
             }
         }
     }
 
     /** Tunes and records. Starting the receiver first is the point — recording tees what is playing. */
     private void beginScheduled(com.modula.schedule.Recording due) {
-        setBand(due.band());
+        // Through the combo, whose listener switches the band, so the footer cannot show the old one.
+        String bandName = BandPlan.named(due.band(), region).name();
+        if (!bandName.equals(bandCombo.getValue())) {
+            bandCombo.setValue(bandName);
+        }
         tuneTo(due.frequencyHz());
-        if (engine == null || !engine.isRunning()) {
+        RadioEngine before = engine;
+        if (before == null || !before.isRunning()) {
             togglePower();
+            RadioEngine after = engine;
+            if (after != null && after.isRunning()) {
+                scheduleRun.poweredReceiverOn(); // so the slot's end switches it off again
+            }
         }
         if (isRecording()) {
             toggleRecording(); // whatever was being recorded, the schedule takes over
@@ -614,6 +638,26 @@ public final class RadioPane extends StackPane {
         }
     }
 
+    /**
+     * Reports a recording that a failed write ended on the receive thread.
+     *
+     * <p>{@link RecordingSink} stops itself and keeps the reason, and nothing told the pane: the
+     * button stayed coral, the tray kept its badge, and the next press of Record — meant as Stop —
+     * started a new recording instead. The button's class is the pane's record of what it last
+     * showed, so a mismatch with the sink is exactly a recording that ended without being asked to.
+     */
+    private void noticeRecordingEnded() {
+        RecordingSink r = recorder;
+        if (r == null || r.isRecording() || !recordButton.getStyleClass().contains("recording")) {
+            return;
+        }
+        recordButton.getStyleClass().remove("recording");
+        String reason = r.failure();
+        // Blank when the engine finalised it on the way out rather than a write failing: news, not a fault.
+        setStatusText(reason.isBlank() ? "Recording stopped." : "Recording stopped: " + reason, !reason.isBlank());
+        publishTray();
+    }
+
     /** Names the file after the station when RDS has told us one, else after the frequency. */
     private String recordingLabel() {
         RadioEngine.Status status = latestStatus.get();
@@ -767,6 +811,9 @@ public final class RadioPane extends StackPane {
         bandCombo.getItems().setAll("FM", "AM", "AIR");
         bandCombo.setValue(band.name());
         bandCombo.valueProperty().addListener((o, old, value) -> setBand(value));
+        // The value above was set before the listener existed, so setBand never ran for it: a session
+        // saved on AM or AIR came back with Stereo still offered.
+        stereoCheck.setDisable(!band.modulation().carriesStereo());
 
         settingsButton.setGraphic(Glyphs.settings());
         settingsButton.getStyleClass().add("record-button"); // same footer chrome
@@ -1026,6 +1073,9 @@ public final class RadioPane extends StackPane {
     // --- actions -------------------------------------------------------------------------------
 
     public void togglePower() {
+        // Listen or Stop from the listener makes the receiver theirs, so a schedule that switched it on
+        // will not switch it off under them. A schedule's own call re-claims it straight after.
+        scheduleRun.listenerTookOver();
         if (engine != null && engine.isRunning()) {
             stopReceiver();
             config.saveSettings(currentSettings());
@@ -1177,6 +1227,7 @@ public final class RadioPane extends StackPane {
             setStatusText("Seek cancelled.", false);
             return;
         }
+        dial.released(); // the engine picks the frequency now, and the dial follows its status
         e.seek(direction);
         setSeekLabels(true);
     }
@@ -1188,6 +1239,7 @@ public final class RadioPane extends StackPane {
     }
 
     private void tuneTo(long hz) {
+        dial.tuned(hz);
         frequencyHz = hz;
         glass.setFrequency(hz);
         presetBar.setTuned(hz);
@@ -1284,11 +1336,14 @@ public final class RadioPane extends StackPane {
         if (status == null) {
             return;
         }
-        // Seek retunes the engine, so the display follows it rather than the buttons.
-        if (status.frequencyHz() > 0 && status.frequencyHz() != frequencyHz) {
-            frequencyHz = status.frequencyHz();
+        // Seek retunes the engine, so the display follows it rather than the buttons — but not a status
+        // published before a tune the listener asked for had landed, which would snap the dial back.
+        long followed = dial.follow(status.frequencyHz(), frequencyHz);
+        if (followed != frequencyHz) {
+            frequencyHz = followed;
             presetBar.setTuned(frequencyHz);
         }
+        noticeRecordingEnded();
 
         // The previous state is what gives the weak threshold hysteresis; ReceiverState stays pure by
         // being told rather than remembering. FX thread only, so a plain field is enough.

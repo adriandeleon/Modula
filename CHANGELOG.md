@@ -24,6 +24,19 @@ and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **The band selector could disagree with the band.** A scheduled recording switched band without
+  moving the selector, and a session saved on AM or AIR started with Stereo still offered, because the
+  saved band was set before the selector was listening for changes.
+- **A scheduled recording that switched the receiver on left it playing when the slot ended.** The
+  end stopped only the recording. A receiver the schedule switched on is now switched off again, and
+  one that was already playing, or that the listener pressed Listen or Stop on during the slot, is left
+  as it is.
+- **A quick second press of an arrow key could step from the old frequency.** A status published
+  before the receiver had applied a retune still carried the frequency it was leaving, and the dial
+  followed it back. The dial now waits for the tune it asked for to land; seek still moves it.
+- **A recording that failed part-way through looked as if it were still running.** A full disk ended
+  the recording, but the record button stayed lit, the tray kept its badge, and the next press — meant
+  as Stop — started a new recording. The button now goes out and the status line says why.
 - **`volume=NaN` in `settings.properties` meant permanent silence.** The parser accepted "NaN" and the
   range clamp let it through, so no slider position made a sound. A non-finite volume now falls back to
   the default.
