@@ -212,6 +212,17 @@ the DSP thread**, because it decides from `noiseDbfs`, and it must not step agai
 asked for has landed — otherwise it measures a block captured at the previous frequency and walks the
 whole band without ever hearing the station on it.
 
+**"Landed" has to mean the samples, not the command.** rtl_tcp keeps delivering the frequency it just
+left — measured over loopback, three 32 KB blocks of the old station after a retune and one mixed —
+so `IqSource.retuneFlushBytes()` says how much to discard and the reader reads and drops it (still only
+reading). Without it seek judged the old station's tail: from 106.9 it stopped at 107.1 every time, on
+the live dongle over rtl_tcp, where 107.7 is the next station. The native path's first block after a
+retune is the only mixed one, which the settle already covers. **Starting or cancelling a seek clears
+the wait**, and a seek step is parked with `compareAndSet` so it can never replace a tune already
+waiting: a step overwritten by a tune to the current frequency produced no retune and so no stamp, and
+every later seek used to sit muted waiting for one. `RadioEngineSeekTest` covers both, with a dongle
+that lags as measured and one that hands out a block per permit.
+
 ## Invariants
 
 These are the things that will silently break the receiver if violated.
@@ -745,7 +756,10 @@ the unversioned name alone finds nothing on a perfectly working system.
 
 **librtlsdr is not thread-safe and `RtlSdrNativeSource` does not make it so.** It does not need to:
 `RadioEngine` already confines reads, retunes and gain changes to its receive thread by construction,
-and calls `close` only after joining it. Buffers come from an `Arena.ofAuto()` so there is no
+and **the device is closed by whichever of `stop()` and the reader finishes last**. `stop()` waits a
+second for the reader; `rtlsdr_read_sync` has no timeout, so a stalled dongle can outlast that, and it
+used to close the device anyway — under a read still in progress. Now it leaves the close to the
+reader, which does it on its way out (`RadioEnginePipelineTest.stopNeverClosesTheDeviceUnderAReadInProgress`). Buffers come from an `Arena.ofAuto()` so there is no
 close-while-reading hazard — a shared arena closed from the FX thread while the receive thread is
 inside `rtlsdr_read_sync` is exactly the crash this avoids.
 
